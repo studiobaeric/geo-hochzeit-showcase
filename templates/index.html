@@ -8,7 +8,25 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div id="map"></div>
+    <!-- Foto-Ansicht -->
+    <div id="photoView" class="view active">
+        <div id="photoContainer">
+            <img id="photoImage" src="" alt="Hochzeitsfoto">
+        </div>
+        <div id="photoControls">
+            <button id="guessButton" class="btn-primary">Tipp abgeben</button>
+        </div>
+    </div>
+
+    <!-- Karten-Ansicht -->
+    <div id="mapView" class="view">
+        <div id="map"></div>
+        <div id="controls">
+            <button id="backToPhotoButton" class="btn-secondary">Zurück zum Foto</button>
+            <button id="lockButton" disabled>Einlocken</button>
+        </div>
+        <div id="result"></div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/map.js') }}"></script>

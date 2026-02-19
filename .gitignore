@@ -1,2 +1,6 @@
 # Tile cache - zu groß für Git
 static/tiles/
+
+# Hochzeitsfotos - privat
+static/photos/
+!static/photos/README.md

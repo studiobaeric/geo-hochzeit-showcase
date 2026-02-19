@@ -7,9 +7,148 @@
 body, html {
     height: 100%;
     font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+/* View-Container */
+.view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+/* Foto-Ansicht */
+#photoView {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#photoContainer {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-height: calc(100vh - 100px);
+    overflow: hidden;
+}
+
+#photoImage {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+}
+
+#photoControls {
+    padding: 20px;
+    flex-shrink: 0;
+}
+
+/* Karten-Ansicht */
+#mapView {
+    background: #fff;
 }
 
 #map {
     width: 100%;
     height: 100vh;
+}
+
+#controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+}
+
+/* Button-Styles */
+.btn-primary, .btn-secondary, #lockButton {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+}
+
+.btn-primary, #guessButton {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-primary:hover, #guessButton:hover {
+    background-color: #0b7dda;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.4);
+}
+
+.btn-secondary, #backToPhotoButton {
+    background-color: #757575;
+    color: white;
+}
+
+.btn-secondary:hover, #backToPhotoButton:hover {
+    background-color: #616161;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.4);
+}
+
+#lockButton {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#lockButton:hover:not(:disabled) {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.4);
+}
+
+#lockButton:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#result {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    display: none;
+    min-width: 300px;
+    text-align: center;
+}
+
+#result h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+#result p {
+    margin: 5px 0;
+    font-size: 18px;
+    color: #666;
 }
