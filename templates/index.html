@@ -10,10 +10,11 @@
 <body>
     <!-- Foto-Ansicht -->
     <div id="photoView" class="view active">
-        <div id="photoContainer">
-            <img id="photoImage" src="" alt="Hochzeitsfoto">
+        <div id="photoContainer" class="zoom-container">
+            <img id="photoImage" src="" alt="Hochzeitsfoto" class="zoomable">
         </div>
         <div id="photoControls">
+            <button id="resetZoomButton" class="btn-secondary" style="display: none;">Zoom zurücksetzen</button>
             <button id="guessButton" class="btn-primary">Tipp abgeben</button>
         </div>
     </div>
@@ -29,6 +30,7 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/photo.js') }}"></script>
     <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 </body>
 </html>

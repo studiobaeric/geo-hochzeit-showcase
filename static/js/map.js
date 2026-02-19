@@ -168,3 +168,6 @@ function toRad(degrees) {
 
 // App initialisieren
 loadPhotos();
+
+// Initialisiere Foto-Zoom
+const photoZoom = new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton');
