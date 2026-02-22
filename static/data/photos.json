@@ -6,6 +6,42 @@
       "lat": 49.3690,
       "lng": 9.5436
     },
-    "description": "Schloss"
+    "description": "Schloss Aschaffenburg"
+  },
+  {
+    "id": 2,
+    "filename": "test1.jpg",
+    "location": {
+      "lat": 49.8100,
+      "lng": 9.2900
+    },
+    "description": "Frankfurt am Main"
+  },
+  {
+    "id": 3,
+    "filename": "test2.jpg",
+    "location": {
+      "lat": 48.8566,
+      "lng": 2.3522
+    },
+    "description": "Paris, Frankreich"
+  },
+  {
+    "id": 4,
+    "filename": "test3.jpg",
+    "location": {
+      "lat": 48.1351,
+      "lng": 11.5820
+    },
+    "description": "München"
+  },
+  {
+    "id": 5,
+    "filename": "test4.jpg",
+    "location": {
+      "lat": 51.5074,
+      "lng": -0.1278
+    },
+    "description": "London, Großbritannien"
   }
 ]

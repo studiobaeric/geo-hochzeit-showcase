@@ -1,0 +1,108 @@
+# Spielfluss - Mehrere Runden
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     HOCHZEITS GEOGUESSER                         │
+└─────────────────────────────────────────────────────────────────┘
+
+START
+  ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 📷 FOTO-ANSICHT (Runde 1/5)                                     │
+│                                                                   │
+│  ┌──────────────────────────────────┐                           │
+│  │      Hochzeitsfoto               │                           │
+│  │   (Zoom & Pan möglich)           │                           │
+│  │                                  │                           │
+│  └──────────────────────────────────┘                           │
+│                                                                   │
+│  ┌──────────────────────────────────┐                           │
+│  │   [Zoom zurücksetzen] [Tipp abgeben]                        │
+│  └──────────────────────────────────┘                           │
+└─────────────────────────────────────────────────────────────────┘
+  │ (Klick "Tipp abgeben")
+  ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 🗺️  KARTEN-ANSICHT                                              │
+│                                                                   │
+│  ┌──────────────────────────────────────┐                       │
+│  │                                      │                       │
+│  │  🟦 Blauer Marker = Dein Tipp       │  [Zurück] [Einlocken] │
+│  │     (Klick auf Karte zum setzen)    │  [Nächstes Foto]     │
+│  │                                      │                       │
+│  └──────────────────────────────────────┘                       │
+└─────────────────────────────────────────────────────────────────┘
+  │ (Klick "Einlocken")
+  ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ ✅ ERGEBNIS ANZEIGEN                                            │
+│                                                                   │
+│  ┌──────────────────────────────────────┐                       │
+│  │                                      │                       │
+│  │  🔵 Blau = Dein Tipp                │                       │
+│  │  🔴 Rot = Tatsächliche Position     │                       │
+│  │  ≈≈≈ Rote Linie = Entfernung        │                       │
+│  │                                      │                       │
+│  │  Distanz: 523 km                    │                       │
+│  │                                      │                       │
+│  └──────────────────────────────────────┘                       │
+│                                                                   │
+│             ┌────────────────────────┐                          │
+│             │ [Nächstes Foto] 👉     │                          │
+│             └────────────────────────┘                          │
+└─────────────────────────────────────────────────────────────────┘
+  │
+  ├─→ (Wenn Runde < 5) ─→ Zurück zu FOTO-ANSICHT (Runde 2/5) ↻
+  │
+  └─→ (Wenn Runde = 5) ─→ SPIEL-ENDE
+         ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 🎊 SPIEL BEENDET                                                │
+│                                                                   │
+│  Glückwunsch!                                                    │
+│  Du hast alle 5 Runden gespielt.                                │
+│                                                                   │
+│             ┌──────────────────┐                                │
+│             │ [Neu starten]    │                                │
+│             └──────────────────┘                                │
+└─────────────────────────────────────────────────────────────────┘
+  │ (Klick "Neu starten")
+  └─→ Zurück zu START (Runde 1/5) ↻
+
+
+═══════════════════════════════════════════════════════════════════
+DATENFLUSS:
+═══════════════════════════════════════════════════════════════════
+
+photos.json
+    ↓
+loadPhotos()
+    ↓
+photos[] Array mit allen Fotos
+totalRounds = 5
+    ↓
+loadPhoto(currentPhotoIndex)
+    ↓
+updateRoundDisplay() → zeigt "Runde 1/5"
+    ↓
+Nach Lock-In:
+    ├→ resetForNextRound()
+    ├→ loadPhoto(currentPhotoIndex + 1)
+    ├→ Wenn currentPhotoIndex < totalRounds:
+    │   └→ Nächste Runde
+    └→ Wenn currentPhotoIndex >= totalRounds:
+        └→ showGameOver()
+
+
+═══════════════════════════════════════════════════════════════════
+WICHTIGE FUNKTIONEN:
+═══════════════════════════════════════════════════════════════════
+
+✓ loadPhotos()          - Lädt Fotos aus photos.json
+✓ loadPhoto(index)      - Setzt aktuelles Foto
+✓ updateRoundDisplay()  - Aktualisiert "Runde X/N" Anzeige
+✓ resetForNextRound()   - Setzt Marker & Zustand zurück
+✓ nextPhoto()           - Geht zur nächsten Runde
+✓ showGameOver()        - Zeigt Spiel-Ende Bildschirm
+
+═══════════════════════════════════════════════════════════════════

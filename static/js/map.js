@@ -6,12 +6,14 @@ let isLocked = false;
 let photos = [];
 let currentPhotoIndex = 0;
 let currentPhoto = null;
+let totalRounds = 0;
 
 // Lade Foto-Daten
 async function loadPhotos() {
     try {
         const response = await fetch('/static/data/photos.json');
         photos = await response.json();
+        totalRounds = photos.length;
         if (photos.length > 0) {
             loadPhoto(0);
         }
@@ -26,7 +28,14 @@ function loadPhoto(index) {
         currentPhotoIndex = index;
         currentPhoto = photos[index];
         document.getElementById('photoImage').src = `/static/photos/${currentPhoto.filename}`;
+        updateRoundDisplay();
     }
+}
+
+// Aktualisiere Rundenanzeigefunction 
+function updateRoundDisplay() {
+    const roundInfo = `Runde ${currentPhotoIndex + 1} / ${totalRounds}`;
+    document.getElementById('roundInfo').textContent = roundInfo;
 }
 
 // View-Wechsel
@@ -38,6 +47,68 @@ function showView(viewName) {
     if (viewName === 'mapView') {
         setTimeout(() => map.invalidateSize(), 100);
     }
+}
+
+// Setze Spielzustand für nächste Runde zurück
+function resetForNextRound() {
+    // Entferne Marker und Linien von der Karte
+    if (guessMarker) {
+        map.removeLayer(guessMarker);
+        guessMarker = null;
+    }
+    if (targetMarker) {
+        map.removeLayer(targetMarker);
+        targetMarker = null;
+    }
+    if (resultLine) {
+        map.removeLayer(resultLine);
+        resultLine = null;
+    }
+
+    // Setze Spielzustand zurück
+    isLocked = false;
+    document.getElementById('lockButton').disabled = true;
+    document.getElementById('lockButton').textContent = 'Einlocken';
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('backToPhotoButton').style.display = 'inline-block';
+    document.getElementById('nextPhotoButton').style.display = 'none';
+}
+
+// Gehe zum nächsten Foto
+function nextPhoto() {
+    if (currentPhotoIndex + 1 < photos.length) {
+        // Leere das Foto-Element sofort, damit altes Foto nicht sichtbar ist
+        document.getElementById('photoImage').src = '';
+        resetForNextRound();
+        loadPhoto(currentPhotoIndex + 1);
+        showView('photoView');
+    } else {
+        // Spiel beendet
+        showGameOver();
+    }
+}
+
+// Zeige Spiel-Ende Bildschirm
+function showGameOver() {
+    document.getElementById('result').innerHTML = `
+        <h2>Spiel beendet!</h2>
+        <p>Du hast alle ${totalRounds} Runden gespielt.</p>
+        <button id="restartButton" class="btn-primary">Neu starten</button>
+    `;
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('backToPhotoButton').style.display = 'none';
+    document.getElementById('nextPhotoButton').style.display = 'none';
+    document.getElementById('lockButton').style.display = 'none';
+
+    document.getElementById('restartButton').addEventListener('click', function() {
+        // Leere das Foto-Element sofort
+        document.getElementById('photoImage').src = '';
+        resetForNextRound();
+        loadPhoto(0);
+        showView('photoView');
+        document.getElementById('lockButton').style.display = 'inline-block';
+    });
 }
 
 // Initialisiere die Karte
@@ -87,6 +158,10 @@ document.getElementById('backToPhotoButton').addEventListener('click', function(
     if (!isLocked) {
         showView('photoView');
     }
+});
+
+document.getElementById('nextPhotoButton').addEventListener('click', function() {
+    nextPhoto();
 });
 
 // Lock-In Button Handler
@@ -142,6 +217,15 @@ document.getElementById('lockButton').addEventListener('click', function() {
 
     // Verstecke "Zurück zum Foto" Button
     document.getElementById('backToPhotoButton').style.display = 'none';
+
+    // Zeige "Nächstes Foto" Button (oder "Zum Ergebnis" wenn letzte Runde)
+    if (currentPhotoIndex + 1 < photos.length) {
+        document.getElementById('nextPhotoButton').textContent = 'Nächstes Foto';
+        document.getElementById('nextPhotoButton').style.display = 'inline-block';
+    } else {
+        document.getElementById('nextPhotoButton').textContent = 'Zum Ergebnis';
+        document.getElementById('nextPhotoButton').style.display = 'inline-block';
+    }
 
     // Zoom auf beide Marker
     const bounds = L.latLngBounds([guessMarker.getLatLng(), actualLocation]);
