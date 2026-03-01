@@ -5,9 +5,16 @@
 }
 
 body, html {
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;  /* Dynamic Viewport Height - ignoriert Browser-UI auf Android */
     font-family: Arial, sans-serif;
     overflow: hidden;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -webkit-app-region: no-drag;
 }
 
 /* View-Container */
@@ -15,8 +22,10 @@ body, html {
     position: absolute;
     top: 0;
     left: 0;
+    width: 100vw;
     width: 100%;
     height: 100vh;
+    height: 100dvh;  /* Dynamic Viewport Height Fallback */
     display: none;
 }
 
@@ -29,8 +38,18 @@ body, html {
     background: #000;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    #photoView {
+        padding-bottom: 140px;
+    }
 }
 
 #photoContainer {
@@ -42,6 +61,13 @@ body, html {
     max-height: calc(100vh - 100px);
     overflow: auto;
     cursor: grab;
+}
+
+/* Mobile Optimierung für Photo Container */
+@media (max-width: 768px) {
+    #photoContainer {
+        max-height: calc(100dvh - 150px);
+    }
 }
 
 #photoContainer.zoomed {
@@ -65,6 +91,35 @@ body, html {
     display: flex;
     gap: 10px;
     justify-content: center;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile Optimierung für Foto Controls */
+@media (max-width: 768px) {
+    #photoControls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        padding: 12px 10px;
+        gap: 8px;
+        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: stretch;
+        z-index: 1001;
+        /* Safe area insets für Geräte mit Notch/Gestures */
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        background: rgba(0, 0, 0, 0.95);
+        border-top: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    #photoControls button {
+        flex: 1;
+        min-width: 100px;
+    }
 }
 
 /* Karten-Ansicht */
@@ -73,8 +128,10 @@ body, html {
 }
 
 #map {
+    width: 100vw;
     width: 100%;
     height: 100vh;
+    height: 100dvh;  /* Dynamic Viewport Height für Android Edge */
 }
 
 #controls {
@@ -84,6 +141,25 @@ body, html {
     z-index: 1000;
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100% - 40px);
+}
+
+/* Mobile Optimierung für Controls */
+@media (max-width: 768px) {
+    #controls {
+        top: auto;
+        bottom: 20px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: auto;
+        max-width: 90vw;
+        justify-content: center;
+        gap: 5px;
+        flex-direction: column;
+    }
 }
 
 /* Button-Styles */
@@ -96,6 +172,29 @@ body, html {
     cursor: pointer;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     transition: all 0.3s;
+    min-height: 44px;
+    min-width: 100px;
+}
+
+/* Mobile Optimierung für Buttons */
+@media (max-width: 768px) {
+    .btn-primary, .btn-secondary, #lockButton {
+        padding: 14px 20px;
+        font-size: 14px;
+        min-height: 50px;
+        min-width: 120px;
+        width: 100%;
+        max-width: 250px;
+    }
+    
+    /* Foto-View Buttons speziell */
+    #photoControls .btn-primary,
+    #photoControls .btn-secondary {
+        width: 100%;
+        min-width: auto;
+        min-height: 45px;
+        padding: 12px 16px;
+    }
 }
 
 .btn-primary, #guessButton {
@@ -146,10 +245,21 @@ body, html {
     padding: 20px 30px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 1000;
+    z-index: 999;
     display: none;
     min-width: 300px;
     text-align: center;
+    max-width: 90vw;
+}
+
+/* Mobile Optimierung für Result */
+@media (max-width: 768px) {
+    #result {
+        bottom: 120px;
+        padding: 15px 20px;
+        min-width: 200px;
+        max-width: 85vw;
+    }
 }
 
 #result h3 {

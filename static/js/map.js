@@ -45,7 +45,11 @@ function showView(viewName) {
 
     // Karte neu rendern wenn zu mapView gewechselt wird
     if (viewName === 'mapView') {
-        setTimeout(() => map.invalidateSize(), 100);
+        // Erhöhtes Timing für Android Edge Kompatibilität
+        // invalidateSize muss nach DOM-Paint und nach Address-Bar-Anpassung aufgerufen werden
+        setTimeout(() => {
+            map.invalidateSize(true);  // true = Animate Pan/Zoom
+        }, 200);
     }
 }
 
