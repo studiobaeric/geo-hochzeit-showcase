@@ -224,7 +224,8 @@ document.getElementById('lockButton').addEventListener('click', function() {
         roundNumber: currentPhotoIndex + 1,
         description: currentPhoto.description,
         distance: distanceText,
-        distanceKm: distance
+        distanceKm: distance,
+        filename: currentPhoto.filename
     });
     gameResults.totalDistance += distance;
 

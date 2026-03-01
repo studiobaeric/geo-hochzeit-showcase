@@ -56,12 +56,15 @@
         .score-summary h2 {
             margin: 0 0 15px 0;
             font-size: 1.3em;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .total-score {
-            font-size: 3em;
+            font-size: 3.5em;
             font-weight: bold;
             margin: 0;
+            color: #ffffff;
         }
 
         .scoreboard {
@@ -93,19 +96,21 @@
         .round-number {
             font-weight: bold;
             color: #667eea;
-            min-width: 60px;
+            flex: 1;
+            cursor: pointer;
+            transition: color 0.2s, text-decoration 0.2s;
+            text-decoration: underline;
+            text-decoration-color: transparent;
         }
 
-        .photo-description {
-            flex: 1;
-            margin: 0 15px;
-            color: #555;
-            font-size: 0.95em;
+        .round-number:hover {
+            color: #764ba2;
+            text-decoration-color: #764ba2;
         }
 
         .distance {
             font-weight: bold;
-            color: #764ba2;
+            color: #333;
             min-width: 100px;
             text-align: right;
         }
@@ -176,6 +181,83 @@
             color: #999;
             padding: 40px 20px;
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 70vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .modal-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body>
@@ -199,6 +281,15 @@
         </div>
     </div>
 
+    <!-- Modal für Bildanzeige -->
+    <div id="photoModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closePhotoModal()">&times;</button>
+            <h3 class="modal-title" id="modalTitle"></h3>
+            <img id="modalImage" class="modal-image" src="" alt="Hochzeitsfoto">
+        </div>
+    </div>
+
     <script>
         function displayResults() {
             const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": [], "totalDistance": 0}');
@@ -215,18 +306,14 @@
 
                     const roundNum = document.createElement('div');
                     roundNum.className = 'round-number';
-                    roundNum.textContent = `Bild ${index + 1}`;
-
-                    const description = document.createElement('div');
-                    description.className = 'photo-description';
-                    description.textContent = round.description || 'Unbekannt';
+                    roundNum.textContent = round.description || 'Unbekannt';
+                    roundNum.onclick = () => showPhotoModal(index, round.description);
 
                     const distance = document.createElement('div');
                     distance.className = 'distance';
                     distance.textContent = round.distance;
 
                     row.appendChild(roundNum);
-                    row.appendChild(description);
                     row.appendChild(distance);
                     scoreboard.appendChild(row);
                 });
@@ -239,6 +326,37 @@
             }
         }
 
+        function showPhotoModal(index, description) {
+            // Baue den Dateinamen basierend auf den Spieltaten auf
+            const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": []}');
+            const round = resultsData.rounds[index];
+
+            if (round) {
+                // Extrahiere Dateinamen aus sessionStorage oder nutze index
+                // Wir müssen den Dateinamen kennen - das wird vom map.js gespeichert
+                const filename = round.filename || `photo_${index}.jpg`;
+
+                const modal = document.getElementById('photoModal');
+                const modalImage = document.getElementById('modalImage');
+                const modalTitle = document.getElementById('modalTitle');
+
+                modalTitle.textContent = description || 'Foto';
+                modalImage.src = `/static/photos/${filename}`;
+                modal.classList.add('active');
+            }
+        }
+
+        function closePhotoModal() {
+            const modal = document.getElementById('photoModal');
+            modal.classList.remove('active');
+        }
+
+        // Schließe Modal wenn außerhalb geklickt
+        document.getElementById('photoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePhotoModal();
+            }
+        });
 
         function goHome() {
             sessionStorage.removeItem('gameResults');
