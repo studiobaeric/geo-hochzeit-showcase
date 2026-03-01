@@ -5,8 +5,18 @@ app = Flask(__name__)
 
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def start():
+    return render_template('start.html')
+
+
+@app.route('/play')
+def play():
+    return render_template('game.html')
+
+
+@app.route('/results')
+def results():
+    return render_template('results.html')
 
 
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png')

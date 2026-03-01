@@ -8,6 +8,12 @@ let currentPhotoIndex = 0;
 let currentPhoto = null;
 let totalRounds = 0;
 
+// Score-Tracking
+let gameResults = {
+    rounds: [],
+    totalDistance: 0
+};
+
 // Lade Foto-Daten
 async function loadPhotos() {
     try {
@@ -42,6 +48,14 @@ function updateRoundDisplay() {
 function showView(viewName) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
+
+    // Zeige/verstecke photoControls basierend auf aktiver View
+    const photoControls = document.getElementById('photoControls');
+    if (viewName === 'photoView') {
+        photoControls.style.display = 'flex';
+    } else {
+        photoControls.style.display = 'none';
+    }
 
     // Karte neu rendern wenn zu mapView gewechselt wird
     if (viewName === 'mapView') {
@@ -88,8 +102,9 @@ function nextPhoto() {
         loadPhoto(currentPhotoIndex + 1);
         showView('photoView');
     } else {
-        // Spiel beendet
-        showGameOver();
+        // Spiel beendet - speichere Ergebnisse und navigiere zur Ergebnisseite
+        sessionStorage.setItem('gameResults', JSON.stringify(gameResults));
+        window.location.href = '/results';
     }
 }
 
@@ -200,6 +215,19 @@ document.getElementById('lockButton').addEventListener('click', function() {
         actualLocation[1]
     );
 
+    // Speichere Runden-Ergebnis
+    const distanceText = distance < 1
+        ? `${Math.round(distance * 1000)} Meter`
+        : `${distance.toFixed(2)} km`;
+
+    gameResults.rounds.push({
+        roundNumber: currentPhotoIndex + 1,
+        description: currentPhoto.description,
+        distance: distanceText,
+        distanceKm: distance
+    });
+    gameResults.totalDistance += distance;
+
     // Zeichne Linie zwischen Tipp und Ziel
     resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {
         color: 'red',
@@ -208,10 +236,6 @@ document.getElementById('lockButton').addEventListener('click', function() {
         dashArray: '10, 10'
     }).addTo(map);
 
-    // Zeige Distanz
-    const distanceText = distance < 1
-        ? `${Math.round(distance * 1000)} Meter`
-        : `${distance.toFixed(2)} km`;
 
     document.getElementById('result').innerHTML = `
         <h3>Ergebnis:</h3>
@@ -255,6 +279,23 @@ function toRad(degrees) {
 }
 
 // App initialisieren
+function resetGame() {
+    // Setze alle Werte zurück
+    gameResults = {
+        rounds: [],
+        totalDistance: 0
+    };
+    guessMarker = null;
+    targetMarker = null;
+    resultLine = null;
+    isLocked = false;
+    currentPhotoIndex = 0;
+    loadPhoto(0);
+    resetForNextRound();
+    showView('photoView');
+    document.getElementById('lockButton').style.display = 'inline-block';
+}
+
 loadPhotos();
 
 // Initialisiere Foto-Zoom

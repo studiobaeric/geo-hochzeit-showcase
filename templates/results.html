@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Hochzeits Geoguesser - Ergebnisse</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .results-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .results-container h1 {
+            color: #333;
+            margin-top: 0;
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .results-container p {
+            color: #666;
+            text-align: center;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        .score-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .score-summary h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
+        }
+
+        .total-score {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .scoreboard {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.2s;
+        }
+
+        .score-row:last-child {
+            border-bottom: none;
+        }
+
+        .score-row:hover {
+            background: #f0f0f0;
+        }
+
+        .round-number {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 60px;
+        }
+
+        .photo-description {
+            flex: 1;
+            margin: 0 15px;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .distance {
+            font-weight: bold;
+            color: #764ba2;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 600px) {
+            .results-container {
+                padding: 25px;
+            }
+
+            .results-container h1 {
+                font-size: 2em;
+            }
+
+            .score-row {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px 15px;
+            }
+
+            .distance {
+                width: 100%;
+                text-align: left;
+                margin-top: 8px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="results-container">
+        <h1>🎉 Spiel beendet!</h1>
+        <p>Hier sind deine Ergebnisse:</p>
+
+        <div class="score-summary">
+            <h2>Gesamtergebnis</h2>
+            <p class="total-score" id="totalScore">0 km</p>
+        </div>
+
+        <div class="scoreboard" id="scoreboard">
+            <div class="empty-state">
+                <p>Keine Ergebnisse verfügbar</p>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-secondary" onclick="goHome()">Zur Startseite</button>
+        </div>
+    </div>
+
+    <script>
+        function displayResults() {
+            const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": [], "totalDistance": 0}');
+
+            const scoreboard = document.getElementById('scoreboard');
+            const totalScoreElement = document.getElementById('totalScore');
+
+            if (resultsData.rounds && resultsData.rounds.length > 0) {
+                scoreboard.innerHTML = '';
+
+                resultsData.rounds.forEach((round, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'score-row';
+
+                    const roundNum = document.createElement('div');
+                    roundNum.className = 'round-number';
+                    roundNum.textContent = `Bild ${index + 1}`;
+
+                    const description = document.createElement('div');
+                    description.className = 'photo-description';
+                    description.textContent = round.description || 'Unbekannt';
+
+                    const distance = document.createElement('div');
+                    distance.className = 'distance';
+                    distance.textContent = round.distance;
+
+                    row.appendChild(roundNum);
+                    row.appendChild(description);
+                    row.appendChild(distance);
+                    scoreboard.appendChild(row);
+                });
+
+                const totalDistance = resultsData.totalDistance;
+                const totalText = totalDistance < 1
+                    ? `${Math.round(totalDistance * 1000)} Meter`
+                    : `${totalDistance.toFixed(2)} km`;
+                totalScoreElement.textContent = totalText;
+            }
+        }
+
+
+        function goHome() {
+            sessionStorage.removeItem('gameResults');
+            window.location.href = '/';
+        }
+
+        // Zeige Ergebnisse beim Laden
+        displayResults();
+    </script>
+</body>
+</html>
+

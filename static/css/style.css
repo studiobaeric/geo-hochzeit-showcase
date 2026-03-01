@@ -86,39 +86,31 @@ body, html {
 }
 
 #photoControls {
-    padding: 20px;
-    flex-shrink: 0;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
     display: flex;
     gap: 10px;
-    justify-content: center;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100% - 40px);
 }
+
 
 /* Mobile Optimierung für Foto Controls */
 @media (max-width: 768px) {
     #photoControls {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        padding: 12px 10px;
-        gap: 8px;
-        flex-wrap: wrap;
+        top: auto;
+        bottom: 20px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: auto;
+        max-width: 90vw;
+        justify-content: center;
+        gap: 5px;
         flex-direction: column;
-        align-items: stretch;
-        z-index: 1001;
-        /* Safe area insets für Geräte mit Notch/Gestures */
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-        background: rgba(0, 0, 0, 0.95);
-        border-top: 2px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    #photoControls button {
-        flex: 1;
-        min-width: 100px;
     }
 }
 
