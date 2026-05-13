@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby - Hochzeits Geoguesser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        .lobby-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .lobby-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .lobby-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .game-id-box {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .game-id-label {
+            color: #999;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .game-id {
+            color: #667eea;
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        .players-section {
+            margin: 30px 0;
+        }
+
+        .section-title {
+            color: #333;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .player-item {
+            background: #f9f9f9;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .player-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+
+        .player-info {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-name {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .player-status {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 30px 20px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .status-waiting {
+            background: #fffbf0;
+            color: #b8860b;
+            border: 1px solid #ffd700;
+        }
+
+        .status-starting {
+            background: #f0f8ff;
+            color: #4169e1;
+            border: 1px solid #6495ed;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 0.9em;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .lobby-container {
+                padding: 25px;
+            }
+
+            .lobby-header h1 {
+                font-size: 1.5em;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="lobby-container">
+        <div class="lobby-header">
+            <h1>⏳ Wartezimmer</h1>
+            <p style="color: #666;">Warten auf Spielstart...</p>
+        </div>
+
+        <div class="game-id-box">
+            <div class="game-id-label">Spiel-ID:</div>
+            <div class="game-id" id="gameId">Loading...</div>
+            <button class="copy-btn" onclick="copyGameId()">📋 Kopieren</button>
+        </div>
+
+        <div class="status-message status-waiting" id="statusMessage">
+            ⏱️ Der Spielleiter startet das Spiel, wenn alle Spieler bereit sind
+        </div>
+
+        <div class="players-section">
+            <div class="section-title">Spieler im Spiel</div>
+            <div class="players-list" id="playersList">
+                <div class="empty-state">Spieler werden geladen...</div>
+            </div>
+            <div class="info-text" id="playerCount">0 Spieler verbunden</div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="leaveGame()">← Zurück</button>
+            <button class="btn btn-primary" onclick="startGame()" id="startBtn" disabled>Spiel starten 🚀</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const gameId = new URLSearchParams(window.location.search).get('gameId');
+        let socket = null;
+        let gameState = null;
+        let isCreator = true;
+
+        async function initializeLobby() {
+            if (!gameId) {
+                alert('Keine Spiel-ID gefunden!');
+                window.location.href = '/';
+                return;
+            }
+
+            document.getElementById('gameId').textContent = gameId;
+
+            // Verbinde Socket
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('Mit Lobby verbunden');
+                socket.emit('join_game_room', {
+                    game_id: gameId,
+                    player_id: sessionStorage.getItem('playerId')
+                });
+                loadGameState();
+            });
+
+            socket.on('player_joined', (data) => {
+                console.log('Spieler beigetreten:', data);
+                loadGameState();
+                updatePlayersList();
+            });
+
+            socket.on('game_started', (data) => {
+                console.log('Spiel gestartet!');
+                // WICHTIG: playerId muss mitgegeben werden!
+                const playerId = sessionStorage.getItem('playerId');
+                window.location.href = `/play?gameId=${gameId}&playerId=${playerId}`;
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Mit Lobby getrennt');
+            });
+
+            // Periodisches Aktualisieren
+            setInterval(loadGameState, 2000);
+        }
+
+        async function loadGameState() {
+            try {
+                const response = await fetch(`/api/game/${gameId}/state`);
+                const data = await response.json();
+
+                if (data.success) {
+                    gameState = data.state;
+                    updatePlayersList();
+                    updateStartButton();
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden des Spielzustands:', error);
+            }
+        }
+
+        function updatePlayersList() {
+            const playersList = document.getElementById('playersList');
+            const playerCount = document.getElementById('playerCount');
+
+            if (!gameState || !gameState.players || gameState.players.length === 0) {
+                playersList.innerHTML = '<div class="empty-state">Noch keine Spieler beigetreten</div>';
+                playerCount.textContent = '0 Spieler verbunden';
+                return;
+            }
+
+            playersList.innerHTML = gameState.players.map(player => `
+                <div class="player-item">
+                    <div class="player-color" style="background: ${getPlayerColor(player.color)};"></div>
+                    <div class="player-info">
+                        <span class="player-name">${player.name}</span>
+                        <span class="player-status">✅ Bereit</span>
+                    </div>
+                </div>
+            `).join('');
+
+            playerCount.textContent = `${gameState.players.length} Spieler verbunden`;
+        }
+
+        function getPlayerColor(colorName) {
+            const colors = {
+                'blue': '#4169E1',
+                'green': '#28A745',
+                'purple': '#9B59B6',
+                'orange': '#FF8C00',
+                'yellow': '#FFD700',
+                'pink': '#FF69B4'
+            };
+            return colors[colorName] || '#667eea';
+        }
+
+        function updateStartButton() {
+            const startBtn = document.getElementById('startBtn');
+            if (gameState && gameState.players && gameState.players.length > 0) {
+                startBtn.disabled = false;
+            }
+        }
+
+        async function startGame() {
+            try {
+                const response = await fetch(`/api/game/${gameId}/start`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Broadcast wird via WebSocket gesendet
+                    console.log('Spiel gestartet');
+                } else {
+                    alert('Fehler beim Starten des Spiels: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Fehler beim Starten des Spiels:', error);
+                alert('Fehler beim Starten des Spiels');
+            }
+        }
+
+        function copyGameId() {
+            navigator.clipboard.writeText(gameId).then(() => {
+                alert('Spiel-ID kopiert!');
+            });
+        }
+
+        function leaveGame() {
+            sessionStorage.removeItem('gameId');
+            sessionStorage.removeItem('playerId');
+            sessionStorage.removeItem('playerName');
+            sessionStorage.removeItem('isMultiplayer');
+            if (socket) socket.disconnect();
+            window.location.href = '/';
+        }
+
+        // Initialisiere beim Laden
+        window.addEventListener('load', initializeLobby);
+    </script>
+</body>
+</html>
+

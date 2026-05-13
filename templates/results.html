@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Hochzeits Geoguesser - Ergebnisse</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body {
@@ -25,8 +26,10 @@
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+            max-width: 800px;
             width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .results-container h1 {
@@ -65,6 +68,34 @@
             font-weight: bold;
             margin: 0;
             color: #ffffff;
+        }
+
+        .results-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: white;
+            color: #666;
+            cursor: pointer;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-btn:hover {
+            color: #764ba2;
         }
 
         .scoreboard {
@@ -115,10 +146,165 @@
             text-align: right;
         }
 
+        /* Ranking Styles */
+        .ranking-table {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ranking-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .ranking-position {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 50px;
+        }
+
+        .medal {
+            font-size: 1.5em;
+        }
+
+        .position {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .ranking-player {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .player-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            flex-shrink: 0;
+        }
+
+        .player-details {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .player-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .player-distance {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .ranking-score {
+            font-weight: bold;
+            color: #333;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        /* Round Cards */
+        .round-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid #667eea;
+        }
+
+        .round-card:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+
+        .round-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .round-title {
+            color: #667eea;
+        }
+
+        .round-arrow {
+            color: #999;
+        }
+
+        .round-guesses {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .guess-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid #764ba2;
+        }
+
+        .comparison-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .player-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+
         .button-group {
             display: flex;
             gap: 10px;
             justify-content: center;
+            margin-top: 30px;
         }
 
         .btn {
@@ -150,38 +336,6 @@
             transform: translateY(0);
         }
 
-        @media (max-width: 600px) {
-            .results-container {
-                padding: 25px;
-            }
-
-            .results-container h1 {
-                font-size: 2em;
-            }
-
-            .score-row {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 10px 15px;
-            }
-
-            .distance {
-                width: 100%;
-                text-align: left;
-                margin-top: 8px;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 40px 20px;
-        }
-
         /* Modal Styles */
         .modal {
             display: none;
@@ -211,6 +365,27 @@
             align-items: center;
             gap: 15px;
             animation: slideIn 0.3s ease;
+        }
+
+        .round-detail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .round-detail-modal .modal-content {
+            position: relative;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         @keyframes slideIn {
@@ -258,6 +433,59 @@
         .modal-close:hover {
             background: rgba(0, 0, 0, 0.8);
         }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+
+        .guesses-list {
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 600px) {
+            .results-container {
+                padding: 25px;
+            }
+
+            .results-container h1 {
+                font-size: 2em;
+            }
+
+            .score-row {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px 15px;
+            }
+
+            .distance {
+                width: 100%;
+                text-align: left;
+                margin-top: 8px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .results-tabs {
+                flex-wrap: wrap;
+            }
+
+            .ranking-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .ranking-score {
+                width: 100%;
+                text-align: left;
+            }
+        }
     </style>
 </head>
 <body>
@@ -290,68 +518,14 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/results.js') }}"></script>
     <script>
-        function displayResults() {
-            const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": [], "totalDistance": 0}');
-
-            const scoreboard = document.getElementById('scoreboard');
-            const totalScoreElement = document.getElementById('totalScore');
-
-            if (resultsData.rounds && resultsData.rounds.length > 0) {
-                scoreboard.innerHTML = '';
-
-                resultsData.rounds.forEach((round, index) => {
-                    const row = document.createElement('div');
-                    row.className = 'score-row';
-
-                    const roundNum = document.createElement('div');
-                    roundNum.className = 'round-number';
-                    roundNum.textContent = round.description || 'Unbekannt';
-                    roundNum.onclick = () => showPhotoModal(index, round.description);
-
-                    const distance = document.createElement('div');
-                    distance.className = 'distance';
-                    distance.textContent = round.distance;
-
-                    row.appendChild(roundNum);
-                    row.appendChild(distance);
-                    scoreboard.appendChild(row);
-                });
-
-                const totalDistance = resultsData.totalDistance;
-                const totalText = totalDistance < 1
-                    ? `${Math.round(totalDistance * 1000)} Meter`
-                    : `${totalDistance.toFixed(2)} km`;
-                totalScoreElement.textContent = totalText;
-            }
-        }
-
-        function showPhotoModal(index, description) {
-            // Baue den Dateinamen basierend auf den Spieltaten auf
-            const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": []}');
-            const round = resultsData.rounds[index];
-
-            if (round) {
-                // Extrahiere Dateinamen aus sessionStorage oder nutze index
-                // Wir müssen den Dateinamen kennen - das wird vom map.js gespeichert
-                const filename = round.filename || `photo_${index}.jpg`;
-
-                const modal = document.getElementById('photoModal');
-                const modalImage = document.getElementById('modalImage');
-                const modalTitle = document.getElementById('modalTitle');
-
-                modalTitle.textContent = description || 'Foto';
-                modalImage.src = `/static/photos/${filename}`;
-                modal.classList.add('active');
-            }
-        }
-
         function closePhotoModal() {
             const modal = document.getElementById('photoModal');
             modal.classList.remove('active');
         }
 
-        // Schließe Modal wenn außerhalb geklickt
         document.getElementById('photoModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closePhotoModal();
@@ -360,11 +534,12 @@
 
         function goHome() {
             sessionStorage.removeItem('gameResults');
+            sessionStorage.removeItem('gameId');
+            sessionStorage.removeItem('playerId');
+            sessionStorage.removeItem('playerName');
+            sessionStorage.removeItem('isMultiplayer');
             window.location.href = '/';
         }
-
-        // Zeige Ergebnisse beim Laden
-        displayResults();
     </script>
 </body>
 </html>

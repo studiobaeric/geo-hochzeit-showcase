@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator - Hochzeits Geoguesser</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+        }
+
+        .moderator-layout {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .left-panel {
+            flex: 1;
+            background: white;
+            border-right: 2px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .photo-container {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f0f0;
+        }
+
+        #currentPhoto {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        #map {
+            flex: 1;
+        }
+
+        .info-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+        }
+
+        .info-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .round-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .round-info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .round-info-item strong {
+            color: #667eea;
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 3px;
+        }
+
+        .players-list {
+            list-style: none;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .player-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .player-status {
+            margin-left: auto;
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        .status-submitted {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: #ff9800;
+        }
+
+        @media (max-width: 1200px) {
+            .moderator-layout {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                border-right: none;
+                border-bottom: 2px solid #ddd;
+                min-height: 40%;
+            }
+
+            .right-panel {
+                min-height: 60%;
+            }
+        }
+
+        .status-bar {
+            padding: 10px;
+            background: #f0f0f0;
+            border-top: 1px solid #ddd;
+            font-size: 0.85em;
+            color: #666;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="moderator-layout">
+        <!-- Linkes Panel: Foto + Karte -->
+        <div class="left-panel">
+            <div class="header">
+                <h1>📊 MODERATOR</h1>
+                <p>Live Monitoring</p>
+            </div>
+            <div class="photo-container">
+                <img id="currentPhoto" src="" alt="Aktuelles Foto">
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- Rechtes Panel: Info -->
+        <div class="right-panel">
+            <div class="header">
+                <p>Spiel-Informationen</p>
+            </div>
+
+            <div class="info-panel">
+                <!-- Runden-Info -->
+                <div class="info-section">
+                    <div class="info-title">🎮 Runde</div>
+                    <div class="round-info">
+                        <div class="round-info-item">
+                            <strong id="currentRoundNumber">-</strong>
+                            Aktuelle Runde
+                        </div>
+                        <div class="round-info-item">
+                            <strong id="totalRoundsNumber">-</strong>
+                            Gesamt
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spieler-Info -->
+                <div class="info-section">
+                    <div class="info-title">👥 Spieler (<span id="playerCount">0</span>)</div>
+                    <ul class="players-list" id="playersList">
+                        <li class="player-item">Spieler werden geladen...</li>
+                    </ul>
+                </div>
+
+                <!-- Status-Info -->
+                <div class="info-section">
+                    <div class="info-title">📊 Status</div>
+                    <div id="statusText" style="font-size: 0.9em; color: #666;">
+                        Verbindung wird hergestellt...
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span class="status-indicator"></span>
+                <span id="connectionStatus">Verbunden mit Spiel</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/moderator.js') }}"></script>
+</body>
+</html>
+

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator - Hochzeits Geoguesser</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .moderator-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .sidebar h1 {
+            color: #333;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .game-info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .game-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            color: #666;
+        }
+
+        .game-info-label {
+            font-weight: bold;
+        }
+
+        .game-info-value {
+            color: #333;
+        }
+
+        .section-title {
+            color: #333;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1em;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .player-badge {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            border-left: 4px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+
+        .player-name {
+            font-weight: bold;
+            color: #333;
+            flex: 1;
+        }
+
+        .player-status {
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        .round-progress {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 0.85em;
+            color: #666;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px 20px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.95em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 400;
+            font-size: 0.9em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-active {
+            background: #28A745;
+        }
+
+        .status-waiting {
+            background: #FFC107;
+        }
+
+        .status-done {
+            background: #999;
+        }
+
+        .game-controls {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .control-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .control-btn-end {
+            background: #dc3545;
+            color: white;
+        }
+
+        .control-btn-end:hover {
+            background: #c82333;
+        }
+
+        @media (max-width: 1024px) {
+            .moderator-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+
+            .main-content {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="moderator-container">
+        <!-- Sidebar mit Spieler-Info -->
+        <div class="sidebar">
+            <h1>📊 Moderator</h1>
+
+            <div class="game-info">
+                <div class="game-info-row">
+                    <span class="game-info-label">Spiel:</span>
+                    <span class="game-info-value" id="gameIdDisplay">-</span>
+                </div>
+                <div class="game-info-row">
+                    <span class="game-info-label">Status:</span>
+                    <span class="game-info-value" id="gameStatus">Warte</span>
+                </div>
+                <div class="game-info-row">
+                    <span class="game-info-label">Spieler:</span>
+                    <span class="game-info-value" id="playerCount">0</span>
+                </div>
+            </div>
+
+            <div class="round-progress">
+                <div style="font-weight: bold; margin-bottom: 8px;">Runde <span id="currentRound">-</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Warten...</div>
+            </div>
+
+            <div class="section-title">🎮 Spieler</div>
+            <div class="players-list" id="playersList"></div>
+
+            <div class="game-controls">
+                <button class="control-btn control-btn-end" onclick="endGame()">⏹️ Spiel beenden</button>
+                <button class="control-btn" style="background: #667eea; color: white;" onclick="goHome()">← Startseite</button>
+            </div>
+        </div>
+
+        <!-- Karten-Bereich -->
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="legend" id="mapLegend">
+                    <div style="font-weight: bold; margin-bottom: 10px;">Legende</div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF6B6B;"></div>
+                        <span>Aktuelle Position</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4CAF50;"></div>
+                        <span>Richtige Position</span>
+                    </div>
+                </div>
+            </div>
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="zoomToFit()">🔍 Auf Karte zoomen</button>
+                <button class="btn btn-secondary" onclick="showAllMarkers()">📍 Alle Marker zeigen</button>
+                <span style="margin-left: auto; color: #666;">Zuletzt aktualisiert: <span id="lastUpdate">-</span></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        let map = null;
+        let socket = null;
+        let gameId = new URLSearchParams(window.location.search).get('gameId');
+        let gameState = null;
+        let currentRound = 0;
+        let playerMarkers = {};
+        let targetMarker = null;
+
+        async function initializeModerator() {
+            if (!gameId) {
+                alert('Keine Spiel-ID gefunden!');
+                window.location.href = '/';
+                return;
+            }
+
+            document.getElementById('gameIdDisplay').textContent = gameId.substring(0, 8) + '...';
+
+            // Initialisiere Karte
+            map = L.map('map').setView([49.5, 9.5], 6);
+            L.tileLayer('/tiles/{z}/{x}/{y}.png', {
+                attribution: 'Map data &copy; OpenStreetMap contributors',
+                maxZoom: 18,
+                minZoom: 2
+            }).addTo(map);
+
+            // Verbinde Socket
+            socket = io();
+            socket.on('connect', () => {
+                console.log('Moderator verbunden');
+                socket.emit('join_game_room', { game_id: gameId, player_id: 'moderator' });
+                loadGameState();
+            });
+
+            socket.on('player_guess', (data) => {
+                console.log('Neuer Spieler-Tipp:', data);
+                updatePlayerMarkers();
+                updateLastUpdate();
+            });
+
+            socket.on('game_started', () => {
+                console.log('Spiel gestartet');
+                loadGameState();
+            });
+
+            socket.on('game_ended', (data) => {
+                console.log('Spiel beendet');
+                loadGameState();
+            });
+
+            // Periodisches Aktualisieren
+            setInterval(loadGameState, 2000);
+        }
+
+        async function loadGameState() {
+            try {
+                const response = await fetch(`/api/game/${gameId}/state`);
+                const data = await response.json();
+
+                if (data.success) {
+                    gameState = data.state;
+                    updateUI();
+                    updatePlayerMarkers();
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden des Spielzustands:', error);
+            }
+        }
+
+        function updateUI() {
+            if (!gameState) return;
+
+            document.getElementById('gameStatus').textContent = gameState.status === 'active' ? '▶️ Aktiv' : '⏸️ Warten';
+            document.getElementById('playerCount').textContent = gameState.players.length;
+
+            // Update Spieler-Liste
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = gameState.players.map(player => `
+                <div class="player-badge">
+                    <div class="player-color" style="background: ${getPlayerColor(player.color)};"></div>
+                    <span class="player-name">${player.name}</span>
+                </div>
+            `).join('');
+
+            // Update Runden-Info
+            if (gameState.rounds && gameState.rounds.length > 0) {
+                const totalRounds = gameState.rounds.length;
+                let completedRounds = 0;
+
+                gameState.rounds.forEach(round => {
+                    if (round.status === 'completed') completedRounds++;
+                });
+
+                currentRound = completedRounds + 1;
+                document.getElementById('currentRound').textContent = `${currentRound} / ${totalRounds}`;
+
+                const progress = (completedRounds / totalRounds) * 100;
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = `${completedRounds} / ${totalRounds} abgeschlossen`;
+            }
+        }
+
+        async function updatePlayerMarkers() {
+            if (!gameState || !gameState.rounds || gameState.rounds.length === 0) return;
+
+            // Hole aktuelle Runde
+            const activeRound = gameState.rounds.find(r => r.status === 'active') || gameState.rounds[gameState.rounds.length - 1];
+            if (!activeRound) return;
+
+            // Ladedetails der aktuellen Runde
+            try {
+                const response = await fetch(`/api/game/${gameId}/round/${activeRound.id}`);
+                const data = await response.json();
+
+                if (data.success && data.round_data) {
+                    const roundData = data.round_data;
+
+                    // Entferne alte Marker
+                    Object.values(playerMarkers).forEach(marker => map.removeLayer(marker));
+                    playerMarkers = {};
+
+                    // Zeichne Spieler-Marker
+                    if (roundData.guesses && Array.isArray(roundData.guesses)) {
+                        roundData.guesses.forEach(guess => {
+                            const color = getPlayerColor(guess.player_color || 'blue');
+                            const marker = L.marker([guess.latitude, guess.longitude], {
+                                icon: L.icon({
+                                    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${guess.player_color || 'blue'}.png`,
+                                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                                    iconSize: [25, 41],
+                                    iconAnchor: [12, 41],
+                                    popupAnchor: [1, -34],
+                                    shadowSize: [41, 41]
+                                })
+                            }).addTo(map);
+
+                            marker.bindPopup(`
+                                <b>${guess.player_name}</b><br/>
+                                Distanz: ${guess.distance_km ? guess.distance_km.toFixed(2) + ' km' : 'Ausstehend'}
+                            `);
+
+                            playerMarkers[guess.player_id] = marker;
+                        });
+                    }
+
+                    // Zeichne korrekte Position
+                    if (roundData.actual_location) {
+                        if (targetMarker) map.removeLayer(targetMarker);
+                        targetMarker = L.marker([roundData.actual_location.lat, roundData.actual_location.lng], {
+                            icon: L.icon({
+                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                                iconSize: [25, 41],
+                                iconAnchor: [12, 41],
+                                popupAnchor: [1, -34],
+                                shadowSize: [41, 41]
+                            })
+                        }).addTo(map);
+                        targetMarker.bindPopup('✅ Korrekte Position').openPopup();
+                    }
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Runden-Details:', error);
+            }
+        }
+
+        function getPlayerColor(colorName) {
+            const colors = {
+                'blue': '#4169E1',
+                'green': '#28A745',
+                'purple': '#9B59B6',
+                'orange': '#FF8C00',
+                'yellow': '#FFD700',
+                'pink': '#FF69B4'
+            };
+            return colors[colorName] || '#667eea';
+        }
+
+        function updateLastUpdate() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('de-DE');
+        }
+
+        function zoomToFit() {
+            if (Object.keys(playerMarkers).length === 0) {
+                alert('Noch keine Marker vorhanden');
+                return;
+            }
+
+            const markers = Object.values(playerMarkers);
+            if (markers.length === 1) {
+                map.setView(markers[0].getLatLng(), 10);
+            } else {
+                const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
+                if (targetMarker) bounds.extend(targetMarker.getLatLng());
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+
+        function showAllMarkers() {
+            zoomToFit();
+        }
+
+        async function endGame() {
+            if (confirm('Möchten Sie das Spiel wirklich beenden?')) {
+                try {
+                    const response = await fetch(`/api/game/${gameId}/end`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('Spiel beendet!');
+                        window.location.href = `/results?gameId=${gameId}`;
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Beenden des Spiels:', error);
+                    alert('Fehler beim Beenden des Spiels');
+                }
+            }
+        }
+
+        function goHome() {
+            if (socket) socket.disconnect();
+            window.location.href = '/';
+        }
+
+        // Initialisiere beim Laden
+        window.addEventListener('load', initializeModerator);
+    </script>
+</body>
+</html>
+
