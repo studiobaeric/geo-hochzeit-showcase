@@ -215,10 +215,16 @@ async function showResolutionView() {
 
 if (moderatorApp) {
     mainControlButton?.addEventListener('click', showResolutionView);
-    startButton?.addEventListener('click', startNextRound());
+    startButton?.addEventListener('click', () => {
+        console.log("Clicked Start button")
+        startNextRound();
+
+        startButton.textContent = "Gestartet ...";
+        startButton.disabled = true;
+        } );
 
     loadCurrentPhoto();
-    
+
     init_pocketbase().catch((error) => {
         console.error('Moderator multiplayer could not be initialized:', error);
     });

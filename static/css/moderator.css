@@ -165,6 +165,12 @@ body {
     background: #1c6dd0;
 }
 
+.control-button:disabled{
+        background: #666;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 .resolution-view {
     display: none;
     position: fixed;
@@ -205,6 +211,8 @@ body {
 .continue-button:hover {
     background: #1c6dd0;
 }
+
+
 
 @media (max-width: 900px) {
     .moderator-app {
