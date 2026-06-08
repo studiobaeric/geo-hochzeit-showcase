@@ -38,9 +38,12 @@ export async function init_pocketbase() {
             console.log(name)
             if (name === "Jana" || name === "Tobias") {
                 console.log("name")
-                if (record.state === "none_finished") {
+                if (record.state === "playing") {
                     console.log("state")
                     window.location.href = "game.html";
+                } else if (record.state === "waiting") {
+                    console.log("state")
+                    window.location.href = "wait_screen.html";
                 }
             }
         }
@@ -112,6 +115,6 @@ export function startNextRound() {
 
     console.log("Starting next round...")
 
-    pb.collection('gamestate').update(gamestate_id, {state: "none_finished"});
+    pb.collection('gamestate').update(gamestate_id, {state: "playing"});
 }
 
