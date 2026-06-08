@@ -1,0 +1,222 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: #111;
+    color: #f5f5f5;
+    font-family: Arial, sans-serif;
+}
+
+.moderator-app {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 12px;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: 12px;
+}
+
+.moderator-top,
+.moderator-bottom {
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+    gap: 12px;
+}
+
+.moderator-top {
+    grid-template-columns: minmax(160px, 0.7fr) minmax(360px, 1.6fr) minmax(160px, 0.7fr);
+}
+
+.moderator-bottom {
+    grid-template-columns: 1.2fr 0.6fr 1.2fr;
+}
+
+.player-stage,
+.current-photo-stage,
+.map-panel,
+.moderator-controls {
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    background: #1c1c1c;
+}
+
+.player-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-photo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(70%, 260px);
+    aspect-ratio: 4 / 3;
+    border: 2px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: clamp(14px, 1.6vw, 20px);
+    font-weight: 700;
+}
+
+.current-photo-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #000;
+}
+
+.current-photo {
+    display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.current-photo.is-loaded {
+    display: block;
+}
+
+.photo-fallback {
+    position: absolute;
+    inset: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: clamp(16px, 2vw, 24px);
+    font-weight: 700;
+}
+
+.photo-fallback.is-hidden {
+    display: none;
+}
+
+.map-panel {
+    overflow: hidden;
+}
+
+.map-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        #18211f;
+    background-size: 32px 32px;
+}
+
+.map-placeholder span {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.56);
+    color: #fff;
+    font-size: clamp(14px, 1.4vw, 18px);
+    font-weight: 700;
+}
+
+.moderator-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    padding: 18px;
+    background: #202020;
+}
+
+.countdown-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 88px;
+    border: 2px dashed rgba(255, 255, 255, 0.24);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: clamp(22px, 3vw, 44px);
+    font-weight: 800;
+}
+
+.control-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 64px;
+    border: none;
+    border-radius: 8px;
+    background: #2f80ed;
+    color: #fff;
+    font-size: clamp(13px, 1.2vw, 16px);
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+}
+
+.control-button:hover {
+    background: #1c6dd0;
+}
+
+@media (max-width: 900px) {
+    .moderator-app {
+        grid-template-rows: 0.8fr 1.2fr;
+    }
+
+    .moderator-top,
+    .moderator-bottom {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .moderator-top {
+        grid-row: 1;
+    }
+
+    .moderator-bottom {
+        grid-row: 2;
+        grid-template-rows: 1fr 0.8fr;
+    }
+
+    .current-photo-stage {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    .player-stage-left,
+    .map-panel-left {
+        grid-column: 1;
+    }
+
+    .player-stage-right,
+    .map-panel-right {
+        grid-column: 2;
+    }
+
+    .player-stage-left,
+    .player-stage-right {
+        display: none;
+    }
+
+    .map-panel-left,
+    .map-panel-right {
+        grid-row: 2;
+    }
+
+    .moderator-controls {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}

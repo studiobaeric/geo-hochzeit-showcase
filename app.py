@@ -27,6 +27,10 @@ def start():
 def play():
     return render_template('game.html')
 
+@app.route('/moderator')
+def moderator():
+    return render_template('moderator.html')
+
 
 @app.route('/results')
 def results():
