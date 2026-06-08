@@ -90,76 +90,90 @@ export async function nextPhoto(round_number) {
     showView('photoView');
 }
 
+function initMap() {
+    if (map) return; // idempotent
 
+    const mapEl = document.getElementById('map');
+    if (!mapEl) {
+        console.warn('initMap: #map nicht gefunden; Abbruch');
+        return;
+    }
 // Initialisiere die Karte
-console.log("map element before initialization:", document.getElementById("map"));
-const map = L.map('map', {minZoom: 1, maxZoom: 18}).setView([49.3690, 9.5436], 6);
+    const map = L.map('map', {minZoom: 1, maxZoom: 18}).setView([49.3690, 9.5436], 6);
 
 
 // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
 // PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
-const pmtilesProtocol = new pmtiles.Protocol();
-maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
+    const pmtilesProtocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
 
 // MapLibre v5 verlangt absolute URLs fuer sprite/glyphs/Source. Wir setzen sie
 // zur Laufzeit aus location.origin zusammen, damit die App auf jedem Host/Port
 // (und damit komplett offline) funktioniert, ohne hartkodierte Adresse.
-fetch('/static/data/basemap-style.json')
-    .then((response) => response.json())
-    .then((style) => {
-        const origin = window.location.origin;
-        style.sprite = origin + style.sprite;
-        style.glyphs = origin + style.glyphs;
-        style.sources.protomaps.url = 'pmtiles://' + origin + '/static/data/basemap.pmtiles';
+    fetch('/static/data/basemap-style.json')
+        .then((response) => response.json())
+        .then((style) => {
+            const origin = window.location.origin;
+            style.sprite = origin + style.sprite;
+            style.glyphs = origin + style.glyphs;
+            style.sources.protomaps.url = 'pmtiles://' + origin + '/static/data/basemap.pmtiles';
 
-        L.maplibreGL({
-            style: style,
-            interactive: true,
-            attribution: 'Map data &copy; OpenStreetMap contributors'
-        }).addTo(map);
-        map.getContainer().style.pointerEvents = 'auto';
-        setTimeout(() => {
-            const canvas = document.querySelector('.maplibregl-canvas');
-            if (canvas) {
-                canvas.style.pointerEvents = 'none';
-            }
-        }, 0);
-    })
-    .catch((error) => console.error('Fehler beim Laden der Karten-Basemap:', error));
+            L.maplibreGL({
+                style: style,
+                interactive: true,
+                attribution: 'Map data &copy; OpenStreetMap contributors'
+            }).addTo(map);
+            map.getContainer().style.pointerEvents = 'auto';
+            setTimeout(() => {
+                const canvas = document.querySelector('.maplibregl-canvas');
+                if (canvas) {
+                    canvas.style.pointerEvents = 'none';
+                }
+            }, 0);
+        })
+        .catch((error) => console.error('Fehler beim Laden der Karten-Basemap:', error));
 
 // Click-Handler für Tipp-Platzierung
-map.on('click', async function (e) {
-    if (isLocked) return; // Kein Verschieben nach Lock-In
+    map.on('click', async function (e) {
+        if (isLocked) return; // Kein Verschieben nach Lock-In
 
 
-    const {lat, lng} = e.latlng;
+        const {lat, lng} = e.latlng;
 
-    // Wenn noch kein Marker gesetzt, erstelle einen
-    if (!guessMarker) {
-        guessMarker = L.marker([lat, lng], {
-            icon: L.icon({
-                iconUrl: '/static/img/marker-icon-2x-blue.png',
-                shadowUrl: '/static/img/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41]
-            })
-        }).addTo(map);
-        guessMarker.bindPopup('Dein Tipp');
-    } else {
-        // Verschiebe bestehenden Marker
-        guessMarker.setLatLng([lat, lng]);
-    }
-    try {
-        await pushLocation({lat, lng}, round_number);
-    } catch (err) {
-        console.error("Failed to push location:", err);
-    }
+        // Wenn noch kein Marker gesetzt, erstelle einen
+        if (!guessMarker) {
+            guessMarker = L.marker([lat, lng], {
+                icon: L.icon({
+                    iconUrl: '/static/img/marker-icon-2x-blue.png',
+                    shadowUrl: '/static/img/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map);
+            guessMarker.bindPopup('Dein Tipp');
+        } else {
+            // Verschiebe bestehenden Marker
+            guessMarker.setLatLng([lat, lng]);
+        }
+        try {
+            await pushLocation({lat, lng}, round_number);
+        } catch (err) {
+            console.error("Failed to push location:", err);
+        }
 
-    // Zeige Lock-In Button
-    document.getElementById('lockButton').disabled = false;
-});
+        // Zeige Lock-In Button
+        document.getElementById('lockButton').disabled = false;
+    });
+}
+
+// Map initialisieren, sobald DOM bereit ist
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMap);
+} else {
+    initMap();
+}
 
 // Button-Handler
 document.getElementById('guessButton').addEventListener('click', function () {
