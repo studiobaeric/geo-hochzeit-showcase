@@ -23,6 +23,10 @@ body {
     padding: 12px;
 }
 
+.moderator-app.is-hidden {
+    display: none;
+}
+
 .moderator-top,
 .moderator-bottom {
     display: grid;
@@ -168,6 +172,47 @@ body {
 }
 
 .control-button:hover {
+    background: #1c6dd0;
+}
+
+.resolution-view {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #d8d8d8;
+}
+
+.resolution-view.is-active {
+    display: block;
+}
+
+.resolution-map {
+    width: 100%;
+    height: 100%;
+}
+
+.continue-button {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top));
+    left: calc(16px + env(safe-area-inset-left));
+    z-index: 1000;
+    min-width: 112px;
+    min-height: 48px;
+    padding: 12px 22px;
+    border: none;
+    border-radius: 8px;
+    background: #2f80ed;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.32);
+}
+
+.continue-button:hover {
     background: #1c6dd0;
 }
 
