@@ -8,17 +8,25 @@ const resolutionMapElement = document.getElementById('resolutionMap');
 const mainControlButton = document.getElementById('mainControlButton');
 
 const startButton = document.getElementById('startButton');
+const continueButton = document.getElementById('continueButton');
+const resultContinueButton = document.getElementById('resultContinueButton');
+
+const roundResultView = document.getElementById('roundResultView');
 
 let currentPhoto = null;
 let resolutionMap = null;
 let locationMarker = null;
 let baseMapLayer = null;
+let resolutionPlayerMarkers = {};
+let latestPlayerRecords = {};
 
 let leftPlayerMap = null;
 let rightPlayerMap = null;
 let leftPlayerMarker = null;
 let rightPlayerMarker = null;
 let isPmtilesProtocolRegistered = false;
+
+let round = 0
 
 function ensurePmtilesProtocol() {
     if (isPmtilesProtocolRegistered) return;
@@ -29,7 +37,7 @@ function ensurePmtilesProtocol() {
 }
 
 // aufrufen mit neuer nummer für neues photo
-async function loadCurrentPhoto(photo=0) {
+async function loadCurrentPhoto(photo=round) {
     if (!currentPhotoImage || !currentPhotoFallback) return;
 
     try {
@@ -86,7 +94,64 @@ function getPlayerTarget(record) {
     return null;
 }
 
+function getPlayerName(record) {
+    return String(record?.placed_by || '').trim().toLowerCase();
+}
+
+function isCurrentPhotoRecord(record) {
+    if (!currentPhoto?.id) return true;
+
+    return Number(record?.round_number) === Number(currentPhoto.id);
+}
+
+function syncResolutionPlayerMarkers() {
+    if (!resolutionMap) return;
+
+    const visiblePositions = currentPhoto?.location
+        ? [[currentPhoto.location.lat, currentPhoto.location.lng]]
+        : [];
+
+    Object.values(latestPlayerRecords).forEach((record) => {
+        if (!isCurrentPhotoRecord(record)) return;
+
+        const latLng = getRecordLatLng(record);
+        const playerName = getPlayerName(record);
+
+        if (!latLng || !playerName) return;
+        visiblePositions.push(latLng);
+
+        if (resolutionPlayerMarkers[playerName]) {
+            resolutionPlayerMarkers[playerName].setLatLng(latLng);
+            return;
+        }
+
+        const marker = L.marker(latLng, {
+            icon: L.icon({
+                iconUrl: '/static/img/marker-icon-2x-blue.png',
+                shadowUrl: '/static/img/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        }).addTo(resolutionMap);
+
+        marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}s Tipp`);
+        resolutionPlayerMarkers[playerName] = marker;
+    });
+
+    if (visiblePositions.length > 1) {
+        resolutionMap.fitBounds(L.latLngBounds(visiblePositions), {padding: [50, 50]});
+    }
+}
+
 export async function updateMapPosition(record) {
+    const playerName = getPlayerName(record);
+    latestPlayerRecords[playerName] = record;
+    syncResolutionPlayerMarkers();
+
+    if (!resolutionMap) return;
+
     if (!leftPlayerMap || !rightPlayerMap) {
         await initModeratorMaps();
     }
@@ -115,6 +180,7 @@ export async function updateMapPosition(record) {
     }
 
     target.map.setView(latLng, Math.max(target.map.getZoom(), 8));
+    syncResolutionPlayerMarkers();
 }
 
 
@@ -196,6 +262,7 @@ async function showResolutionView() {
 
     moderatorApp.classList.add('is-hidden');
     resolutionView.classList.add('is-active');
+    continueButton.classList.add('is-active');
 
     try {
         await initResolutionMap();
@@ -204,6 +271,7 @@ async function showResolutionView() {
         locationMarker.setLatLng([lat, lng]);
         locationMarker.setPopupContent(currentPhoto.description || 'Bildposition');
         locationMarker.openPopup();
+        syncResolutionPlayerMarkers();
 
         setTimeout(() => {
             resolutionMap.invalidateSize(true);
@@ -213,15 +281,61 @@ async function showResolutionView() {
     }
 }
 
+async function showModPageNextRound(){
+
+    round = round + 1;
+
+    loadCurrentPhoto(round);
+
+    moderatorApp.classList.remove('is-hidden');
+    resolutionView.classList.remove('is-active');
+    
+
+
+}
+
+function showRoundResult(results) {
+    const sortedResults = [...results].sort((a, b) => b.points - a.points);
+    const resultRows = document.querySelectorAll('.result-row');
+
+    sortedResults.forEach((result, index) => {
+        const row = resultRows[index];
+        if (!row) return;
+
+        row.querySelector('.result-player-name').textContent = result.name;
+        row.querySelector('.result-player-points').textContent = `${result.points} Punkte`;
+    });
+
+    roundResultView.classList.add('is-active');
+}
+
 if (moderatorApp) {
     mainControlButton?.addEventListener('click', showResolutionView);
+    
     startButton?.addEventListener('click', () => {
         console.log("Clicked Start button");
         startNextRound();
 
         startButton.textContent = "Gestartet ...";
         startButton.disabled = true;
-        } );
+        } 
+    );
+
+    continueButton?.addEventListener('click', () => {
+        showRoundResult([
+            {name: 'Jana', points: 850},
+            {name: 'Tobias', points: 620}
+        ]);
+        continueButton.classList.remove('is-active');
+    });
+
+    resultContinueButton?.addEventListener('click', () => {
+
+        roundResultView.classList.remove('is-active');
+        showModPageNextRound();
+
+
+    });
 
     loadCurrentPhoto();
 

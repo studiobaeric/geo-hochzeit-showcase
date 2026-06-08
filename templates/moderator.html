@@ -48,6 +48,24 @@
         <button type="button" id="continueButton" class="continue-button">Weiter</button>
     </section>
 
+    <section id="roundResultView" class="round-result-view" aria-label="Rundenergebnis">
+        <div class="result-card">
+            <h2>Rundenergebnis</h2>
+
+            <div class="result-row">
+                <span class="result-player-name">Jana</span>
+                <strong class="result-player-points">0 Punkte</strong>
+            </div>
+
+            <div class="result-row">
+                <span class="result-player-name">Tobias</span>
+                <strong class="result-player-points">0 Punkte</strong>
+            </div>
+
+            <button type="button" id="resultContinueButton" class="result-button">Weiter</button>
+        </div>
+    </section>
+
     <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
