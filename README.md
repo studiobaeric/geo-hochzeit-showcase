@@ -17,10 +17,26 @@ pip install -r requirements.txt
 **2. Karten-Assets** – zwei davon sind zu groß bzw. zu zahlreich für Git und
 werden einmalig lokal erzeugt:
 
+**Linux/macOS:**
+
 ```bash
 bash tools/build_basemap.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
 bash tools/fetch_fonts.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
+
+**Windows (PowerShell):**
+
+```powershell
+.\tools\build_basemap.ps1      # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+.\tools\fetch_fonts.ps1        # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
+```
+
+> **Hinweis (Windows):** Falls die `.ps1`-Scripts nicht starten, muss die
+> PowerShell-Execution-Policy angepasst werden:
+>
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
 
 Alles andere (Leaflet, MapLibre, PMTiles-Lib, Sprite, Style, Marker-Icons)
 liegt bereits eingecheckt in `static/`.
@@ -61,6 +77,8 @@ Das Skript lädt bei Bedarf automatisch die `pmtiles`-CLI herunter und schreibt
 
 Größen des Europa-Anteils (der Weltteil ist immer nur wenige MB):
 
+**Linux/macOS:**
+
 ```bash
 MAXZOOM=10 bash tools/build_basemap.sh   # ~1.4 GB  (Standard, Stadt-Ebene)
 MAXZOOM=11 bash tools/build_basemap.sh   # ~2.9 GB  (Hauptstraßennetz)
@@ -68,10 +86,27 @@ MAXZOOM=12 bash tools/build_basemap.sh   # ~6.5 GB  (die meisten Straßen)
 MAXZOOM=13 bash tools/build_basemap.sh   # ~13  GB  (jede Nebenstraße)
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+$env:MAXZOOM=10; .\tools\build_basemap.ps1   # ~1.4 GB  (Standard, Stadt-Ebene)
+$env:MAXZOOM=11; .\tools\build_basemap.ps1   # ~2.9 GB  (Hauptstraßennetz)
+$env:MAXZOOM=12; .\tools\build_basemap.ps1   # ~6.5 GB  (die meisten Straßen)
+$env:MAXZOOM=13; .\tools\build_basemap.ps1   # ~13  GB  (jede Nebenstraße)
+```
+
 Beispiel – nur Deutschland mit mehr Detail:
+
+**Linux/macOS:**
 
 ```bash
 EUROPE_BBOX=5.5,47,15.5,55 MAXZOOM=12 bash tools/build_basemap.sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+$env:EUROPE_BBOX="5.5,47,15.5,55"; $env:MAXZOOM=12; .\tools\build_basemap.ps1
 ```
 
 > **Hinweis:** Protomaps hält die täglichen Planet-Builds nur ~5 Tage vor.
