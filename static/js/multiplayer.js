@@ -28,26 +28,22 @@ export function init_pocketbase() {
 }
 
 
-export async function pushLockedLocation(location) {
+export async function pushLockedLocation(latlng, roundnumber) {
     if (!pb.authStore.isValid) {
-        console.log("User is NOT authenticated. Authenticating...");
         await init_pocketbase();
     }
 
-    console.log("Uploading Pinned location...");
+    let player = localStorage.getItem("playerName");
+    player = player.toLowerCase();
 
-    try {
-        await pb.collection("placed_points").create({
-            round_number: 1,
-            by_player: localStorage.getItem("playerName"),
-            coordinates: {
-                lon: location.longitude,
-                lat: location.latitude
-            }
-        });
+    console.log(latlng);
 
-        console.log("Placed point gespeichert");
-    } catch (error) {
-        console.error(error);
-    }
+    await pb.collection("placed_points").create({
+        round_number: roundnumber,
+        placed_by: player,
+        coordinates: {
+            lat: Number(latlng.lat),
+            lon: Number(latlng.lng)
+        }
+    });
 }

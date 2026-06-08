@@ -1,5 +1,4 @@
 // Spielzustand
-import {PhotoZoom} from "./photo.js";
 import {init_pocketbase, pushLockedLocation} from "./multiplayer.js";
 
 let guessMarker = null;
@@ -58,15 +57,6 @@ function updateRoundDisplay() {
 
 // View-Wechsel
 function showView(viewName) {
-    if (isModerator) {
-        document.getElementById('photoView').classList.add('active');
-        document.getElementById('mapView').classList.add('active');
-        setTimeout(() => {
-            map.invalidateSize(true);
-        }, 200);
-        return;
-    }
-
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
 
@@ -305,11 +295,7 @@ document.getElementById('lockButton').addEventListener('click', function () {
     });
     gameResults.totalDistance += distance;
 
-    const guessedLocation = guessMarker.getLatLng();
-    pushLockedLocation({
-        latitude: guessedLocation.lat,
-        longitude: guessedLocation.lng
-    });
+    pushLockedLocation(guessMarker.getLatLng(), currentPhotoIndex +1)
 
     // Zeichne Linie zwischen Tipp und Ziel
     resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {
