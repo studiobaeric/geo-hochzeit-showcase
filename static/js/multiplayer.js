@@ -2,6 +2,8 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 
 const pb = new PocketBase('http://192.168.179.2:8090/');
 
+const gamestate_id = "000000000000000";
+
 
 let initPromise = null;
 
@@ -104,4 +106,12 @@ export async function pushLocation(latlng, roundnumber) {
             throw err; // Re-throw other errors
         }
     }
+}
+
+export function startNextRound(state) {
+    if (localStorage.getItem("name") !== "Moderator") return;
+
+    console.log("Starting next round...")
+
+    pb.collection('gamestate').update(gamestate_id, {state: "none_finished"});
 }
