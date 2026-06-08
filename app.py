@@ -32,6 +32,7 @@ def results():
 # das, was PMTiles im Browser benoetigt. Keine eigene Tile-Route mehr noetig.
 
 if __name__ == '__main__':
+
     # threaded=True: MapLibre/PMTiles feuert beim Zoomen viele parallele
     # Range-Requests auf basemap.pmtiles ab. Der Default-Dev-Server ist
     # single-threaded und lehnt gleichzeitige Verbindungen ab (ERR_CONNECTION

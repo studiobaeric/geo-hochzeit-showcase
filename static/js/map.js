@@ -1,4 +1,7 @@
 // Spielzustand
+import {PhotoZoom} from "./photo.js";
+import {init_pocketbase, pushLockedLocation} from "./multiplayer.js";
+
 let guessMarker = null;
 let targetMarker = null;
 let resultLine = null;
@@ -7,12 +10,21 @@ let photos = [];
 let currentPhotoIndex = 0;
 let currentPhoto = null;
 let totalRounds = 0;
+const gameRole = sessionStorage.getItem('gameRole') || localStorage.getItem('playerName') || 'Jana';
+const isModerator = gameRole === 'moderator';
 
 // Score-Tracking
 let gameResults = {
     rounds: [],
     totalDistance: 0
 };
+
+window.addEventListener("load", function () {
+    if (!sessionStorage.getItem("geladen")) {
+        init_pocketbase();
+        sessionStorage.setItem("geladen", "true");
+    }
+});
 
 // Lade Foto-Daten
 async function loadPhotos() {
@@ -46,6 +58,15 @@ function updateRoundDisplay() {
 
 // View-Wechsel
 function showView(viewName) {
+    if (isModerator) {
+        document.getElementById('photoView').classList.add('active');
+        document.getElementById('mapView').classList.add('active');
+        setTimeout(() => {
+            map.invalidateSize(true);
+        }, 200);
+        return;
+    }
+
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
 
@@ -109,6 +130,35 @@ function nextPhoto() {
     }
 }
 
+function showModeratorPhoto(index) {
+    if (index < 0 || index >= photos.length) return;
+
+    photoZoom.reset();
+    document.getElementById('photoImage').src = '';
+    loadPhoto(index);
+    updateModeratorControls();
+}
+
+function updateModeratorControls() {
+    const prevButton = document.getElementById('moderatorPrevButton');
+    const nextButton = document.getElementById('moderatorNextButton');
+
+    prevButton.disabled = currentPhotoIndex === 0;
+    nextButton.disabled = currentPhotoIndex + 1 >= photos.length;
+}
+
+function initModeratorMode() {
+    document.body.classList.add('moderator-mode');
+    document.getElementById('photoView').classList.add('active');
+    document.getElementById('mapView').classList.add('active');
+    document.getElementById('moderatorControls').style.display = 'flex';
+    updateModeratorControls();
+
+    setTimeout(() => {
+        map.invalidateSize(true);
+    }, 250);
+}
+
 // Zeige Spiel-Ende Bildschirm
 function showGameOver() {
     document.getElementById('result').innerHTML = `
@@ -121,7 +171,7 @@ function showGameOver() {
     document.getElementById('nextPhotoButton').style.display = 'none';
     document.getElementById('lockButton').style.display = 'none';
 
-    document.getElementById('restartButton').addEventListener('click', function() {
+    document.getElementById('restartButton').addEventListener('click', function () {
         // Leere das Foto-Element sofort
         document.getElementById('photoImage').src = '';
         resetForNextRound();
@@ -132,7 +182,7 @@ function showGameOver() {
 }
 
 // Initialisiere die Karte
-const map = L.map('map', { minZoom: 1, maxZoom: 18 }).setView([49.3690, 9.5436], 6);
+const map = L.map('map', {minZoom: 1, maxZoom: 18}).setView([49.3690, 9.5436], 6);
 
 // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
 // PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
@@ -159,9 +209,10 @@ fetch('/static/data/basemap-style.json')
 
 // Click-Handler für Tipp-Platzierung
 map.on('click', function(e) {
+    if (isModerator) return;
     if (isLocked) return; // Kein Verschieben nach Lock-In
 
-    const { lat, lng } = e.latlng;
+    const {lat, lng} = e.latlng;
 
     // Wenn noch kein Marker gesetzt, erstelle einen
     if (!guessMarker) {
@@ -186,22 +237,30 @@ map.on('click', function(e) {
 });
 
 // Button-Handler
-document.getElementById('guessButton').addEventListener('click', function() {
+document.getElementById('guessButton').addEventListener('click', function () {
     showView('mapView');
 });
 
-document.getElementById('backToPhotoButton').addEventListener('click', function() {
+document.getElementById('backToPhotoButton').addEventListener('click', function () {
     if (!isLocked) {
         showView('photoView');
     }
 });
 
-document.getElementById('nextPhotoButton').addEventListener('click', function() {
+document.getElementById('nextPhotoButton').addEventListener('click', function () {
     nextPhoto();
 });
 
+document.getElementById('moderatorPrevButton').addEventListener('click', function() {
+    showModeratorPhoto(currentPhotoIndex - 1);
+});
+
+document.getElementById('moderatorNextButton').addEventListener('click', function() {
+    showModeratorPhoto(currentPhotoIndex + 1);
+});
+
 // Lock-In Button Handler
-document.getElementById('lockButton').addEventListener('click', function() {
+document.getElementById('lockButton').addEventListener('click', function () {
     if (!guessMarker || isLocked || !currentPhoto) return;
 
     isLocked = true;
@@ -246,6 +305,12 @@ document.getElementById('lockButton').addEventListener('click', function() {
     });
     gameResults.totalDistance += distance;
 
+    const guessedLocation = guessMarker.getLatLng();
+    pushLockedLocation({
+        latitude: guessedLocation.lat,
+        longitude: guessedLocation.lng
+    });
+
     // Zeichne Linie zwischen Tipp und Ziel
     resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {
         color: 'red',
@@ -275,7 +340,7 @@ document.getElementById('lockButton').addEventListener('click', function() {
 
     // Zoom auf beide Marker
     const bounds = L.latLngBounds([guessMarker.getLatLng(), actualLocation]);
-    map.fitBounds(bounds, { padding: [50, 50] });
+    map.fitBounds(bounds, {padding: [50, 50]});
 });
 
 // Haversine-Formel für Distanzberechnung
@@ -285,8 +350,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     const dLon = toRad(lon2 - lon1);
 
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
@@ -314,7 +379,11 @@ function resetGame() {
     document.getElementById('lockButton').style.display = 'inline-block';
 }
 
-loadPhotos();
-
 // Initialisiere Foto-Zoom
 const photoZoom = new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton');
+
+loadPhotos().then(() => {
+    if (isModerator) {
+        initModeratorMode();
+    }
+});
