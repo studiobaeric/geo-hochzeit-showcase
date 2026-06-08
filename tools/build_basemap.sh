@@ -67,7 +67,7 @@ echo ">> step 2/3: Europe detail   z$((WORLD_MAXZOOM+1))..${MAXZOOM}  bbox=${EUR
     --download-threads=8
 
 echo ">> step 3/3: merging into $OUT"
-"$PMTILES" merge "$TMP_WORLD" "$TMP_EUROPE" --output "$OUT"
+"$PMTILES" merge "$TMP_WORLD" "$TMP_EUROPE" "$OUT"
 
 rm -f "$TMP_WORLD" "$TMP_EUROPE"
 echo ">> done: $(du -h "$OUT" | cut -f1) at $OUT"

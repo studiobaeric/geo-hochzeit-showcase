@@ -87,7 +87,7 @@ Write-Host ">> step 2/3: Europe detail   z$($WORLD_MAXZOOM+1)..${MAXZOOM}  bbox=
     --download-threads=8
 
 Write-Host ">> step 3/3: merging into $OUT"
-& $PMTILES merge "$TMP_WORLD" "$TMP_EUROPE" --output "$OUT"
+& $PMTILES merge "$TMP_WORLD" "$TMP_EUROPE" "$OUT"
 
 Remove-Item -Force -ErrorAction SilentlyContinue "$TMP_WORLD"
 Remove-Item -Force -ErrorAction SilentlyContinue "$TMP_EUROPE"
