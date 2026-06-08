@@ -1,4 +1,4 @@
-import {init_pocketbase} from './multiplayer.js';
+import {init_pocketbase, startNextRound} from './multiplayer.js';
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
@@ -6,6 +6,8 @@ const moderatorApp = document.getElementById('moderatorApp');
 const resolutionView = document.getElementById('resolutionView');
 const resolutionMapElement = document.getElementById('resolutionMap');
 const mainControlButton = document.getElementById('mainControlButton');
+
+const startButton = document.getElementById('startButton');
 
 let currentPhoto = null;
 let resolutionMap = null;
@@ -26,6 +28,7 @@ function ensurePmtilesProtocol() {
     isPmtilesProtocolRegistered = true;
 }
 
+// aufrufen mit neuer nummer für neues photo
 async function loadCurrentPhoto(photo=0) {
     if (!currentPhotoImage || !currentPhotoFallback) return;
 
@@ -212,9 +215,10 @@ async function showResolutionView() {
 
 if (moderatorApp) {
     mainControlButton?.addEventListener('click', showResolutionView);
-    localStorage.setItem('playerName', 'Moderator');
+    startButton?.addEventListener('click', startNextRound());
 
     loadCurrentPhoto();
+    
     init_pocketbase().catch((error) => {
         console.error('Moderator multiplayer could not be initialized:', error);
     });
