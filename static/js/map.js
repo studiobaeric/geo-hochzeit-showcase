@@ -131,14 +131,30 @@ function showGameOver() {
 }
 
 // Initialisiere die Karte
-const map = L.map('map').setView([49.3690, 9.5436], 6);
+const map = L.map('map', { minZoom: 3, maxZoom: 18 }).setView([49.3690, 9.5436], 6);
 
-// Verwende lokale Tiles
-L.tileLayer('/tiles/{z}/{x}/{y}.png', {
-    attribution: 'Map data &copy; OpenStreetMap contributors',
-    maxZoom: 18,
-    minZoom: 3
-}).addTo(map);
+// Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
+// PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
+const pmtilesProtocol = new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
+
+// MapLibre v5 verlangt absolute URLs fuer sprite/glyphs/Source. Wir setzen sie
+// zur Laufzeit aus location.origin zusammen, damit die App auf jedem Host/Port
+// (und damit komplett offline) funktioniert, ohne hartkodierte Adresse.
+fetch('/static/data/basemap-style.json')
+    .then((response) => response.json())
+    .then((style) => {
+        const origin = window.location.origin;
+        style.sprite = origin + style.sprite;
+        style.glyphs = origin + style.glyphs;
+        style.sources.protomaps.url = 'pmtiles://' + origin + '/static/data/basemap.pmtiles';
+
+        L.maplibreGL({
+            style: style,
+            attribution: 'Map data &copy; OpenStreetMap contributors'
+        }).addTo(map);
+    })
+    .catch((error) => console.error('Fehler beim Laden der Karten-Basemap:', error));
 
 // Click-Handler für Tipp-Platzierung
 map.on('click', function(e) {
@@ -150,8 +166,8 @@ map.on('click', function(e) {
     if (!guessMarker) {
         guessMarker = L.marker([lat, lng], {
             icon: L.icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconUrl: '/static/img/marker-icon-2x-blue.png',
+                shadowUrl: '/static/img/marker-shadow.png',
                 iconSize: [25, 41],
                 iconAnchor: [12, 41],
                 popupAnchor: [1, -34],
@@ -197,8 +213,8 @@ document.getElementById('lockButton').addEventListener('click', function() {
     // Zeige tatsächliche Location
     targetMarker = L.marker(actualLocation, {
         icon: L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconUrl: '/static/img/marker-icon-2x-red.png',
+            shadowUrl: '/static/img/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
             popupAnchor: [1, -34],
