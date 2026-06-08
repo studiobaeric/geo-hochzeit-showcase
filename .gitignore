@@ -12,4 +12,7 @@ static/fonts/
 tools/node_modules/
 tools/bin/
 
+# Python-Umgebung
+.venv/
+
 /server.log
