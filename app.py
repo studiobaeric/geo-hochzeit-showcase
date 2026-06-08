@@ -1,6 +1,6 @@
 import mimetypes
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_file
 from flask_compress import Compress
 
 mimetypes.add_type('application/javascript', '.mjs')

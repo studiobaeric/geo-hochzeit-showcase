@@ -107,29 +107,19 @@ body {
 }
 
 .map-panel {
+    position: relative;
     overflow: hidden;
 }
 
-.map-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.moderator-map {
     width: 100%;
     height: 100%;
-    background:
-        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-        #18211f;
-    background-size: 32px 32px;
+    min-height: 240px;
+    background: #18211f;
 }
 
-.map-placeholder span {
-    padding: 10px 14px;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.56);
-    color: #fff;
-    font-size: clamp(14px, 1.4vw, 18px);
-    font-weight: 700;
+.moderator-map.leaflet-container {
+    background: #ccc;
 }
 
 .moderator-controls {
@@ -212,7 +202,7 @@ body {
 
     .map-panel-left,
     .map-panel-right {
-        grid-row: 2;
+        grid-row: 1;
     }
 
     .moderator-controls {
