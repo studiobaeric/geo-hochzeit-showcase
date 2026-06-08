@@ -1,5 +1,6 @@
 // Spielzustand
 import {init_pocketbase, pushLockedLocation} from "./multiplayer.js";
+import {PhotoZoom} from "./photo.js";
 
 let guessMarker = null;
 let targetMarker = null;
