@@ -1,6 +1,15 @@
 from flask import Flask, render_template
 
 app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
+
+
+@app.after_request
+def add_cache_headers(response):
+    if response.content_type in ('text/css', 'application/javascript',
+                                  'image/png', 'image/jpeg'):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return response
 
 
 @app.route('/')
