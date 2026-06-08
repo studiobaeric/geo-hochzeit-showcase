@@ -96,6 +96,7 @@ function resetForNextRound() {
 // Gehe zum nächsten Foto
 function nextPhoto() {
     if (currentPhotoIndex + 1 < photos.length) {
+        photoZoom.reset();
         // Leere das Foto-Element sofort, damit altes Foto nicht sichtbar ist
         document.getElementById('photoImage').src = '';
         resetForNextRound();
