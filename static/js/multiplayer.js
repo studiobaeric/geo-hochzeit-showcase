@@ -1,4 +1,5 @@
 import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
+import {updateMapPosition} from './moderator.js';
 
 const pb = new PocketBase('http://192.168.179.2:8090/');
 
@@ -33,8 +34,8 @@ export async function init_pocketbase() {
         console.log("record:" + e.record);
         console.log(record.state)
 
-        if (e.action === "update") {
-            const name = localStorage.getItem("name");
+        if (e.action === "create" || e.action === "update") {
+            const name = localStorage.getItem("playerName") || localStorage.getItem("name");
             console.log(name)
             if (name === "Jana" || name === "Tobias") {
                 console.log("name")
@@ -52,13 +53,14 @@ export async function init_pocketbase() {
 
         const record = e.record;
 
-        if (e.action === "update") {
+        if (e.action === "create" || e.action === "update") {
             const name = localStorage.getItem("name");
             console.log("User is:" + name);
             if (name === "Moderator") {
                 console.log("Updating Moderator Interface...")
 
                 //Moderator Interface Change
+                updateMapPosition(record);
 
             }
         }
