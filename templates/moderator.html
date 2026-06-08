@@ -33,7 +33,7 @@
 
             <section class="moderator-controls" aria-label="Moderator Steuerung">
                 <div id="countdownPlaceholder" class="countdown-placeholder">Countdown</div>
-                <button type="button" id="mainControlButton" class="control-button">Steuerung</button>
+                <button type="button" id="mainControlButton" class="control-button">Auflösung</button>
             </section>
 
             <section class="map-panel map-panel-right" aria-label="Karte Spieler rechts">
@@ -41,6 +41,11 @@
             </section>
         </div>
     </main>
+
+    <section id="resolutionView" class="resolution-view" aria-label="Auflösung">
+        <div id="resolutionMap" class="resolution-map"></div>
+        <button type="button" id="continueButton" class="continue-button">Weiter</button>
+    </section>
 
     <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
