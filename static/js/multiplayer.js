@@ -1,4 +1,4 @@
-import PocketBase from "pocketbase";
+import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 
 const pb = new PocketBase('http://192.168.172.2');
 
@@ -12,9 +12,8 @@ function init() {
 
 
 export async function pushLockedLocation(location) {
-    print("Sending Data...")
     try {
-        await pb.collection('placed_points').send({
+        await pb.collection('placed_points').create({
             round_number: 1,
             by_player: localStorage.getItem('playerName'),
             coordinates: {"lon": location.longitude, "lat": location.latitude}
