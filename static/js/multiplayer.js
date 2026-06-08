@@ -1,5 +1,6 @@
 import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {updateMapPosition} from './moderator.js';
+import {nextPhoto} from "./map.js";
 
 const pb = new PocketBase('http://192.168.179.2:8090/');
 
@@ -10,6 +11,7 @@ let initPromise = null;
 
 export async function init_pocketbase() {
     if (initPromise) return initPromise; // prevent duplicates
+    await loadPhotos();
     console.log("Initialising Pocketbase connection...")
 
     initPromise = (async () => {
@@ -37,12 +39,11 @@ export async function init_pocketbase() {
             const name = localStorage.getItem("name");
             console.log(name)
             if (name === "Jana" || name === "Tobias") {
-                console.log("name")
+                console.log(name)
+                console.log(record.state)
                 if (record.state === "playing") {
-                    console.log("state")
                     window.location.href = "game.html";
                 } else if (record.state === "waiting") {
-                    console.log("state")
                     window.location.href = "wait_screen.html";
                 }
             }
@@ -79,7 +80,7 @@ export async function pushLocation(latlng, roundnumber) {
         await init_pocketbase();
     }
 
-    const player = localStorage.getItem("playerName").toLowerCase();
+    const player = localStorage.getItem("name").toLowerCase();
     const data = {
         round_number: roundnumber,
         placed_by: player,
@@ -115,6 +116,10 @@ export function startNextRound() {
 
     console.log("Starting next round...")
 
-    pb.collection('gamestate').update(gamestate_id, {state: "playing"});
+    try {
+        pb.collection('gamestate').update(gamestate_id, {state: "playing"});
+    } catch (e) {
+        console.error(e)
+    }
 }
 

@@ -216,7 +216,7 @@ async function showResolutionView() {
 if (moderatorApp) {
     mainControlButton?.addEventListener('click', showResolutionView);
     startButton?.addEventListener('click', () => {
-        console.log("Clicked Start button")
+        console.log("Clicked Start button");
         startNextRound();
 
         startButton.textContent = "Gestartet ...";
