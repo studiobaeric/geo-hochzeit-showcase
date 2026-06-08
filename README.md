@@ -168,8 +168,23 @@ Das Build-Skript sucht automatisch dort nach pmtiles.
 |-----------------|----------------|----------------------------------------------------------------|
 | `MAXZOOM`       | `10`           | Höchster Detailgrad für Europa (höher = viel größer)           |
 | `WORLD_MAXZOOM` | `5`            | Bis zu welchem Zoom die Weltkarte reicht (z0–n)                |
-| `EUROPE_BBOX`   | `-25,34,45,72` | Region für Hoch-Zoom-Tiles `min_lon,min_lat,max_lon,max_lat`   |
+| `EUROPE_BBOX`   | `-25,32,45,72` | Region für Hoch-Zoom-Tiles `min_lon,min_lat,max_lon,max_lat`   |
 | `BUILD_DATE`    | `20260608`     | Protomaps-Build-Datum (`YYYYMMDD`)                             |
+| `FORCE_REBUILD` | `false`        | `true` = ignoriert Caches, lädt alles neu                      |
+
+### Incrementales Build
+
+Das Skript cached Zwischenergebnisse in `/tmp/basemap_{world,europe}.pmtiles`.
+Beim nächsten Durchlauf werden nur fehlende Teile nachgeladen:
+
+- **Welt** (z0–5) – einmal geladen, wird bei gleichem `WORLD_MAXZOOM`/`BUILD_DATE` wiederverwendet.
+- **Europa** (z6+) – ändert sich nur `EUROPE_BBOX` (z.B. Erweiterung um Madeira),
+  wird nur der neue geografische Streifen heruntergeladen und mit dem Cache gemerged.
+  Gleiches gilt für eine Erhöhung von `MAXZOOM`: nur die neuen Zoom-Stufen werden
+  extrahiert.
+- Bei Änderung von `BUILD_DATE` oder `FORCE_REBUILD=true` wird komplett neu geladen.
+
+> **Cache löschen:** `rm -f /tmp/basemap_{world,europe}.pmtiles /tmp/basemap_{world,europe}.meta*`
 
 Größen des Europa-Anteils (der Weltteil ist immer nur wenige MB):
 
