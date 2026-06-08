@@ -106,7 +106,6 @@ function syncResolutionPlayerMarkers() {
         : [];
 
     Object.values(latestPlayerRecords).forEach((record) => {
-        alert("new")
         if (!isCurrentPhotoRecord(record)) return;
 
         const latLng = getRecordLatLng(record);
