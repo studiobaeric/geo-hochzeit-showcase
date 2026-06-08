@@ -37,10 +37,10 @@
   },
   {
     "id": 5,
-    "filename": "test4.jpg",
+    "filename": "funchal.png",
     "location": {
-      "lat": 51.5074,
-      "lng": -0.1278
+      "lat": 32.6478,
+      "lng": -16.9006
     },
     "description": "Funchal, Madeira"
   }
