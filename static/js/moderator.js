@@ -8,6 +8,10 @@ const resolutionMapElement = document.getElementById('resolutionMap');
 const mainControlButton = document.getElementById('mainControlButton');
 
 const startButton = document.getElementById('startButton');
+const continueButton = document.getElementById('continueButton');
+const resultContinueButton = document.getElementById('resultContinueButton');
+
+const roundResultView = document.getElementById('roundResultView');
 
 let currentPhoto = null;
 let resolutionMap = null;
@@ -20,6 +24,8 @@ let leftPlayerMarker = null;
 let rightPlayerMarker = null;
 let isPmtilesProtocolRegistered = false;
 
+let round = 0
+
 function ensurePmtilesProtocol() {
     if (isPmtilesProtocolRegistered) return;
 
@@ -29,7 +35,7 @@ function ensurePmtilesProtocol() {
 }
 
 // aufrufen mit neuer nummer für neues photo
-async function loadCurrentPhoto(photo=0) {
+async function loadCurrentPhoto(photo=round) {
     if (!currentPhotoImage || !currentPhotoFallback) return;
 
     try {
@@ -196,6 +202,7 @@ async function showResolutionView() {
 
     moderatorApp.classList.add('is-hidden');
     resolutionView.classList.add('is-active');
+    continueButton.classList.add('is-active');
 
     try {
         await initResolutionMap();
@@ -213,15 +220,61 @@ async function showResolutionView() {
     }
 }
 
+async function showModPageNextRound(){
+
+    round = round + 1;
+
+    loadCurrentPhoto(round);
+
+    moderatorApp.classList.remove('is-hidden');
+    resolutionView.classList.remove('is-active');
+    
+
+
+}
+
+function showRoundResult(results) {
+    const sortedResults = [...results].sort((a, b) => b.points - a.points);
+    const resultRows = document.querySelectorAll('.result-row');
+
+    sortedResults.forEach((result, index) => {
+        const row = resultRows[index];
+        if (!row) return;
+
+        row.querySelector('.result-player-name').textContent = result.name;
+        row.querySelector('.result-player-points').textContent = `${result.points} Punkte`;
+    });
+
+    roundResultView.classList.add('is-active');
+}
+
 if (moderatorApp) {
     mainControlButton?.addEventListener('click', showResolutionView);
+    
     startButton?.addEventListener('click', () => {
         console.log("Clicked Start button")
         startNextRound();
 
         startButton.textContent = "Gestartet ...";
         startButton.disabled = true;
-        } );
+        } 
+    );
+
+    continueButton?.addEventListener('click', () => {
+        showRoundResult([
+            {name: 'Jana', points: 850},
+            {name: 'Tobias', points: 620}
+        ]);
+        continueButton.classList.remove('is-active');
+    });
+
+    resultContinueButton?.addEventListener('click', () => {
+
+        roundResultView.classList.remove('is-active');
+        showModPageNextRound();
+
+
+    });
 
     loadCurrentPhoto();
 
