@@ -6,34 +6,34 @@
       "lat": 49.3690,
       "lng": 9.5436
     },
-    "description": "Schloss Aschaffenburg"
+    "description": "Schloss Aschhausen"
   },
   {
     "id": 2,
-    "filename": "test1.jpg",
+    "filename": "hamburg.png",
     "location": {
-      "lat": 49.8100,
-      "lng": 9.2900
+      "lat": 53.5437,
+      "lng": 10.0153
     },
-    "description": "Frankfurt am Main"
+    "description": "Harry Potter Theater Hamburg"
   },
   {
     "id": 3,
-    "filename": "test2.jpg",
+    "filename": "arena_oberhof.png",
     "location": {
-      "lat": 48.8566,
-      "lng": 2.3522
+      "lat": 50.7089,
+      "lng": 10.6958
     },
-    "description": "Paris, Frankreich"
+    "description": "Lotto Thüringen Arena Oberhof"
   },
   {
     "id": 4,
-    "filename": "test3.jpg",
+    "filename": "stresa.png",
     "location": {
-      "lat": 48.1351,
-      "lng": 11.5820
+      "lat": 45.8956,
+      "lng": 8.5253
     },
-    "description": "München"
+    "description": "Lago Maggiore - Stresa"
   },
   {
     "id": 5,
@@ -42,6 +42,6 @@
       "lat": 51.5074,
       "lng": -0.1278
     },
-    "description": "London, Großbritannien"
+    "description": "Funchal, Madeira"
   }
 ]

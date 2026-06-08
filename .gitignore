@@ -12,6 +12,4 @@ static/fonts/
 tools/node_modules/
 tools/bin/
 
-# Hochzeitsfotos - privat
-static/photos/
-!static/photos/README.md
+/server.log
