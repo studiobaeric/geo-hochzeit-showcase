@@ -133,7 +133,7 @@ function showGameOver() {
 }
 
 // Initialisiere die Karte
-const map = L.map('map', { minZoom: 3, maxZoom: 18 }).setView([49.3690, 9.5436], 6);
+const map = L.map('map', { minZoom: 1, maxZoom: 18 }).setView([49.3690, 9.5436], 6);
 
 // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
 // PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
