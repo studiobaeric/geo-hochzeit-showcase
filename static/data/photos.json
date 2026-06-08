@@ -10,7 +10,7 @@
   },
   {
     "id": 2,
-    "filename": "hamburg.png",
+    "filename": "hamburg.jpg",
     "location": {
       "lat": 53.5437,
       "lng": 10.0153
@@ -19,7 +19,7 @@
   },
   {
     "id": 3,
-    "filename": "arena_oberhof.png",
+    "filename": "arena_oberhof.jpg",
     "location": {
       "lat": 50.7089,
       "lng": 10.6958
@@ -28,7 +28,7 @@
   },
   {
     "id": 4,
-    "filename": "stresa.png",
+    "filename": "stresa.jpg",
     "location": {
       "lat": 45.8956,
       "lng": 8.5253
@@ -37,7 +37,7 @@
   },
   {
     "id": 5,
-    "filename": "funchal.png",
+    "filename": "funchal.jpg",
     "location": {
       "lat": 32.6478,
       "lng": -16.9006
