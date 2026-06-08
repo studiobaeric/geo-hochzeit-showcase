@@ -8,6 +8,7 @@ const gamestate_id = "000000000000000";
 
 let initPromise = null;
 
+
 export async function init_pocketbase() {
     if (initPromise) return initPromise; // prevent duplicates
     console.log("Initialising Pocketbase connection...")
@@ -50,7 +51,8 @@ export async function init_pocketbase() {
     });
 
     pb.collection('placed_points').subscribe('*', (e) => {
-
+        console.log("placed_points realtime event", e.action, e.record);
+        console.log("localStorage name:", localStorage.getItem("name"));
         console.log("Received Point Data:" + e.record);
 
         const record = e.record;
@@ -117,4 +119,3 @@ export function startNextRound() {
 
     pb.collection('gamestate').update(gamestate_id, {state: "playing"});
 }
-
