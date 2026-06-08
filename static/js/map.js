@@ -1,4 +1,6 @@
 // Spielzustand
+import {pushLockedLocation} from "./multiplayer.js";
+
 let guessMarker = null;
 let targetMarker = null;
 let resultLine = null;
@@ -244,6 +246,8 @@ document.getElementById('lockButton').addEventListener('click', function() {
         filename: currentPhoto.filename
     });
     gameResults.totalDistance += distance;
+
+    pushLockedLocation(location)
 
     // Zeichne Linie zwischen Tipp und Ziel
     resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {

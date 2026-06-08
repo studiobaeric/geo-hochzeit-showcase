@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -126,36 +127,45 @@
     </style>
 </head>
 <body>
-    <div class="start-container">
-        <h1>🎉 Hochzeits Geoguesser</h1>
-        <p>Erraten Sie die Orte aus den Hochzeitsfotos!</p>
+<div class="start-container">
+    <h1>🎉 Hochzeits Geoguesser</h1>
+    <p>Erraten Sie die Orte aus den Hochzeitsfotos!</p>
 
-        <div class="info-box">
-            <h3>Wie man spielt:</h3>
-            <ul>
-                <li>Schaue dir das Hochzeitsfoto an</li>
-                <li>Markiere deine Vermutung auf der Karte</li>
-                <li>Erhalte Punkte basierend auf der Nähe zur richtigen Position</li>
-                <li>Je näher dran, desto mehr Punkte!</li>
-            </ul>
-        </div>
-
-        <button class="start-button" onclick="startGame()">Spiel starten</button>
+    <div class="info-box">
+        <h3>Wie man spielt:</h3>
+        <ul>
+            <li>Schaue dir das Hochzeitsfoto an</li>
+            <li>Markiere deine Vermutung auf der Karte</li>
+            <li>Erhalte Punkte basierend auf der Nähe zur richtigen Position</li>
+            <li>Je näher dran, desto mehr Punkte!</li>
+        </ul>
     </div>
 
-    <script>
-        function startGame() {
-            window.location.href = '/play';
-        }
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="start-button" onclick="startGame('Jana')">
+            Jana
+        </button>
 
-        // Zusätzliche Interaktion für Schwierigkeit (optional)
-        document.querySelectorAll('.difficulty-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
+        <button class="start-button" onclick="startGame('Tobias')">
+            Tobias
+        </button>
+    </div>
+</div>
+
+<script>
+    function startGame(player) {
+        window.location.href = '/play';
+        localStorage.setItem('playerName', player);
+    }
+
+    // Zusätzliche Interaktion für Schwierigkeit (optional)
+    document.querySelectorAll('.difficulty-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
         });
-    </script>
+    });
+</script>
 </body>
 </html>
 
