@@ -17,11 +17,19 @@ pip install -r requirements.txt
 **2. Karten-Assets** – zwei davon sind zu groß bzw. zu zahlreich für Git und
 werden einmalig lokal erzeugt:
 
-**Linux/macOS:**
+**macOS:**
 
 ```bash
 bash tools/build_basemap.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
 bash tools/fetch_fonts.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
+```
+
+
+**Linux:**
+
+```bash
+bash tools/build_basemap_linux.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+bash tools/fetch_fonts_linux.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
 **Windows (PowerShell):**
