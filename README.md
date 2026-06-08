@@ -6,8 +6,16 @@ PMTiles) – im Spielbetrieb wird **kein** Internet benötigt.
 
 ## Setup nach dem Klonen
 
-Zwei Karten-Assets sind zu groß bzw. zu zahlreich für Git und werden einmalig
-lokal erzeugt:
+**1. Python-Umgebung & Abhängigkeiten** (nur Flask):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+**2. Karten-Assets** – zwei davon sind zu groß bzw. zu zahlreich für Git und
+werden einmalig lokal erzeugt:
 
 ```bash
 bash tools/build_basemap.sh    # Vektor-Basemap (PMTiles, ~1.4 GB bei Zoom 10)
@@ -20,7 +28,8 @@ liegt bereits eingecheckt in `static/`.
 ## App starten
 
 ```bash
-python app.py          # http://localhost:8080
+source .venv/bin/activate        # falls noch nicht aktiv
+python app.py                    # http://localhost:8080
 ```
 
 ## Offline-Karte (PMTiles) bauen
