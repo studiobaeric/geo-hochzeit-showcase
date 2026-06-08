@@ -8,12 +8,6 @@ let currentPhotoIndex = 0;
 let currentPhoto = null;
 let totalRounds = 0;
 
-// Multiplayer-Modus
-let isMultiplayer = sessionStorage.getItem('isMultiplayer') === 'true';
-let gameId = sessionStorage.getItem('gameId') || null;
-let playerId = sessionStorage.getItem('playerId') || null;
-let playerName = sessionStorage.getItem('playerName') || null;
-
 // Score-Tracking
 let gameResults = {
     rounds: [],
@@ -108,28 +102,9 @@ function nextPhoto() {
         loadPhoto(currentPhotoIndex + 1);
         showView('photoView');
     } else {
-        // Spiel beendet
-        if (isMultiplayer && gameId) {
-            // Bei Multiplayer: Speichere auf Server und navigiere zu Ergebnisseite
-            fetch(`/api/game/${gameId}/end`, { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = `/results?gameId=${gameId}`;
-                    } else {
-                        alert('Fehler beim Beenden des Spiels');
-                        window.location.href = '/results?gameId=' + gameId;
-                    }
-                })
-                .catch(err => {
-                    console.error('Fehler:', err);
-                    window.location.href = '/results?gameId=' + gameId;
-                });
-        } else {
-            // Bei Single-Player: Verwende SessionStorage
-            sessionStorage.setItem('gameResults', JSON.stringify(gameResults));
-            window.location.href = '/results';
-        }
+        // Spiel beendet - speichere Ergebnisse und navigiere zur Ergebnisseite
+        sessionStorage.setItem('gameResults', JSON.stringify(gameResults));
+        window.location.href = '/results';
     }
 }
 
@@ -209,55 +184,15 @@ document.getElementById('nextPhotoButton').addEventListener('click', function() 
 });
 
 // Lock-In Button Handler
-document.getElementById('lockButton').addEventListener('click', async function() {
+document.getElementById('lockButton').addEventListener('click', function() {
     if (!guessMarker || isLocked || !currentPhoto) return;
 
     isLocked = true;
     this.disabled = true;
-    this.textContent = 'Wird gespeichert...';
+    this.textContent = 'Eingelockt!';
 
     // Verwende Location aus aktuellem Foto
     const actualLocation = [currentPhoto.location.lat, currentPhoto.location.lng];
-    const guessLat = guessMarker.getLatLng().lat;
-    const guessLng = guessMarker.getLatLng().lng;
-
-    // Berechne Distanz (Haversine-Formel)
-    const distance = calculateDistance(guessLat, guessLng, actualLocation[0], actualLocation[1]);
-
-    // Bei Multiplayer: Speichere auf Server
-    if (isMultiplayer && gameId && playerId) {
-        try {
-            const response = await fetch(`/api/game/${gameId}/guess`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    player_id: playerId,
-                    round_number: currentPhotoIndex + 1,
-                    latitude: guessLat,
-                    longitude: guessLng
-                })
-            });
-
-            const data = await response.json();
-            if (!data.success) {
-                console.error('Fehler beim Speichern des Tipps:', data.error);
-                alert('Fehler beim Speichern des Tipps: ' + data.error);
-                this.textContent = 'Einlocken';
-                this.disabled = false;
-                isLocked = false;
-                return;
-            }
-        } catch (error) {
-            console.error('Fehler beim Speichern des Tipps:', error);
-            alert('Fehler beim Speichern des Tipps');
-            this.textContent = 'Einlocken';
-            this.disabled = false;
-            isLocked = false;
-            return;
-        }
-    }
-
-    this.textContent = 'Eingelockt!';
 
     // Zeige tatsächliche Location
     targetMarker = L.marker(actualLocation, {
@@ -272,6 +207,13 @@ document.getElementById('lockButton').addEventListener('click', async function()
     }).addTo(map);
     targetMarker.bindPopup('<b>Tatsächliche Location</b>').openPopup();
 
+    // Berechne Distanz (Haversine-Formel)
+    const distance = calculateDistance(
+        guessMarker.getLatLng().lat,
+        guessMarker.getLatLng().lng,
+        actualLocation[0],
+        actualLocation[1]
+    );
 
     // Speichere Runden-Ergebnis
     const distanceText = distance < 1

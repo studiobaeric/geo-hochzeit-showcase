@@ -13,9 +13,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
-            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -23,11 +22,11 @@
         .start-container {
             background: white;
             border-radius: 20px;
-            padding: 40px;
+            padding: 50px;
             text-align: center;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            width: 100%;
+            max-width: 500px;
+            width: 90%;
         }
 
         .start-container h1 {
@@ -67,131 +66,62 @@
             color: #555;
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-            flex-direction: column;
-        }
-
-        .button-group button {
-            padding: 15px 30px;
-            font-size: 1.1em;
+        .start-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             border: none;
+            padding: 15px 50px;
+            font-size: 1.2em;
             border-radius: 10px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
             width: 100%;
             box-sizing: border-box;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #e0e0e0;
-            color: #333;
-        }
-
-        .button-group button:hover {
+        .start-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
         }
 
-        .button-group button:active {
+        .start-button:active {
             transform: translateY(0);
         }
 
-        .game-mode-section {
-            margin: 30px 0;
-            padding: 20px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
+        .difficulty-selector {
+            margin: 20px 0;
         }
 
-        .game-mode-section h2 {
-            color: #333;
-            margin-top: 0;
-            font-size: 1.3em;
-        }
-
-        .form-group {
-            margin: 15px 0;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: bold;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .mode-tabs {
+        .difficulty-buttons {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
-        .mode-tab {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #ddd;
+        .difficulty-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
             background: white;
-            color: #333;
+            color: #667eea;
             border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
+            font-size: 1em;
             transition: all 0.2s;
         }
 
-        .mode-tab.active {
+        .difficulty-btn.active {
             background: #667eea;
             color: white;
-            border-color: #667eea;
         }
 
-        .mode-tab:hover {
-            border-color: #667eea;
+        .difficulty-btn:hover {
+            background: #f0f0f0;
         }
 
-        .mode-content {
-            display: none;
-        }
-
-        .mode-content.active {
-            display: block;
-        }
-
-        @media (max-width: 600px) {
-            .start-container {
-                padding: 25px;
-            }
-
-            .start-container h1 {
-                font-size: 2em;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
+        .difficulty-btn.active:hover {
+            background: #764ba2;
         }
     </style>
 </head>
@@ -210,140 +140,21 @@
             </ul>
         </div>
 
-        <!-- Spielmodus-Auswahl -->
-        <div class="game-mode-section">
-            <h2>Spielmodus</h2>
-            <div class="mode-tabs">
-                <button class="mode-tab active" onclick="switchMode('single')">👤 Einzelspieler</button>
-                <button class="mode-tab" onclick="switchMode('multi')">👥 Mehrspiel</button>
-            </div>
-
-            <!-- Einzelspieler Modus -->
-            <div class="mode-content active" id="single-mode">
-                <p style="color: #666; margin-bottom: 20px;">Spiele allein und versuche die höchste Punktzahl zu erreichen!</p>
-                <button class="button-group btn-primary" onclick="startSinglePlayer()" style="width: 100%; padding: 15px; border: none; border-radius: 10px; cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 1.1em;">Einzelspieler starten</button>
-            </div>
-
-            <!-- Mehrspiel Modus -->
-            <div class="mode-content" id="multi-mode">
-                <div class="form-group">
-                    <label for="playerName">Spielername:</label>
-                    <input type="text" id="playerName" placeholder="Dein Name" value="">
-                </div>
-                <div class="form-group">
-                    <label for="gameIdInput">Spiel-ID (optional - um beizutreten):</label>
-                    <input type="text" id="gameIdInput" placeholder="Spiel-ID eingeben um beizutreten">
-                </div>
-                <div class="button-group">
-                    <button class="btn-primary" onclick="createNewMultiplayerGame()">🆕 Neues Spiel erstellen</button>
-                    <button class="btn-secondary" onclick="joinExistingGame()">↗️ Spiel beitreten</button>
-                </div>
-            </div>
-        </div>
+        <button class="start-button" onclick="startGame()">Spiel starten</button>
     </div>
 
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
-        // Mode wechseln
-        function switchMode(mode) {
-            // Tabs updaten
-            document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
-
-            // Content updaten
-            document.querySelectorAll('.mode-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(mode + '-mode').classList.add('active');
-        }
-
-        // Einzelspieler starten
-        function startSinglePlayer() {
+        function startGame() {
             window.location.href = '/play';
         }
 
-        // Neues Multiplayer-Spiel erstellen
-        async function createNewMultiplayerGame() {
-            const playerName = document.getElementById('playerName').value.trim();
-
-            if (!playerName) {
-                alert('Bitte geben Sie einen Spielernamen ein!');
-                return;
-            }
-
-            try {
-                // Erstelle neues Spiel
-                const createRes = await fetch('/api/game/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const createData = await createRes.json();
-                if (!createData.success) throw new Error(createData.error);
-
-                const gameId = createData.game_id;
-
-                // Füge Spieler hinzu
-                const joinRes = await fetch(`/api/game/${gameId}/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ player_name: playerName })
-                });
-
-                const joinData = await joinRes.json();
-                if (!joinData.success) throw new Error(joinData.error);
-
-                // Speichere Spielinfo in SessionStorage
-                sessionStorage.setItem('gameId', gameId);
-                sessionStorage.setItem('playerId', joinData.player_id);
-                sessionStorage.setItem('playerName', playerName);
-                sessionStorage.setItem('isMultiplayer', 'true');
-
-                // Redirect zu Lobby/Wartezimmer
-                window.location.href = `/lobby?gameId=${gameId}`;
-            } catch (error) {
-                console.error('Fehler beim Erstellen des Spiels:', error);
-                alert('Fehler beim Erstellen des Spiels: ' + error.message);
-            }
-        }
-
-        // In bestehendes Spiel beitreten
-        async function joinExistingGame() {
-            const playerName = document.getElementById('playerName').value.trim();
-            const gameId = document.getElementById('gameIdInput').value.trim();
-
-            if (!playerName) {
-                alert('Bitte geben Sie einen Spielernamen ein!');
-                return;
-            }
-
-            if (!gameId) {
-                alert('Bitte geben Sie eine Spiel-ID ein!');
-                return;
-            }
-
-            try {
-                // Füge Spieler hinzu
-                const joinRes = await fetch(`/api/game/${gameId}/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ player_name: playerName })
-                });
-
-                const joinData = await joinRes.json();
-                if (!joinData.success) throw new Error(joinData.error);
-
-                // Speichere Spielinfo in SessionStorage
-                sessionStorage.setItem('gameId', gameId);
-                sessionStorage.setItem('playerId', joinData.player_id);
-                sessionStorage.setItem('playerName', playerName);
-                sessionStorage.setItem('isMultiplayer', 'true');
-
-                // Redirect zu Lobby
-                window.location.href = `/lobby?gameId=${gameId}`;
-            } catch (error) {
-                console.error('Fehler beim Beitreten zum Spiel:', error);
-                alert('Fehler beim Beitreten: ' + error.message);
-            }
-        }
+        // Zusätzliche Interaktion für Schwierigkeit (optional)
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
     </script>
 </body>
 </html>
