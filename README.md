@@ -66,6 +66,102 @@ bash tools/build_basemap.sh
 Das Skript lädt bei Bedarf automatisch die `pmtiles`-CLI herunter und schreibt
 `static/data/basemap.pmtiles`.
 
+### pmtiles installieren
+
+Das Build-Skript versucht automatisch, die `pmtiles`-CLI zu finden (via PATH oder
+`tools/bin/`) und lädt sie falls nötig herunter. Falls der automatische Download
+fehlschlägt oder nicht funktioniert, gibt es alternative Installationsmethoden:
+
+#### macOS
+
+**Option 1: Homebrew (empfohlen):**
+
+```bash
+brew install pmtiles
+```
+
+**Option 2: Manuelle Installation:**
+
+```bash
+# Release herunterladen und entpacken (passende Architektur wählen)
+unzip go-pmtiles-*.zip
+sudo mv pmtiles /usr/local/bin/
+chmod +x /usr/local/bin/pmtiles
+pmtiles --version
+```
+
+#### Linux
+
+**Option 1: apt (Debian/Ubuntu):**
+
+```bash
+sudo apt update
+sudo apt install pmtiles
+pmtiles --version
+```
+
+**Option 2: Manuelle Installation:**
+
+```bash
+# Release von https://github.com/protomaps/go-pmtiles/releases herunterladen
+# (x86_64 oder aarch64 je nach CPU)
+unzip go-pmtiles-*.zip
+sudo mv pmtiles /usr/local/bin/
+chmod +x /usr/local/bin/pmtiles
+pmtiles --version
+```
+
+#### Windows
+
+**Option 1: Scoop (empfohlen):**
+
+```powershell
+scoop install pmtiles
+```
+
+**Option 2: Chocolatey:**
+
+```powershell
+choco install pmtiles
+```
+
+**Option 3: Manuelle Installation:**
+
+1. Release von [go-pmtiles](https://github.com/protomaps/go-pmtiles/releases) herunterladen
+   (Windows_x86_64.zip)
+2. ZIP-Datei entpacken
+3. `pmtiles.exe` zu einer dieser Optionen hinzufügen:
+   - In einen Ordner im PATH (z.B. `C:\Program Files\pmtiles\`) und zu PATH hinzufügen
+   - Oder direkt in `tools\bin\` des Projekts kopieren
+
+   ```powershell
+   Copy-Item pmtiles.exe .\tools\bin\
+   ```
+
+4. Überprüfen:
+
+   ```powershell
+   pmtiles --version
+   ```
+
+#### Fallback: Lokale Installation
+
+Falls die globale Installation nicht funktioniert, können Sie pmtiles lokal im
+Projektverzeichnis installieren (alle Betriebssysteme):
+
+```bash
+# macOS/Linux
+mkdir -p tools/bin
+unzip go-pmtiles-*.zip -d tools/bin/
+chmod +x tools/bin/pmtiles
+
+# Windows (PowerShell)
+mkdir -p tools\bin
+Expand-Archive -Path go-pmtiles-*.zip -DestinationPath tools\bin
+```
+
+Das Build-Skript sucht automatisch dort nach pmtiles.
+
 ### Zoom-Stufe / Region konfigurieren
 
 | Variable        | Standard       | Bedeutung                                                      |
