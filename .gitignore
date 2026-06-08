@@ -1,5 +1,16 @@
-# Tile cache - zu groß für Git
+# Offline-Vektor-Basemap - zu groß für Git.
+# Mit tools/build_basemap.sh erzeugen (siehe README.md).
+static/data/basemap.pmtiles
+
+# Alter Raster-Tile-Cache (nicht mehr verwendet)
 static/tiles/
+
+# Glyph-Fonts (~768 kleine .pbf-Dateien) - per tools/fetch_fonts.sh holen
+static/fonts/
+
+# Node-Build-Tooling + heruntergeladene pmtiles-CLI
+tools/node_modules/
+tools/bin/
 
 # Hochzeitsfotos - privat
 static/photos/
