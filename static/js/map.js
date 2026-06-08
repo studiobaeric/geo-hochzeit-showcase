@@ -122,7 +122,7 @@ function showGameOver() {
     document.getElementById('nextPhotoButton').style.display = 'none';
     document.getElementById('lockButton').style.display = 'none';
 
-    document.getElementById('restartButton').addEventListener('click', function() {
+    document.getElementById('restartButton').addEventListener('click', function () {
         // Leere das Foto-Element sofort
         document.getElementById('photoImage').src = '';
         resetForNextRound();
@@ -133,7 +133,7 @@ function showGameOver() {
 }
 
 // Initialisiere die Karte
-const map = L.map('map', { minZoom: 1, maxZoom: 18 }).setView([49.3690, 9.5436], 6);
+const map = L.map('map', {minZoom: 1, maxZoom: 18}).setView([49.3690, 9.5436], 6);
 
 // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
 // PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
@@ -159,10 +159,10 @@ fetch('/static/data/basemap-style.json')
     .catch((error) => console.error('Fehler beim Laden der Karten-Basemap:', error));
 
 // Click-Handler für Tipp-Platzierung
-map.on('click', function(e) {
+map.on('click', function (e) {
     if (isLocked) return; // Kein Verschieben nach Lock-In
 
-    const { lat, lng } = e.latlng;
+    const {lat, lng} = e.latlng;
 
     // Wenn noch kein Marker gesetzt, erstelle einen
     if (!guessMarker) {
@@ -187,22 +187,22 @@ map.on('click', function(e) {
 });
 
 // Button-Handler
-document.getElementById('guessButton').addEventListener('click', function() {
+document.getElementById('guessButton').addEventListener('click', function () {
     showView('mapView');
 });
 
-document.getElementById('backToPhotoButton').addEventListener('click', function() {
+document.getElementById('backToPhotoButton').addEventListener('click', function () {
     if (!isLocked) {
         showView('photoView');
     }
 });
 
-document.getElementById('nextPhotoButton').addEventListener('click', function() {
+document.getElementById('nextPhotoButton').addEventListener('click', function () {
     nextPhoto();
 });
 
 // Lock-In Button Handler
-document.getElementById('lockButton').addEventListener('click', function() {
+document.getElementById('lockButton').addEventListener('click', function () {
     if (!guessMarker || isLocked || !currentPhoto) return;
 
     isLocked = true;
@@ -278,7 +278,7 @@ document.getElementById('lockButton').addEventListener('click', function() {
 
     // Zoom auf beide Marker
     const bounds = L.latLngBounds([guessMarker.getLatLng(), actualLocation]);
-    map.fitBounds(bounds, { padding: [50, 50] });
+    map.fitBounds(bounds, {padding: [50, 50]});
 });
 
 // Haversine-Formel für Distanzberechnung
@@ -288,8 +288,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     const dLon = toRad(lon2 - lon1);
 
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
