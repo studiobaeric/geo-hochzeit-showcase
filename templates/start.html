@@ -171,6 +171,12 @@
         window.location.href = '/play';
     }
 
+    function startModerator(player, role){
+        localStorage.setItem('playerName', player)
+        sessionStorage.setItem('role', role)
+        window.location.href = '/moderator'
+    }
+
     // Zusätzliche Interaktion für Schwierigkeit (optional)
     document.querySelectorAll('.difficulty-btn').forEach(btn => {
         btn.addEventListener('click', function () {

@@ -1,5 +1,9 @@
+import mimetypes
+
 from flask import Flask, render_template
 from flask_compress import Compress
+
+mimetypes.add_type('application/javascript', '.mjs')
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
@@ -22,6 +26,10 @@ def start():
 @app.route('/play')
 def play():
     return render_template('wait_screen.html')
+
+@app.route('/moderator')
+def moderator():
+    return render_template('moderator.html')
 
 
 @app.route('/results')

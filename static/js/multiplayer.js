@@ -2,6 +2,7 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 
 const pb = new PocketBase('http://192.168.179.2:8090/');
 
+
 let initPromise = null;
 
 export async function init_pocketbase() {
@@ -69,22 +70,38 @@ export async function init_pocketbase() {
 }
 
 
-export async function pushLockedLocation(latlng, roundnumber) {
+export async function pushLocation(latlng, roundnumber) {
     if (!pb.authStore.isValid) {
         await init_pocketbase();
     }
 
-    let player = localStorage.getItem("playerName");
-    player = player.toLowerCase();
-
-    console.log(latlng);
-
-    await pb.collection("placed_points").create({
+    const player = localStorage.getItem("playerName").toLowerCase();
+    const data = {
         round_number: roundnumber,
         placed_by: player,
         coordinates: {
             lat: Number(latlng.lat),
             lon: Number(latlng.lng)
         }
-    });
+    };
+
+    console.log(latlng);
+
+    try {
+        // Try to find an existing record for this round and player
+        const existingRecord = await pb.collection("placed_points").getFirstListItem(
+            `round_number = ${roundnumber} && placed_by = "${player}"`
+        );
+        // If found, update it
+        await pb.collection("placed_points").update(existingRecord.id, data);
+        console.log("Updated existing record");
+    } catch (err) {
+        // If not found (404), create a new record
+        if (err.status === 404) {
+            await pb.collection("placed_points").create(data);
+            console.log("Created new record");
+        } else {
+            throw err; // Re-throw other errors
+        }
+    }
 }
