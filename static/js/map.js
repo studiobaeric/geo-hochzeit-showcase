@@ -173,13 +173,21 @@ function initModeratorMode() {
         });
     }
 
+function initMap() {
+    if (map) return; // idempotent
+
+    const mapEl = document.getElementById('map');
+    if (!mapEl) {
+        console.warn('initMap: #map nicht gefunden; Abbruch');
+        return;
+    }
     // Initialisiere die Karte
     const map = L.map('map', {minZoom: 1, maxZoom: 18}).setView([49.3690, 9.5436], 6);
 
 // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
 // PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
-const pmtilesProtocol = new pmtiles.Protocol();
-maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
+    const pmtilesProtocol = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
 
     // MapLibre v5 verlangt absolute URLs fuer sprite/glyphs/Source. Wir setzen sie
     // zur Laufzeit aus location.origin zusammen, damit die App auf jedem Host/Port
@@ -199,16 +207,16 @@ maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
             }).addTo(map);
             map.getContainer().style.pointerEvents = 'auto';
             setTimeout(() => {
-    const canvas = document.querySelector('.maplibregl-canvas');
-    if (canvas) {
-        canvas.style.pointerEvents = 'none';
-    }
-}, 0);
+                const canvas = document.querySelector('.maplibregl-canvas');
+                if (canvas) {
+                    canvas.style.pointerEvents = 'none';
+                }
+            }, 0);
         })
         .catch((error) => console.error('Fehler beim Laden der Karten-Basemap:', error));
 
     // Click-Handler für Tipp-Platzierung
-    map.on('click', async function(e) {
+    map.on('click', async function (e) {
         if (isModerator) return;
         if (isLocked) return; // Kein Verschieben nach Lock-In
 
@@ -242,6 +250,14 @@ maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
         // Zeige Lock-In Button
         document.getElementById('lockButton').disabled = false;
     });
+}
+
+// Map initialisieren, sobald DOM bereit ist
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMap);
+} else {
+    initMap();
+}
 
 // Button-Handler
 document.getElementById('guessButton').addEventListener('click', function () {
