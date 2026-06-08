@@ -254,7 +254,7 @@ document.getElementById('lockButton').addEventListener('click', function () {
     });
     gameResults.totalDistance += distance;
 
-    pushLockedLocation(location)
+    pushLockedLocation(guessMarker.getLatLng(), currentPhotoIndex +1)
 
     // Zeichne Linie zwischen Tipp und Ziel
     resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {
