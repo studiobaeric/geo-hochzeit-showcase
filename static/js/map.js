@@ -1,5 +1,5 @@
 // Spielzustand
-import {pushLockedLocation} from "./multiplayer.js";
+import {init_pocketbase, pushLockedLocation} from "./multiplayer.js";
 
 let guessMarker = null;
 let targetMarker = null;
@@ -15,6 +15,13 @@ let gameResults = {
     rounds: [],
     totalDistance: 0
 };
+
+window.addEventListener("load", function () {
+    if (!sessionStorage.getItem("geladen")) {
+        init_pocketbase();
+        sessionStorage.setItem("geladen", "true");
+    }
+});
 
 // Lade Foto-Daten
 async function loadPhotos() {

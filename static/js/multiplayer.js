@@ -3,22 +3,28 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 const pb = new PocketBase('http://192.168.179.2:8090/');
 
 
-async function init_pocketbase() {
+let initPromise = null;
 
-// login
-    const authData = await pb.collection("users").authWithPassword(
-        "nico@mail.de",
-        "12345678"
-    );
+export function init_pocketbase() {
+    if (initPromise) return initPromise; // prevent duplicates
 
-    console.log(pb.authStore.isValid);   // true
-    console.log(pb.authStore.token);    // JWT token
-    console.log(pb.authStore.model);    // user record
+    initPromise = (async () => {
+        const authData = await pb.collection("users").authWithPassword(
+            "nico@mail.de",
+            "12345678"
+        );
 
-    pb.collection('placed_points').subscribe('*', function (e) {
-        console.log('Event:', e.action);
-        console.log('Record:', e.record);
-    });
+        console.log(pb.authStore.isValid);
+        console.log(pb.authStore.token);
+        console.log(pb.authStore.model);
+
+        pb.collection('placed_points').subscribe('*', (e) => {
+            console.log('Event:', e.action);
+            console.log('Record:', e.record);
+        });
+    })();
+
+    return initPromise;
 }
 
 
