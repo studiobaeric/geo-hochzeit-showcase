@@ -161,7 +161,7 @@
             Tobias
         </button>
 
-        <button class="start-button moderator" onclick="startGame('Moderator')">Moderator</button>
+        <button class="start-button moderator" onclick="startModerator('Moderator')">Moderator</button>
     </div>
 </div>
 
@@ -173,7 +173,6 @@
 
     function startModerator(player, role){
         localStorage.setItem('playerName', player)
-        sessionStorage.setItem('role', role)
         window.location.href = '/moderator'
     }
 
