@@ -2,50 +2,52 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
     <meta name="theme-color" content="#000000">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>">
+    <link rel="icon"
+          href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>">
     <title>Hochzeits Geoguesser</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.css') }}"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- Foto-Ansicht -->
-    <div id="photoView" class="view active">
-        <div id="roundInfo" style="text-align: center; margin-bottom: 10px; font-weight: bold;">Runde 1 / 1</div>
-        <div id="photoContainer" class="zoom-container">
-            <img id="photoImage" src="" alt="Hochzeitsfoto" class="zoomable">
-        </div>
-        <!-- Photo Controls - oben rechts -->
-        <div id="photoControls">
-            <button id="resetZoomButton" class="btn-secondary" style="display: none;">Zoom zurücksetzen</button>
-            <button id="guessButton" class="btn-primary">Tipp abgeben</button>
-        </div>
-        <div id="moderatorControls" style="display: none;">
-            <button id="moderatorPrevButton" class="btn-secondary">Vorheriges Foto</button>
-            <button id="moderatorNextButton" class="btn-primary">Nächstes Foto</button>
-        </div>
+<!-- Karten-Ansicht -->
+<div id="mapView" class="view">
+    <div id="map"></div>
+    <div id="controls">
+        <button id="backToPhotoButton" class="btn-secondary">Zurück zum Foto</button>
+        <button id="lockButton" disabled>Einlocken</button>
+        <button id="nextPhotoButton" class="btn-primary" style="display: none;">Nächstes Foto</button>
     </div>
-
-    <!-- Karten-Ansicht -->
-    <div id="mapView" class="view">
-        <div id="map"></div>
-        <div id="controls">
-            <button id="backToPhotoButton" class="btn-secondary">Zurück zum Foto</button>
-            <button id="lockButton" disabled>Einlocken</button>
-            <button id="nextPhotoButton" class="btn-primary" style="display: none;">Nächstes Foto</button>
-        </div>
-        <div id="result"></div>
+    <div id="result"></div>
+</div>
+<!-- Foto-Ansicht -->
+<div id="photoView" class="view active">
+    <div id="roundInfo" style="text-align: center; margin-bottom: 10px; font-weight: bold;">Runde 1 / 1</div>
+    <div id="photoContainer" class="zoom-container">
+        <img id="photoImage" src="" alt="Hochzeitsfoto" class="zoomable">
     </div>
+    <!-- Photo Controls - oben rechts -->
+    <div id="photoControls">
+        <button id="resetZoomButton" class="btn-secondary" style="display: none;">Zoom zurücksetzen</button>
+        <button id="guessButton" class="btn-primary">Tipp abgeben</button>
+    </div>
+    <div id="moderatorControls" style="display: none;">
+        <button id="moderatorPrevButton" class="btn-secondary">Vorheriges Foto</button>
+        <button id="moderatorNextButton" class="btn-primary">Nächstes Foto</button>
+    </div>
+</div>
 
-    <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/map.js') }}"></script>
+
+<script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/map.js') }}"></script>
 </body>
 </html>

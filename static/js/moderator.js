@@ -225,9 +225,6 @@ if (moderatorApp) {
 
     loadCurrentPhoto();
 
-    init_pocketbase().catch((error) => {
-        console.error('Moderator multiplayer could not be initialized:', error);
-    });
     initModeratorMaps().catch((error) => {
         console.error('Moderator maps could not be loaded:', error);
     });

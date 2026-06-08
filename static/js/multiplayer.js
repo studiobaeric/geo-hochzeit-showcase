@@ -11,7 +11,7 @@ let initPromise = null;
 
 export async function init_pocketbase() {
     if (initPromise) return initPromise; // prevent duplicates
-    await loadPhotos();
+
     console.log("Initialising Pocketbase connection...")
 
     initPromise = (async () => {

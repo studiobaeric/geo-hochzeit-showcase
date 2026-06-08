@@ -8,6 +8,7 @@ let resultLine = null;
 let isLocked = false;
 let round_number = 0;
 let currentPhoto = null;
+let map = null;
 
 
 // Lade Foto für Runde
@@ -90,16 +91,18 @@ export async function nextPhoto(round_number) {
     showView('photoView');
 }
 
-function initMap() {
-    if (map) return; // idempotent
+document.addEventListener('DOMContentLoaded', () => {
+    // safe to access DOM here
+    if (map) return; // jetzt sicher
 
     const mapEl = document.getElementById('map');
     if (!mapEl) {
         console.warn('initMap: #map nicht gefunden; Abbruch');
         return;
     }
-// Initialisiere die Karte
-    const map = L.map('map', {minZoom: 1, maxZoom: 18}).setView([49.3690, 9.5436], 6);
+
+    map = L.map('map', {minZoom: 1, maxZoom: 18})
+        .setView([49.3690, 9.5436], 6);
 
 
 // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
@@ -166,84 +169,73 @@ function initMap() {
         // Zeige Lock-In Button
         document.getElementById('lockButton').disabled = false;
     });
-}
-
-// Map initialisieren, sobald DOM bereit ist
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMap);
-} else {
-    initMap();
-}
 
 // Button-Handler
-document.getElementById('guessButton').addEventListener('click', function () {
-    showView('mapView');
-});
+    document.getElementById('guessButton').addEventListener('click', function () {
+        showView('mapView');
+    });
 
-document.getElementById('backToPhotoButton').addEventListener('click', function () {
-    if (!isLocked) {
-        showView('photoView');
-    }
-});
-
+    document.getElementById('backToPhotoButton').addEventListener('click', function () {
+        if (!isLocked) {
+            showView('photoView');
+        }
+    });
 
 
 // Lock-In Button Handler
-document.getElementById('lockButton').addEventListener('click', function () {
-    if (!guessMarker || isLocked || !currentPhoto) return;
+    document.getElementById('lockButton').addEventListener('click', function () {
+        if (!guessMarker || isLocked || !currentPhoto) return;
 
-    isLocked = true;
-    this.disabled = true;
-    this.textContent = 'Eingelockt!';
+        isLocked = true;
+        this.disabled = true;
+        this.textContent = 'Eingelockt!';
 
-    // Verwende Location aus aktuellem Foto
-    const actualLocation = [currentPhoto.location.lat, currentPhoto.location.lng];
+        // Verwende Location aus aktuellem Foto
+        const actualLocation = [currentPhoto.location.lat, currentPhoto.location.lng];
 
-    // Zeige tatsächliche Location
-    targetMarker = L.marker(actualLocation, {
-        icon: L.icon({
-            iconUrl: '/static/img/marker-icon-2x-red.png',
-            shadowUrl: '/static/img/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
-    }).addTo(map);
-    targetMarker.bindPopup('<b>Tatsächliche Location</b>').openPopup();
-
-
-    // Zeichne Linie zwischen Tipp und Ziel
-    resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {
-        color: 'red',
-        weight: 3,
-        opacity: 0.7,
-        dashArray: '10, 10'
-    }).addTo(map);
+        // Zeige tatsächliche Location
+        targetMarker = L.marker(actualLocation, {
+            icon: L.icon({
+                iconUrl: '/static/img/marker-icon-2x-red.png',
+                shadowUrl: '/static/img/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        }).addTo(map);
+        targetMarker.bindPopup('<b>Tatsächliche Location</b>').openPopup();
 
 
-    document.getElementById('result').innerHTML = `
+        // Zeichne Linie zwischen Tipp und Ziel
+        resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {
+            color: 'red',
+            weight: 3,
+            opacity: 0.7,
+            dashArray: '10, 10'
+        }).addTo(map);
+
+
+        document.getElementById('result').innerHTML = `
         <h3>Ergebnis:</h3>
         <p>Distanz: <strong>${distanceText}</strong></p>
     `;
-    document.getElementById('result').style.display = 'block';
+        document.getElementById('result').style.display = 'block';
 
-    // Verstecke "Zurück zum Foto" Button
-    document.getElementById('backToPhotoButton').style.display = 'none';
+        // Verstecke "Zurück zum Foto" Button
+        document.getElementById('backToPhotoButton').style.display = 'none';
 
-    // Zeige "Nächstes Foto" Button (oder "Zum Ergebnis" wenn letzte Runde)
-    if (currentPhotoIndex + 1 < photos.length) {
-        document.getElementById('nextPhotoButton').textContent = 'Nächstes Foto';
-        document.getElementById('nextPhotoButton').style.display = 'inline-block';
-    } else {
-        document.getElementById('nextPhotoButton').textContent = 'Zum Ergebnis';
-        document.getElementById('nextPhotoButton').style.display = 'inline-block';
-    }
+        // Zeige "Nächstes Foto" Button (oder "Zum Ergebnis" wenn letzte Runde)
+        if (currentPhotoIndex + 1 < photos.length) {
+            document.getElementById('nextPhotoButton').textContent = 'Nächstes Foto';
+            document.getElementById('nextPhotoButton').style.display = 'inline-block';
+        } else {
+            document.getElementById('nextPhotoButton').textContent = 'Zum Ergebnis';
+            document.getElementById('nextPhotoButton').style.display = 'inline-block';
+        }
 
-    // Zoom auf beide Marker
-    const bounds = L.latLngBounds([guessMarker.getLatLng(), actualLocation]);
-    map.fitBounds(bounds, {padding: [50, 50]});
+        // Zoom auf beide Marker
+        const bounds = L.latLngBounds([guessMarker.getLatLng(), actualLocation]);
+        map.fitBounds(bounds, {padding: [50, 50]});
+    });
 });
-
-// Initialisiere Foto-Zoom
-const photoZoom = new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton');
