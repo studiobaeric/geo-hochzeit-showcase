@@ -18,7 +18,7 @@ pip install -r requirements.txt
 werden einmalig lokal erzeugt:
 
 ```bash
-bash tools/build_basemap.sh    # Vektor-Basemap (PMTiles, ~1.4 GB bei Zoom 10)
+bash tools/build_basemap.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
 bash tools/fetch_fonts.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
@@ -34,10 +34,14 @@ python app.py                    # http://localhost:8080
 
 ## Offline-Karte (PMTiles) bauen
 
-Die Kartendaten (`static/data/basemap.pmtiles`, ~1.3 GB bei Zoom 10) sind zu
-groß für Git und werden **nicht** eingecheckt. Sie werden einmalig aus dem
-gehosteten Protomaps-Planet-Build per HTTP-Range-Request extrahiert (es wird
-nur die gewählte Region geladen, nicht der ganze Planet):
+Die Kartendaten (`static/data/basemap.pmtiles`) sind zu groß für Git und
+werden **nicht** eingecheckt. Das Skript baut die Karte in zwei Schritten und
+merged das Ergebnis:
+
+1. **Weltweit z0–5** – winzige Übersichts-Tiles (wenige MB), damit man beim
+   weit Herauszoomen immer die ganze Erde sieht.
+2. **Europa z6–10** – detaillierte Tiles für den europäischen Spielbereich
+   (~1.4 GB).
 
 ```bash
 bash tools/build_basemap.sh
@@ -48,8 +52,14 @@ Das Skript lädt bei Bedarf automatisch die `pmtiles`-CLI herunter und schreibt
 
 ### Zoom-Stufe / Region konfigurieren
 
-Alles ist über Umgebungsvariablen einstellbar. Die wichtigste ist `MAXZOOM` –
-sie bestimmt Detailgrad **und** Dateigröße:
+| Variable        | Standard       | Bedeutung                                                      |
+|-----------------|----------------|----------------------------------------------------------------|
+| `MAXZOOM`       | `10`           | Höchster Detailgrad für Europa (höher = viel größer)           |
+| `WORLD_MAXZOOM` | `5`            | Bis zu welchem Zoom die Weltkarte reicht (z0–n)                |
+| `EUROPE_BBOX`   | `-25,34,45,72` | Region für Hoch-Zoom-Tiles `min_lon,min_lat,max_lon,max_lat`   |
+| `BUILD_DATE`    | `20260608`     | Protomaps-Build-Datum (`YYYYMMDD`)                             |
+
+Größen des Europa-Anteils (der Weltteil ist immer nur wenige MB):
 
 ```bash
 MAXZOOM=10 bash tools/build_basemap.sh   # ~1.4 GB  (Standard, Stadt-Ebene)
@@ -58,19 +68,10 @@ MAXZOOM=12 bash tools/build_basemap.sh   # ~6.5 GB  (die meisten Straßen)
 MAXZOOM=13 bash tools/build_basemap.sh   # ~13  GB  (jede Nebenstraße)
 ```
 
-Weitere Variablen:
-
-| Variable     | Standard           | Bedeutung                                              |
-|--------------|--------------------|--------------------------------------------------------|
-| `MAXZOOM`    | `10`               | Maximaler Detailgrad (höher = viel größer)             |
-| `MINZOOM`    | `0`                | Minimaler Zoom                                          |
-| `BBOX`       | `-25,34,45,72`     | Region `min_lon,min_lat,max_lon,max_lat` (ganz Europa) |
-| `BUILD_DATE` | `20260608`         | Protomaps-Build-Datum (`YYYYMMDD`)                     |
-
 Beispiel – nur Deutschland mit mehr Detail:
 
 ```bash
-BBOX=5.5,47,15.5,55 MAXZOOM=12 bash tools/build_basemap.sh
+EUROPE_BBOX=5.5,47,15.5,55 MAXZOOM=12 bash tools/build_basemap.sh
 ```
 
 > **Hinweis:** Protomaps hält die täglichen Planet-Builds nur ~5 Tage vor.

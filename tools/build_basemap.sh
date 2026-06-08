@@ -1,34 +1,36 @@
 #!/usr/bin/env bash
 #
-# Build the offline Europe vector basemap (PMTiles) for the Geoguesser.
+# Build the offline vector basemap (PMTiles) for the Geoguesser.
 #
-# Extracts a sub-pyramid from the hosted Protomaps planet build via HTTP range
-# requests (does NOT download the whole planet). The result is a single
-# static/data/basemap.pmtiles file served locally and read by the browser via
-# range requests at runtime — it never needs to fit in RAM.
+# Strategy: world overview at low zoom + Europe detail at high zoom, merged
+# into a single static/data/basemap.pmtiles. World tiles let the player
+# orient themselves globally; Europe tiles give street-level detail for guessing.
 #
-# Everything is configurable via environment variables:
-#   MAXZOOM=10     detail cap. Higher = much bigger. Sizes for all-of-Europe:
-#                  z10 ~1.4GB, z11 ~2.9GB, z12 ~6.5GB, z13 ~13GB
-#   BBOX=...       area of interest "min_lon,min_lat,max_lon,max_lat"
-#                  default is all of Europe.
-#   BUILD_DATE     Protomaps daily build date (YYYYMMDD). Pick a recent one
-#                  from https://build.protomaps.com (kept ~5 days).
-#   MINZOOM=0      minimum zoom level.
+# Configurable via environment variables:
+#   MAXZOOM=10          Europe detail cap. Sizes (Europe bbox only):
+#                       z10 ~1.4GB, z11 ~2.9GB, z12 ~6.5GB, z13 ~13GB
+#   WORLD_MAXZOOM=5     last zoom level served for the full world.
+#                       z0-z5 world tiles are tiny (few MB total).
+#   EUROPE_BBOX=...     area for high-zoom tiles (default: all of Europe).
+#   BUILD_DATE          Protomaps daily build YYYYMMDD.
+#                       Pick a recent one from https://build.protomaps.com
 #
-# Example: rebuild Europe with more street detail
+# Example: more street detail
 #   MAXZOOM=12 bash tools/build_basemap.sh
 #
 set -euo pipefail
 
 MAXZOOM="${MAXZOOM:-10}"
-MINZOOM="${MINZOOM:-0}"
-BBOX="${BBOX:--25,34,45,72}"            # all of Europe
+WORLD_MAXZOOM="${WORLD_MAXZOOM:-5}"
+EUROPE_BBOX="${EUROPE_BBOX:--25,34,45,72}"   # all of Europe
+WORLD_BBOX="-180,-90,180,90"
 BUILD_DATE="${BUILD_DATE:-20260608}"
 PMTILES_VERSION="${PMTILES_VERSION:-1.30.3}"
 
 SOURCE="https://build.protomaps.com/${BUILD_DATE}.pmtiles"
 OUT="static/data/basemap.pmtiles"
+TMP_WORLD="/tmp/basemap_world_z0-${WORLD_MAXZOOM}.pmtiles"
+TMP_EUROPE="/tmp/basemap_europe_z$((WORLD_MAXZOOM+1))-${MAXZOOM}.pmtiles"
 
 # --- resolve the pmtiles CLI (PATH, else tools/bin, else download) ----------
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -50,13 +52,22 @@ else
     PMTILES="tools/bin/pmtiles"
 fi
 
-echo ">> building $OUT"
-echo "   source=$SOURCE  bbox=$BBOX  zoom=$MINZOOM..$MAXZOOM"
+echo ">> step 1/3: world overview  z0..${WORLD_MAXZOOM}  bbox=${WORLD_BBOX}"
+"$PMTILES" extract "$SOURCE" "$TMP_WORLD" \
+    --bbox="$WORLD_BBOX" \
+    --minzoom=0 \
+    --maxzoom="$WORLD_MAXZOOM" \
+    --download-threads=8
 
-"$PMTILES" extract "$SOURCE" "$OUT" \
-    --bbox="$BBOX" \
-    --minzoom="$MINZOOM" \
+echo ">> step 2/3: Europe detail   z$((WORLD_MAXZOOM+1))..${MAXZOOM}  bbox=${EUROPE_BBOX}"
+"$PMTILES" extract "$SOURCE" "$TMP_EUROPE" \
+    --bbox="$EUROPE_BBOX" \
+    --minzoom="$((WORLD_MAXZOOM+1))" \
     --maxzoom="$MAXZOOM" \
     --download-threads=8
 
+echo ">> step 3/3: merging into $OUT"
+"$PMTILES" merge "$TMP_WORLD" "$TMP_EUROPE" --output "$OUT"
+
+rm -f "$TMP_WORLD" "$TMP_EUROPE"
 echo ">> done: $(du -h "$OUT" | cut -f1) at $OUT"
