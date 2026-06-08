@@ -28,16 +28,13 @@ export async function init_pocketbase() {
     console.log("Authorized. Subscribing...")
     console.log("Connected", pb.realtime.isConnected)
 
-    console.log();
-
     pb.collection('gamestate').subscribe('*', (e) => {
         const record = e.record
-
         console.log("record:" + e.record);
         console.log(record.state)
 
         if (e.action === "create" || e.action === "update") {
-            const name = localStorage.getItem("playerName") || localStorage.getItem("name");
+            const name = localStorage.getItem("name");
             console.log(name)
             if (name === "Jana" || name === "Tobias") {
                 console.log("name")
@@ -110,10 +107,11 @@ export async function pushLocation(latlng, roundnumber) {
     }
 }
 
-export function startNextRound(state) {
+export function startNextRound() {
     if (localStorage.getItem("name") !== "Moderator") return;
 
     console.log("Starting next round...")
 
     pb.collection('gamestate').update(gamestate_id, {state: "none_finished"});
 }
+
