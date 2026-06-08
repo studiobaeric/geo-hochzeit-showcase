@@ -153,22 +153,21 @@
     </div>
 
     <div class="role-buttons" aria-label="Rolle auswählen">
-        <button class="start-button" onclick="startGame('Jana', 'player1')">
+        <button class="start-button" onclick="startGame('Jana')">
             Jana
         </button>
 
-        <button class="start-button" onclick="startGame('Tobias', 'player2')">
+        <button class="start-button" onclick="startGame('Tobias')">
             Tobias
         </button>
 
-        <button class="start-button moderator" onclick="startGame('Moderator', 'moderator')">Moderator</button>
+        <button class="start-button moderator" onclick="startGame('Moderator')">Moderator</button>
     </div>
 </div>
 
 <script>
-    function startGame(player, role) {
-        localStorage.setItem('playerName', player);
-        sessionStorage.setItem('gameRole', role);
+    function startGame(player) {
+        localStorage.setItem('name', player);
         window.location.href = '/play';
     }
 

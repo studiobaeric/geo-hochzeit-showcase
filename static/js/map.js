@@ -19,12 +19,15 @@ let gameResults = {
     totalDistance: 0
 };
 
+/*
 window.addEventListener("load", function () {
     if (!sessionStorage.getItem("geladen")) {
         init_pocketbase();
         sessionStorage.setItem("geladen", "true");
     }
 });
+
+ */
 
 // Lade Foto-Daten
 async function loadPhotos() {
@@ -41,7 +44,7 @@ async function loadPhotos() {
 }
 
 // Lade ein spezifisches Foto
-function loadPhoto(index) {
+export function loadPhoto(index) {
     if (index >= 0 && index < photos.length) {
         currentPhotoIndex = index;
         currentPhoto = photos[index];
