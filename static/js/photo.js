@@ -1,5 +1,5 @@
 // Zoom-Funktionalität für Fotos
-class PhotoZoom {
+export class PhotoZoom {
     constructor(imageId, containerId, resetButtonId) {
         this.photoImage = document.getElementById(imageId);
         this.photoContainer = document.getElementById(containerId);
