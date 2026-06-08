@@ -217,7 +217,7 @@ if (moderatorApp) {
     mainControlButton?.addEventListener('click', showResolutionView);
     startButton?.addEventListener('click', () => {
         console.log("Clicked Start button")
-        startNextRound;
+        startNextRound();
 
         startButton.textContent = "Gestartet ...";
         startButton.disabled = true;
