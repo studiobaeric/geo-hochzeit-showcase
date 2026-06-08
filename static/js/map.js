@@ -207,7 +207,6 @@
 
     // Click-Handler für Tipp-Platzierung
     map.on('click', async function(e) {
-        console.warn("leckeier")
         if (isModerator) return;
         if (isLocked) return; // Kein Verschieben nach Lock-In
 
@@ -231,7 +230,6 @@
             // Verschiebe bestehenden Marker
             guessMarker.setLatLng([lat, lng]);
         }
-        console.warn("CLICK FIRED", e.latlng);
         try {
             await init_pocketbase();
             await pushLocation({lat, lng}, currentPhotoIndex + 1);
