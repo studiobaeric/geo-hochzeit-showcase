@@ -7,6 +7,8 @@ let photos = [];
 let currentPhotoIndex = 0;
 let currentPhoto = null;
 let totalRounds = 0;
+const gameRole = sessionStorage.getItem('gameRole') || 'player1';
+const isModerator = gameRole === 'moderator';
 
 // Score-Tracking
 let gameResults = {
@@ -46,6 +48,15 @@ function updateRoundDisplay() {
 
 // View-Wechsel
 function showView(viewName) {
+    if (isModerator) {
+        document.getElementById('photoView').classList.add('active');
+        document.getElementById('mapView').classList.add('active');
+        setTimeout(() => {
+            map.invalidateSize(true);
+        }, 200);
+        return;
+    }
+
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
 
@@ -109,6 +120,35 @@ function nextPhoto() {
     }
 }
 
+function showModeratorPhoto(index) {
+    if (index < 0 || index >= photos.length) return;
+
+    photoZoom.reset();
+    document.getElementById('photoImage').src = '';
+    loadPhoto(index);
+    updateModeratorControls();
+}
+
+function updateModeratorControls() {
+    const prevButton = document.getElementById('moderatorPrevButton');
+    const nextButton = document.getElementById('moderatorNextButton');
+
+    prevButton.disabled = currentPhotoIndex === 0;
+    nextButton.disabled = currentPhotoIndex + 1 >= photos.length;
+}
+
+function initModeratorMode() {
+    document.body.classList.add('moderator-mode');
+    document.getElementById('photoView').classList.add('active');
+    document.getElementById('mapView').classList.add('active');
+    document.getElementById('moderatorControls').style.display = 'flex';
+    updateModeratorControls();
+
+    setTimeout(() => {
+        map.invalidateSize(true);
+    }, 250);
+}
+
 // Zeige Spiel-Ende Bildschirm
 function showGameOver() {
     document.getElementById('result').innerHTML = `
@@ -159,6 +199,7 @@ fetch('/static/data/basemap-style.json')
 
 // Click-Handler für Tipp-Platzierung
 map.on('click', function(e) {
+    if (isModerator) return;
     if (isLocked) return; // Kein Verschieben nach Lock-In
 
     const { lat, lng } = e.latlng;
@@ -198,6 +239,14 @@ document.getElementById('backToPhotoButton').addEventListener('click', function(
 
 document.getElementById('nextPhotoButton').addEventListener('click', function() {
     nextPhoto();
+});
+
+document.getElementById('moderatorPrevButton').addEventListener('click', function() {
+    showModeratorPhoto(currentPhotoIndex - 1);
+});
+
+document.getElementById('moderatorNextButton').addEventListener('click', function() {
+    showModeratorPhoto(currentPhotoIndex + 1);
 });
 
 // Lock-In Button Handler
@@ -314,7 +363,11 @@ function resetGame() {
     document.getElementById('lockButton').style.display = 'inline-block';
 }
 
-loadPhotos();
-
 // Initialisiere Foto-Zoom
 const photoZoom = new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton');
+
+loadPhotos().then(() => {
+    if (isModerator) {
+        initModeratorMode();
+    }
+});

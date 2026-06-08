@@ -68,6 +68,12 @@
             color: #555;
         }
 
+        .role-buttons {
+            display: grid;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
         .start-button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -77,9 +83,12 @@
             border-radius: 10px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 20px;
             width: 100%;
             box-sizing: border-box;
+        }
+
+        .start-button.moderator {
+            background: linear-gradient(135deg, #1f9d8a 0%, #216869 100%);
         }
 
         .start-button:hover {
@@ -142,11 +151,16 @@
             </ul>
         </div>
 
-        <button class="start-button" onclick="startGame()">Spiel starten</button>
+        <div class="role-buttons" aria-label="Rolle auswählen">
+            <button class="start-button" onclick="startGame('player1')">Spieler 1</button>
+            <button class="start-button" onclick="startGame('player2')">Spieler 2</button>
+            <button class="start-button moderator" onclick="startGame('moderator')">Moderator</button>
+        </div>
     </div>
 
     <script>
-        function startGame() {
+        function startGame(role) {
+            sessionStorage.setItem('gameRole', role);
             window.location.href = '/play';
         }
 
@@ -160,4 +174,3 @@
     </script>
 </body>
 </html>
-
