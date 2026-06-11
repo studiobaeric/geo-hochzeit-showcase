@@ -1,3 +1,10 @@
-import { init_pocketbase } from "./multiplayer.js";
+import {getGamestateRecord, init_pocketbase} from "./multiplayer.js";
 
-init_pocketbase().then(r => console.log(r));
+await init_pocketbase().then(r => console.log(r));
+
+
+let state = await getGamestateRecord().state;
+
+if (state === "playing") {
+    window.location.href = "/game";
+}

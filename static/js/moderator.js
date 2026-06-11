@@ -1,4 +1,4 @@
-import {init_pocketbase, startNextRound} from './multiplayer.js';
+import {startNextRound, resetGameState} from './multiplayer.js';
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
@@ -9,6 +9,7 @@ const mainControlButton = document.getElementById('mainControlButton');
 
 const startButton = document.getElementById('startButton');
 const continueButton = document.getElementById('continueButton');
+const resetGameButton = document.getElementById('resetGameButton');
 const resultContinueButton = document.getElementById('resultContinueButton');
 
 const roundResultView = document.getElementById('roundResultView');
@@ -310,6 +311,7 @@ function showRoundResult(results) {
 }
 
 if (moderatorApp) {
+
     mainControlButton?.addEventListener('click', showResolutionView);
     
     startButton?.addEventListener('click', () => {
@@ -327,6 +329,11 @@ if (moderatorApp) {
             {name: 'Tobias', points: 620}
         ]);
         continueButton.classList.remove('is-active');
+    });
+
+
+    resetGameButton?.addEventListener('click', () => {
+        resetGameState();
     });
 
     resultContinueButton?.addEventListener('click', () => {
@@ -347,4 +354,6 @@ if (moderatorApp) {
         leftPlayerMap?.invalidateSize(true);
         rightPlayerMap?.invalidateSize(true);
     });
+
+
 }

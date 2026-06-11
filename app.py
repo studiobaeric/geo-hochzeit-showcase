@@ -13,7 +13,7 @@ Compress(app)
 @app.after_request
 def add_cache_headers(response):
     if response.content_type in ('text/css', 'application/javascript',
-                                  'image/png', 'image/jpeg'):
+                                 'image/png', 'image/jpeg'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
@@ -23,9 +23,15 @@ def start():
     return render_template('start.html')
 
 
-@app.route('/play')
-def play():
+@app.route('/game')
+def game():
+    return render_template('game.html')
+
+
+@app.route('/wait_screen')
+def wait_screen():
     return render_template('wait_screen.html')
+
 
 @app.route('/moderator')
 def moderator():
@@ -42,7 +48,6 @@ def results():
 # das, was PMTiles im Browser benoetigt. Keine eigene Tile-Route mehr noetig.
 
 if __name__ == '__main__':
-
     # threaded=True: MapLibre/PMTiles feuert beim Zoomen viele parallele
     # Range-Requests auf basemap.pmtiles ab. Der Default-Dev-Server ist
     # single-threaded und lehnt gleichzeitige Verbindungen ab (ERR_CONNECTION

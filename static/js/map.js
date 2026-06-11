@@ -1,37 +1,50 @@
 // Spielzustand
-import {pushLocation} from "./multiplayer.js";
-import {PhotoZoom} from "./photo.js";
+import {getGamestateRecord, init_pocketbase, pushLocation} from "./multiplayer.js";
 
 let guessMarker = null;
-let targetMarker = null;
-let resultLine = null;
 let isLocked = false;
-let round_number = 0;
 let currentPhoto = null;
 let map = null;
 
-
 // Lade Foto für Runde
+export async function startNextRound(round) {
+    resetMap();
+    resetButtons();
+    await loadPhoto(round);
+    updateRoundDisplay(round);
+}
+
+function resetMap() {
+    if (guessMarker) {
+        map.removeLayer(guessMarker);
+        guessMarker = null;
+    }
+}
+
+function resetButtons() {
+    isLocked = false;
+    document.getElementById('lockButton').disabled = true;
+    document.getElementById('lockButton').textContent = 'Einlocken';
+    document.getElementById('backToPhotoButton').style.display = 'inline-block';
+}
+
 async function loadPhoto(round) {
+    console.log("Loading Photo: " + round);
     try {
         const response = await fetch('/static/data/photos.json');
         let photos = await response.json();
         currentPhoto = photos[round];
-        round_number = round;
         document.getElementById('photoImage').src = `/static/photos/${currentPhoto.filename}`;
-        updateRoundDisplay();
     } catch (error) {
-        console.error('Fehler beim Laden der Fotos:', error);
+        console.error('Fehler beim Laden der Fotos:\n', error);
     }
 }
 
-
-// Aktualisiere Rundenanzeigefunction
-function updateRoundDisplay() {
-    document.getElementById('roundInfo').textContent = `Runde ${round_number}`;
+function updateRoundDisplay(round) {
+    document.getElementById('roundInfo').textContent = `Runde ${round}`;
 }
 
-// View-Wechsel
+// View-Wechsel (Photo <-> Map)
 function showView(viewName) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
@@ -54,46 +67,9 @@ function showView(viewName) {
     }
 }
 
-// Setze Spielzustand für nächste Runde zurück
-function resetForNextRound() {
-    // Entferne Marker und Linien von der Karte
-    if (guessMarker) {
-        map.removeLayer(guessMarker);
-        guessMarker = null;
-    }
-    if (targetMarker) {
-        map.removeLayer(targetMarker);
-        targetMarker = null;
-    }
-    if (resultLine) {
-        map.removeLayer(resultLine);
-        resultLine = null;
-    }
+document.addEventListener('DOMContentLoaded', async () => {
 
-    // Setze Spielzustand zurück
-    isLocked = false;
-    document.getElementById('lockButton').disabled = true;
-    document.getElementById('lockButton').textContent = 'Einlocken';
-    document.getElementById('result').innerHTML = '';
-    document.getElementById('result').style.display = 'none';
-    document.getElementById('backToPhotoButton').style.display = 'inline-block';
-    document.getElementById('nextPhotoButton').style.display = 'none';
-}
-
-// Gehe zum nächsten Foto
-export async function nextPhoto(round_number) {
-
-    photoZoom.reset();
-    // Leere das Foto-Element sofort, damit altes Foto nicht sichtbar ist
-    document.getElementById('photoImage').src = '';
-    resetForNextRound();
-    await loadPhoto(round_number);
-    showView('photoView');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    // safe to access DOM here
-    if (map) return; // jetzt sicher
+    if (map) return;
 
     const mapEl = document.getElementById('map');
     if (!mapEl) {
@@ -101,18 +77,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    await init_pocketbase();
+    let round = (await getGamestateRecord()).round;
+    console.log("Round: ", round)
+    await startNextRound(round);
+
     map = L.map('map', {minZoom: 1, maxZoom: 18})
         .setView([49.3690, 9.5436], 6);
 
 
-// Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
-// PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
+    // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
+    // PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
     const pmtilesProtocol = new pmtiles.Protocol();
     maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
 
-// MapLibre v5 verlangt absolute URLs fuer sprite/glyphs/Source. Wir setzen sie
-// zur Laufzeit aus location.origin zusammen, damit die App auf jedem Host/Port
-// (und damit komplett offline) funktioniert, ohne hartkodierte Adresse.
+    // MapLibre v5 verlangt absolute URLs fuer sprite/glyphs/Source. Wir setzen sie
+    // zur Laufzeit aus location.origin zusammen, damit die App auf jedem Host/Port
+    // (und damit komplett offline) funktioniert, ohne hartkodierte Adresse.
     fetch('/static/data/basemap-style.json')
         .then((response) => response.json())
         .then((style) => {
@@ -136,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch((error) => console.error('Fehler beim Laden der Karten-Basemap:', error));
 
-// Click-Handler für Tipp-Platzierung
+    // Click-Handler für Tipp-Platzierung
     map.on('click', async function (e) {
         if (isLocked) return; // Kein Verschieben nach Lock-In
 
@@ -161,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
             guessMarker.setLatLng([lat, lng]);
         }
         try {
-            await pushLocation({lat, lng}, round_number);
+            await pushLocation({lat, lng});
         } catch (err) {
             console.error("Failed to push location:", err);
         }
@@ -170,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('lockButton').disabled = false;
     });
 
-// Button-Handler
+    // Button-Handler
     document.getElementById('guessButton').addEventListener('click', function () {
         showView('mapView');
     });
@@ -182,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-// Lock-In Button Handler
+    // Lock-In Button Handler
     document.getElementById('lockButton').addEventListener('click', function () {
         if (!guessMarker || isLocked || !currentPhoto) return;
 
@@ -190,52 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         this.disabled = true;
         this.textContent = 'Eingelockt!';
 
-        // Verwende Location aus aktuellem Foto
-        const actualLocation = [currentPhoto.location.lat, currentPhoto.location.lng];
-
-        // Zeige tatsächliche Location
-        targetMarker = L.marker(actualLocation, {
-            icon: L.icon({
-                iconUrl: '/static/img/marker-icon-2x-red.png',
-                shadowUrl: '/static/img/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41]
-            })
-        }).addTo(map);
-        targetMarker.bindPopup('<b>Tatsächliche Location</b>').openPopup();
-
-
-        // Zeichne Linie zwischen Tipp und Ziel
-        resultLine = L.polyline([guessMarker.getLatLng(), actualLocation], {
-            color: 'red',
-            weight: 3,
-            opacity: 0.7,
-            dashArray: '10, 10'
-        }).addTo(map);
-
-
-        document.getElementById('result').innerHTML = `
-        <h3>Ergebnis:</h3>
-        <p>Distanz: <strong>${distanceText}</strong></p>
-    `;
-        document.getElementById('result').style.display = 'block';
-
         // Verstecke "Zurück zum Foto" Button
         document.getElementById('backToPhotoButton').style.display = 'none';
-
-        // Zeige "Nächstes Foto" Button (oder "Zum Ergebnis" wenn letzte Runde)
-        if (currentPhotoIndex + 1 < photos.length) {
-            document.getElementById('nextPhotoButton').textContent = 'Nächstes Foto';
-            document.getElementById('nextPhotoButton').style.display = 'inline-block';
-        } else {
-            document.getElementById('nextPhotoButton').textContent = 'Zum Ergebnis';
-            document.getElementById('nextPhotoButton').style.display = 'inline-block';
-        }
-
-        // Zoom auf beide Marker
-        const bounds = L.latLngBounds([guessMarker.getLatLng(), actualLocation]);
-        map.fitBounds(bounds, {padding: [50, 50]});
     });
 });

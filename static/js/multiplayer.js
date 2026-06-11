@@ -1,88 +1,101 @@
 import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {updateMapPosition} from './moderator.js';
-import {nextPhoto} from "./map.js";
 
-const pb = new PocketBase('http://192.168.179.2:8090/');
-
+const pb = new PocketBase('http://localhost:8090/');
 const gamestate_id = "000000000000000";
-
-
 let initPromise = null;
+let gamestateRecord = null;
 
 
 export async function init_pocketbase() {
     if (initPromise) return initPromise; // prevent duplicates
-
-    console.log("Initialising Pocketbase connection...")
+    console.log("Initialising Pocketbase connection...");
 
     initPromise = (async () => {
-        const authData = await pb.collection("users").authWithPassword(
+        await pb.collection("users").authWithPassword(
             "nico@mail.de",
             "12345678"
         );
-
-        console.log(pb.authStore.isValid);
-        console.log(pb.authStore.token);
-        console.log(pb.authStore.model);
+        console.log("Authenticated: " + pb.authStore.isValid);
     })();
 
-    await initPromise;
+    await (initPromise);
 
-    console.log("Authorized. Subscribing...")
-    console.log("Connected", pb.realtime.isConnected)
+    console.log("Authorization finished. Subscribing...")
 
-    pb.collection('gamestate').subscribe('*', (e) => {
+    await initGamestateSubscription();
+    await initPlacedPointsSubscription()
+    await getGamestateRecord();
+
+    console.log("Initialization finished");
+
+    return pb;
+}
+
+async function initGamestateSubscription() {
+    await pb.collection('gamestate').subscribe('*', (e) => {
+
         const record = e.record
-        console.log("record:" + e.record);
-        console.log(record.state)
+        gamestateRecord = record;
+        console.log("Received Gamestate Record:\n" + e.record);
 
         if (e.action === "create" || e.action === "update") {
-            const name = localStorage.getItem("name");
-            console.log(name)
+            const name = sessionStorage.getItem("name");
+            console.log("Registered as: " + name);
+
             if (name === "Jana" || name === "Tobias") {
-                console.log(name)
-                console.log(record.state)
+                console.log(record.state);
+
                 if (record.state === "playing") {
-                    window.location.href = "game.html";
+                    window.location.href = "/game";
                 } else if (record.state === "waiting") {
-                    window.location.href = "wait_screen.html";
+                    window.location.href = "/wait_screen";
                 }
             }
         }
+    }, (err) => {
+        console.error("Subscription error: ", err);
     });
+}
 
-    pb.collection('placed_points').subscribe('*', (e) => {
-        console.log("placed_points realtime event", e.action, e.record);
-        console.log("localStorage name:", localStorage.getItem("name"));
+async function initPlacedPointsSubscription() {
+    await pb.collection('placed_points').subscribe('*', (e) => {
         console.log("Received Point Data:" + e.record);
 
         const record = e.record;
 
         if (e.action === "create" || e.action === "update") {
-            const name = localStorage.getItem("name");
+            const name = sessionStorage.getItem("name");
             console.log("User is:" + name);
+
             if (name === "Moderator") {
                 console.log("Updating Moderator Interface...")
-
-                //Moderator Interface Change
                 updateMapPosition(record);
-
             }
         }
+    }, (err) => {
+        console.error("Subscription error:  ", err);
     });
-
-    console.log("Initialization finished");
-
-    return initPromise;
 }
 
+export async function getGamestateRecord() {
+    if (!pb.authStore.isValid) {
+        await init_pocketbase();
+    }
+    if (gamestateRecord == null) {
+        gamestateRecord = await pb.collection('gamestate').getFirstListItem('');
+    }
+    console.log("Received Gamestate:", gamestateRecord);
+    return gamestateRecord;
+}
 
-export async function pushLocation(latlng, roundnumber) {
+export async function pushLocation(latlng) {
     if (!pb.authStore.isValid) {
         await init_pocketbase();
     }
 
-    const player = localStorage.getItem("name").toLowerCase();
+    const roundnumber = gamestateRecord.round;
+    const player = sessionStorage.getItem("name").toLowerCase();
     const data = {
         round_number: roundnumber,
         placed_by: player,
@@ -113,8 +126,13 @@ export async function pushLocation(latlng, roundnumber) {
     }
 }
 
-export function startNextRound() {
-    if (localStorage.getItem("name") !== "Moderator") return;
+export async function startNextRound() {
+    console.log(sessionStorage.getItem("name"));
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+
+    if (!pb.authStore.isValid) {
+        await init_pocketbase();
+    }
 
     console.log("Starting next round...")
 
@@ -122,5 +140,34 @@ export function startNextRound() {
         pb.collection('gamestate').update(gamestate_id, {state: "playing"});
     } catch (e) {
         console.error(e)
+    }
+}
+
+export async function resetGameState() {
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+
+    if (!pb.authStore.isValid) {
+        await init_pocketbase();
+    }
+
+    console.warn("MEHRZWECKEIER");
+
+    try {
+        await pb.collection('gamestate').update(gamestate_id, {
+            state: "waiting",
+            round: 1
+        });
+
+        const records = await pb.collection('placed_points').getFullList();
+
+        console.log(records);
+
+        for (const record of records) {
+            console.log(record);
+            await pb.collection('placed_points').delete(record.id);
+        }
+
+    } catch (e) {
+        console.error(e);
     }
 }

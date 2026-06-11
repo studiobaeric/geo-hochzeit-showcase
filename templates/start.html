@@ -8,7 +8,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>">
+    <link rel="icon"
+          href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>">
     <title>Hochzeits Geoguesser</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
@@ -153,34 +154,38 @@
     </div>
 
     <div class="role-buttons" aria-label="Rolle auswählen">
-        <button class="start-button" onclick="startGame('Jana')">
-            Jana
-        </button>
-
-        <button class="start-button" onclick="startGame('Tobias')">
-            Tobias
-        </button>
-
-        <button class="start-button moderator" onclick="startModerator('Moderator')">Moderator</button>
+        <button class="start-button" data-name="Jana">Jana</button>
+        <button class="start-button" data-name="Tobias">Tobias</button>
+        <button class="start-button moderator" data-name="Moderator">Moderator</button>
     </div>
 </div>
 
-<script>
-    function startGame(player) {
-        localStorage.setItem('name', player);
-        window.location.href = '/play';
+<script type="module">
+    import {init_pocketbase} from "../static/js/multiplayer.js";
+
+    async function startGame(name) {
+        sessionStorage.setItem('name', name);
+        if (name === "Moderator") {
+            startModerator();
+        } else {
+            startPlayer();
+        }
     }
 
-    function startModerator(player){
-        localStorage.setItem('name', player)
-        window.location.href = '/moderator'
+    function startModerator() {
+        window.location.href = '/moderator';
     }
 
-    // Zusätzliche Interaktion für Schwierigkeit (optional)
-    document.querySelectorAll('.difficulty-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+    function startPlayer() {
+        window.location.href = '/wait_screen';
+    }
+
+    init_pocketbase();
+
+    // Event Listener statt onclick
+    document.querySelectorAll('.start-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            startGame(btn.dataset.name);
         });
     });
 </script>
