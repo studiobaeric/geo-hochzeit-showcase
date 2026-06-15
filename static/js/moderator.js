@@ -13,6 +13,10 @@ const resetGameButton = document.getElementById('resetGameButton');
 const resultContinueButton = document.getElementById('resultContinueButton');
 
 const roundResultView = document.getElementById('roundResultView');
+const playerPointElements = {
+    jana: document.getElementById('janaCurrentPoints'),
+    tobias: document.getElementById('tobiasCurrentPoints')
+};
 
 let currentPhoto = null;
 let resolutionMap = null;
@@ -179,6 +183,7 @@ function syncResolutionPlayerMarkers() {
 export async function updateMapPosition(record) {
     const playerName = getPlayerName(record);
     latestPlayerRecords[playerName] = record;
+    calculatePoints();
 
 
 
@@ -349,6 +354,17 @@ function calculatePoints(){
 
         pointByName[name] = points;
     });
+
+    updateCurrentPointDisplay();
+}
+
+function updateCurrentPointDisplay() {
+    Object.entries(pointByName).forEach(([name, points]) => {
+        const pointElement = playerPointElements[name];
+        if (!pointElement) return;
+
+        pointElement.textContent = `${points} Punkte`;
+    });
 }
 
 function showRoundResult() {
@@ -430,6 +446,7 @@ if (moderatorApp) {
     await init_pocketbase();
 
     await onGamestateUpdate(await getGamestateRecord());
+    updateCurrentPointDisplay();
 
 
     initEventListeners();
