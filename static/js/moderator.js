@@ -280,7 +280,7 @@ async function initResolutionMap() {
 
     locationMarker = L.marker([lat, lng], {
         icon: L.icon({
-            iconUrl: '/static/img/marker-icon-2x-red.png',
+            iconUrl: '/static/img/marker-icon-2x-green.png',
             shadowUrl: '/static/img/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
