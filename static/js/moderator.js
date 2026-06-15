@@ -540,7 +540,6 @@ function initEventListeners() {
         updateCurrentPointDisplay();
 
         const currentRound = (await getGamestateRecord()).round;
-        alert(currentRound >= photos.length);
 
         if (currentRound >= photos.length)
             window.location.href = "/end_of_game";
