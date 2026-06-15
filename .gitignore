@@ -18,3 +18,4 @@ tools/bin/
 /server.log
 
 **/.DS_Store
+/pocketbase.exe
