@@ -250,3 +250,10 @@ cd tools && npm install && node build_style.mjs
 Die Glyph-Fonts (`static/fonts/`, via `tools/fetch_fonts.sh`) und das Sprite
 (`static/sprites/`) stammen aus
 [`protomaps/basemaps-assets`](https://github.com/protomaps/basemaps-assets).
+
+
+
+
+### Datenbanksuperuser und Datenbankuser: 
+user: nico@mail.de
+PW: 12345678
