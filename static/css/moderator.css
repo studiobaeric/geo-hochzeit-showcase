@@ -44,6 +44,31 @@ body {
     gap: 12px;
 }
 
+.round-indicator {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    background: #222;
+    color: #fff;
+
+    font-weight: 600;
+    font-size: 0.9rem;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.round-indicator span {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
 .moderator-top {
     grid-template-columns: minmax(160px, 0.7fr) minmax(360px, 1.6fr) minmax(160px, 0.7fr);
 }
@@ -57,11 +82,11 @@ body {
 .current-photo-stage,
 .map-panel,
 .moderator-controls {
-    min-width: 0;
-    min-height: 0;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 8px;
-    background: #1c1c1c;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;  /* <- wichtig */
+    align-items: center;      /* <- horizontal mittig */
+    gap: 14px;
 }
 
 /* Player photo placeholders */
