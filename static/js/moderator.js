@@ -332,8 +332,8 @@ export async function onGamestateUpdate(record) {
 }
 
 function initEventListeners() {
-    playerInputLocked?.addEventListener('click', async () => {
-        if (!playerInputLocked) {
+    lockPlayerInputButton?.addEventListener('click', async () => {
+        if (playerInputLocked) {
             await unlockPlayerInput();
         } else {
             await lockPlayerInput();
