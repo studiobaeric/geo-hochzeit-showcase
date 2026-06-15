@@ -1,5 +1,5 @@
 // Spielzustand
-import {getGamestateRecord, init_pocketbase, pushLocation} from "./multiplayer.js";
+import {getGamestateRecord, init_pocketbase, lockInSolution, pushLocation} from "./multiplayer.js";
 
 let guessMarker = null;
 let isLocked = false;
@@ -176,6 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         isLocked = true;
         this.disabled = true;
         this.textContent = 'Eingelockt!';
+        lockInSolution();
 
         // Verstecke "Zurück zum Foto" Button
         document.getElementById('backToPhotoButton').style.display = 'none';

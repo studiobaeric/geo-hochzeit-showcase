@@ -2,11 +2,12 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 
-const pb = new PocketBase('http://localhost:8090/');
+const pb = new PocketBase('http://192.168.179.2:8090/');
 const gamestate_id = "000000000000000";
 let initPromise = null;
 let gamestateRecord = null;
 
+export default pb;
 
 export async function init_pocketbase() {
     if (initPromise) return initPromise; // prevent duplicates
@@ -184,7 +185,12 @@ export async function startNextRound() {
     console.log("Starting next round...")
 
     try {
-        pb.collection('gamestate').update(gamestate_id, {state: "playing", round: (await getGamestateRecord()).round + 1});
+        pb.collection('gamestate').update(gamestate_id, {
+            state: "playing",
+            round: (await getGamestateRecord()).round + 1,
+            jana_locked: false,
+            tobias_locked: false
+        });
     } catch (e) {
         console.error(e)
     }
@@ -202,7 +208,9 @@ export async function resetGameState() {
     try {
         await pb.collection('gamestate').update(gamestate_id, {
             state: "waiting",
-            round: 1
+            round: 1,
+            jana_locked: false,
+            tobias_locked: false
         });
 
         const records = await pb.collection('placed_points').getFullList();
@@ -216,5 +224,19 @@ export async function resetGameState() {
 
     } catch (e) {
         console.error(e);
+    }
+}
+
+export async function lockInSolution() {
+    if (sessionStorage.getItem("name") === "Jana") {
+        pb.collection("gamestate").update(gamestate_id, {
+            jana_locked: true
+        });
+        console.log("Pushed Jana lockIn")
+    } else if (sessionStorage.getItem("name") === "Tobias") {
+        pb.collection("gamestate").update(gamestate_id, {
+            tobias_locked: true
+        });
+        console.log("Pushed Tobias lockIn")
     }
 }
