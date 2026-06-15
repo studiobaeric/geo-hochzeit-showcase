@@ -289,6 +289,16 @@ body {
     font-weight: 800;
 }
 
+.resolution-map .player-name-tooltip {
+    border: 1px solid rgba(17, 24, 39, 0.18);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.96);
+    color: #111827;
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
 .resolution-distance {
     position: fixed;
     top: calc(clamp(10px, 2vw, 16px) + env(safe-area-inset-top));

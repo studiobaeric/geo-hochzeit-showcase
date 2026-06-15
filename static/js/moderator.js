@@ -187,7 +187,14 @@ function syncResolutionPlayerMarkers() {
             })
         }).addTo(resolutionMap);
 
-        marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}`);
+        const displayName = playerName.charAt(0).toUpperCase() + playerName.slice(1);
+        marker.bindPopup(displayName);
+        marker.bindTooltip(displayName, {
+            permanent: true,
+            direction: 'top',
+            offset: [0, -35],
+            className: 'player-name-tooltip'
+        });
 
         if (photoLatLng) {
             const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
