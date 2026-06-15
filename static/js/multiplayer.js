@@ -37,8 +37,8 @@ export async function init_pocketbase() {
 async function initGamestateSubscription() {
     await pb.collection('gamestate').subscribe('*', (e) => {
 
-        const record = e.record
-        gamestateRecord = e.record;
+        const record = e.record;
+
         console.log("Received Gamestate Record:\n", e.record);
 
         if (e.action === "create" || e.action === "update") {
@@ -47,7 +47,10 @@ async function initGamestateSubscription() {
 
             if (name === "Jana" || name === "Tobias") {
                 console.log(record.state);
-
+                if (gamestateRecord.state === record.state && gamestateRecord.round === record.round) {
+                    gamestateRecord = e.record;
+                    return;
+                }
                 if (record.state === "playing") {
                     window.location.href = "/game";
                 } else if (record.state === "waiting") {
@@ -58,6 +61,7 @@ async function initGamestateSubscription() {
                 onGamestateUpdate(record);
             }
         }
+        gamestateRecord = e.record;
     }, (err) => {
         console.error("Subscription error: ", err);
     });
