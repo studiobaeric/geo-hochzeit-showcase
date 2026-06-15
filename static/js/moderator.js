@@ -8,6 +8,8 @@ const resolutionView = document.getElementById('resolutionView');
 const resolutionMapElement = document.getElementById('resolutionMap');
 const mainControlButton = document.getElementById('mainControlButton');
 
+const roundIndicator = document.getElementById("currentRound");
+
 const lockPlayerInputButton = document.getElementById('lockPlayerInputButton');
 const continueButton = document.getElementById('continueButton');
 const resetGameButton = document.getElementById('resetGameButton');
@@ -28,7 +30,7 @@ let leftPlayerMarker = null;
 let rightPlayerMarker = null;
 let isPmtilesProtocolRegistered = false;
 
-let round = 0
+let round = 0;
 let playerInputLocked = false;
 
 function ensurePmtilesProtocol() {
@@ -46,7 +48,7 @@ async function loadCurrentPhoto(photo = round) {
     try {
         const response = await fetch('/static/data/photos.json');
         const photos = await response.json();
-        currentPhoto = photos[photo];
+        currentPhoto = photos[photo-1];
 
         if (!currentPhoto) return;
 
@@ -316,6 +318,7 @@ export async function onGamestateUpdate(record) {
     console.log("round running: " + playerInputLocked);
     round = record.round;
     console.log("Round: ", round)
+    roundIndicator.textContent = round;
 
     if (!playerInputLocked) {
         lockPlayerInputButton.textContent = "Input Verbieten";

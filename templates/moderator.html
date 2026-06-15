@@ -10,67 +10,70 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/moderator.css') }}">
 </head>
 <body>
-    <main id="moderatorApp" class="moderator-app">
-        <div class="moderator-top">
-            <section class="player-stage player-stage-left" aria-label="Spieler links">
-                <img src="../static/photos/jana.jpeg" alt="Bild_Jana">
-            </section>
+<main id="moderatorApp" class="moderator-app">
+    <div class="moderator-top">
+        <section class="player-stage player-stage-left" aria-label="Spieler links">
+            <img src="../static/photos/jana.jpeg" alt="Bild_Jana">
+        </section>
 
-            <section class="current-photo-stage" aria-label="Aktuelles Foto">
-                <img id="currentPhotoImage" class="current-photo" src="" alt="Aktuelles Spielerfoto">
-                <div id="currentPhotoFallback" class="photo-fallback">Aktuelles Foto</div>
-            </section>
+        <section class="current-photo-stage" aria-label="Aktuelles Foto">
+            <img id="currentPhotoImage" class="current-photo" src="" alt="Aktuelles Spielerfoto">
+            <div id="currentPhotoFallback" class="photo-fallback">Aktuelles Foto</div>
+        </section>
 
-            <section class="player-stage player-stage-right" aria-label="Spieler rechts">
-                <img src="../static/photos/tobias.jpeg" alt="Bild_Tobias">
-            </section>
-        </div>
+        <section class="player-stage player-stage-right" aria-label="Spieler rechts">
+            <img src="../static/photos/tobias.jpeg" alt="Bild_Tobias">
+        </section>
+    </div>
 
-        <div class="moderator-bottom">
-            <section class="map-panel map-panel-left" aria-label="Karte Spieler links">
-                <div id="leftPlayerMap" class="moderator-map"></div>
-            </section>
+    <div class="moderator-bottom">
+        <section class="map-panel map-panel-left" aria-label="Karte Spieler links">
+            <div id="leftPlayerMap" class="moderator-map"></div>
+        </section>
 
-            <section class="moderator-controls" aria-label="Moderator Steuerung">
-                <!---div id="countdownPlaceholder" class="countdown-placeholder">Countdown</div--->
-                <button type="button" id="lockPlayerInputButton" class="control-button">Spieler Input Erlauben</button>
-                <button type="button" id="mainControlButton" class="control-button">Auflösung</button>
-                <button type="button" id="resetGameButton" class="control-button">Spiel Zurücksetzen</button>
-                </section>
-
-            <section class="map-panel map-panel-right" aria-label="Karte Spieler rechts">
-                <div id="rightPlayerMap" class="moderator-map"></div>
-            </section>
-        </div>
-    </main>
-
-    <section id="resolutionView" class="resolution-view" aria-label="Auflösung">
-        <div id="resolutionMap" class="resolution-map"></div>
-        <button type="button" id="continueButton" class="continue-button">Weiter</button>
-    </section>
-
-    <section id="roundResultView" class="round-result-view" aria-label="Rundenergebnis">
-        <div class="result-card">
-            <h2>Rundenergebnis</h2>
-
-            <div class="result-row">
-                <span class="result-player-name">Jana</span>
-                <strong class="result-player-points">0 Punkte</strong>
+        <section class="moderator-controls" aria-label="Moderator Steuerung">
+            <div class="round-indicator">
+                Runde: <span id="currentRound">1</span>
             </div>
+            <!---div id="countdownPlaceholder" class="countdown-placeholder">Countdown</div--->
+            <button type="button" id="lockPlayerInputButton" class="control-button">Spieler Input Erlauben</button>
+            <button type="button" id="mainControlButton" class="control-button">Auflösung</button>
+            <button type="button" id="resetGameButton" class="control-button">Spiel Zurücksetzen</button>
+        </section>
 
-            <div class="result-row">
-                <span class="result-player-name">Tobias</span>
-                <strong class="result-player-points">0 Punkte</strong>
-            </div>
+        <section class="map-panel map-panel-right" aria-label="Karte Spieler rechts">
+            <div id="rightPlayerMap" class="moderator-map"></div>
+        </section>
+    </div>
+</main>
 
-            <button type="button" id="resultContinueButton" class="result-button">Weiter</button>
+<section id="resolutionView" class="resolution-view" aria-label="Auflösung">
+    <div id="resolutionMap" class="resolution-map"></div>
+    <button type="button" id="continueButton" class="continue-button">Weiter</button>
+</section>
+
+<section id="roundResultView" class="round-result-view" aria-label="Rundenergebnis">
+    <div class="result-card">
+        <h2>Rundenergebnis</h2>
+
+        <div class="result-row">
+            <span class="result-player-name">Jana</span>
+            <strong class="result-player-points">0 Punkte</strong>
         </div>
-    </section>
 
-    <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/moderator.js') }}"></script>
+        <div class="result-row">
+            <span class="result-player-name">Tobias</span>
+            <strong class="result-player-points">0 Punkte</strong>
+        </div>
+
+        <button type="button" id="resultContinueButton" class="result-button">Weiter</button>
+    </div>
+</section>
+
+<script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/moderator.js') }}"></script>
 </body>
 </html>
