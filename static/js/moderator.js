@@ -447,16 +447,21 @@ export async function onGamestateUpdate(record) {
         lockPlayerInputButton.style.color = "white";
     }
 
-    await loadCurrentPhoto()
+    await loadCurrentPhoto();
 }
 
-function initEventListeners() {
-    lockPlayerInputButton?.addEventListener('click', async () => {
-        if (playerInputLocked) {
+await function lockPlayerScreen(){
+
+    if (playerInputLocked) {
             await unlockPlayerInput();
         } else {
             await lockPlayerInput();
-        }
+    }
+};
+
+function initEventListeners() {
+    lockPlayerInputButton?.addEventListener('click', async () => {
+        await lockPlayerScreen();
     });
 
     continueButton?.addEventListener('click', () => {
@@ -495,7 +500,10 @@ if (moderatorApp) {
 
     await loadCurrentPhoto();
 
-    mainControlButton?.addEventListener('click', showResolutionView);
+    mainControlButton?.addEventListener('click', () => {
+        showResolutionView();
+        await lockPlayerScreen();
+    });
 
     initModeratorMaps().catch((error) => {
         console.error('Moderator maps could not be loaded:', error);
