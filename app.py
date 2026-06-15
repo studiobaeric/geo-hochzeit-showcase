@@ -43,6 +43,11 @@ def results():
     return render_template('results.html')
 
 
+@app.route('/end_of_game')
+def end_of_game():
+    return render_template('end_of_game.html')
+
+
 # Die Vektor-Basemap (static/data/basemap.pmtiles) wird vom statischen
 # Flask-Handler ausgeliefert, der HTTP-Range-Requests unterstuetzt - genau
 # das, was PMTiles im Browser benoetigt. Keine eigene Tile-Route mehr noetig.

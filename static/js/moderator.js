@@ -16,6 +16,7 @@ const resetGameButton = document.getElementById('resetGameButton');
 const resultContinueButton = document.getElementById('resultContinueButton');
 
 const roundResultView = document.getElementById('roundResultView');
+
 const playerPointElements = {
     jana: document.getElementById('janaCurrentPoints'),
     tobias: document.getElementById('tobiasCurrentPoints')
@@ -40,11 +41,14 @@ let isPmtilesProtocolRegistered = false;
 
 let round = 0;
 let playerInputLocked = false;
+let photos = {};
 
 let pointByName = {
     jana: 0,
     tobias: 0
 };
+
+let resultCollection = {};
 
 const playerStyles = {
         jana: {
@@ -56,6 +60,18 @@ const playerStyles = {
             lineColor: '#dc2626'
         }
 };
+
+function getPlayerStyles(){
+    return playerStyles;
+}
+
+function getEndScore(){
+    return pointByName;
+}
+
+function saveResultCollection() {
+    sessionStorage.setItem('resultCollection', JSON.stringify(resultCollection));
+}
 
 function ensurePmtilesProtocol() {
     if (isPmtilesProtocolRegistered) return;
@@ -70,8 +86,6 @@ async function loadCurrentPhoto(photo=round) {
     if (!currentPhotoImage || !currentPhotoFallback) return;
 
     try {
-        const response = await fetch('/static/data/photos.json');
-        const photos = await response.json();
         currentPhoto = photos[photo-1];
 
         if (!currentPhoto) return;
@@ -383,19 +397,42 @@ function calculatePoints(){
     const minPoints = 100;
     const distanceScaleMeters = 1000000;
 
+    let roundPoints = {};
+
     ["jana", "tobias"].map((name) => {
         const playerLatLng = getRecordLatLng(latestPlayerRecords[name]);
         let points = 0;
+        let distanceMeters = null;
 
         if (playerLatLng) {
-            const distanceMeters = distanceCalculator(playerLatLng, targetLatLng)
-            points = Math.round(minPoints + ((maxPoints - minPoints) * Math.exp(-distanceMeters / distanceScaleMeters)));
+            distanceMeters = distanceCalculator(playerLatLng, targetLatLng)
+            points = Math.round(maxPoints * Math.exp(-distanceMeters / distanceScaleMeters));
         }
-
+        
+        roundPoints[name] = {
+            points: points,
+            distance: distanceMeters
+        }; 
         pointByName[name] = pointByName[name] + points;
     });
 
+    resultCollection[currentPhoto.id] = {
+        photo: currentPhoto,
+        players: {
+            jana: {
+                markerLocation: getRecordLatLng(latestPlayerRecords.jana),
+                points: roundPoints.jana.points,
+                distance: roundPoints.jana.distance
 
+            },
+            tobias:{
+                markerLocation: getRecordLatLng(latestPlayerRecords.tobias),
+                points: roundPoints.tobias.points,
+                distance: roundPoints.tobias.distance
+            }
+        }
+    }
+    saveResultCollection();
 }
 
 function updateCurrentPointDisplay() {
@@ -487,7 +524,16 @@ function initEventListeners() {
     resultContinueButton?.addEventListener('click', async () => {
         roundResultView.classList.remove('is-active');
         updateCurrentPointDisplay();
-        await showModPageNextRound();
+
+        const currentRound = (await getGamestateRecord()).round;
+        alert(currentRound >= photos.length);
+
+        if (currentRound >= photos.length)
+            window.location.href = "/end_of_game";
+        else 
+            await showModPageNextRound();
+
+
     });
 
     window.addEventListener('resize', () => {
@@ -498,9 +544,14 @@ function initEventListeners() {
 
 if (moderatorApp) {
 
+    const response = await fetch('/static/data/photos.json');
+    photos = await response.json();
+
     await init_pocketbase();
 
     await onGamestateUpdate(await getGamestateRecord());
+
+
     updateCurrentPointDisplay();
 
 
@@ -513,6 +564,7 @@ if (moderatorApp) {
         await lockPlayerScreen();
     });
 
+    
     initModeratorMaps().catch((error) => {
         console.error('Moderator maps could not be loaded:', error);
     });

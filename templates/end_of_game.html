@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#111111">
+    <title>Endergebnis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/end_of_game.css') }}">
+</head>
+<body>
+    <main class="end-page">
+        <div id="endGameMap" class="end-map" aria-label="Endergebnis Karte"></div>
+
+        <aside class="end-panel">
+            <header class="end-header">
+                <h1>Endergebnis</h1>
+                <div class="total-grid">
+                    <div class="total-card">
+                        <div class="player-line">
+                            <span class="player-dot player-dot-jana"></span>
+                            <span class="player-name">Jana</span>
+                        </div>
+                        <strong id="janaTotalPoints" class="total-points">0 Punkte</strong>
+                    </div>
+                    <div class="total-card">
+                        <div class="player-line">
+                            <span class="player-dot player-dot-tobias"></span>
+                            <span class="player-name">Tobias</span>
+                        </div>
+                        <strong id="tobiasTotalPoints" class="total-points">0 Punkte</strong>
+                    </div>
+                </div>
+            </header>
+
+            <section id="roundList" class="round-list" aria-label="Rundenergebnisse"></section>
+        </aside>
+    </main>
+
+    <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/end_of_game.js') }}"></script>
+</body>
+</html>
