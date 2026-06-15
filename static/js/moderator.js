@@ -443,6 +443,11 @@ function calculatePoints() {
 
             }
         }
+        
+        roundPoints[name] = {
+            points: points,
+            distnace: distnace
+        }
 
         pointByName[name] += points;
     });
