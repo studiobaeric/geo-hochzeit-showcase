@@ -1,5 +1,6 @@
 import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {updateMapPosition} from './moderator.js';
+import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 
 const pb = new PocketBase('http://localhost:8090/');
 const gamestate_id = "000000000000000";
@@ -79,14 +80,23 @@ async function initPlacedPointsSubscription() {
 }
 
 export async function getGamestateRecord() {
-    if (!pb.authStore.isValid) {
-        await init_pocketbase();
+    try {
+        if (!pb.authStore.isValid) {
+            await init_pocketbase();
+        }
+        if (gamestateRecord == null) {
+            gamestateRecord = await pb.collection('gamestate').getFirstListItem('');
+        }
+        console.log("Received Gamestate:", gamestateRecord);
+        return gamestateRecord;
+    } catch (e) {
+        if (e instanceof ClientResponseError) {
+            gamestateRecord = await pb.collection("gamestate").create({
+                id: gamestate_id,
+                state: "waiting",
+            });
+        }
     }
-    if (gamestateRecord == null) {
-        gamestateRecord = await pb.collection('gamestate').getFirstListItem('');
-    }
-    console.log("Received Gamestate:", gamestateRecord);
-    return gamestateRecord;
 }
 
 export async function pushLocation(latlng) {
