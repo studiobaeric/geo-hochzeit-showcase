@@ -27,6 +27,10 @@ const resolutionDistanceElements = {
     jana: document.getElementById('janaResolutionDistance'),
     tobias: document.getElementById('tobiasResolutionDistance')
 };
+const playerMapElements = {
+    jana: document.getElementById('leftPlayerMap'),
+    tobias: document.getElementById('rightPlayerMap')
+};
 
 
 
@@ -192,7 +196,14 @@ function syncResolutionPlayerMarkers() {
             })
         }).addTo(resolutionMap);
 
-        marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}`);
+        const displayName = playerName.charAt(0).toUpperCase() + playerName.slice(1);
+        marker.bindPopup(displayName);
+        marker.bindTooltip(displayName, {
+            permanent: true,
+            direction: 'top',
+            offset: [0, -35],
+            className: 'player-name-tooltip'
+        });
 
         if (photoLatLng) {
             const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
@@ -360,7 +371,7 @@ async function showModPageNextRound() {
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
 
-    latestPlayerRecords = {}
+    latestPlayerRecords.clear;
 
     leftPlayerMarker?.remove();
     rightPlayerMarker?.remove();
@@ -442,6 +453,9 @@ export async function onGamestateUpdate(record) {
     console.log("Round: ", round)
     roundIndicator.textContent = round;
 
+    playerMapElements.jana?.classList.toggle('is-locked-in', Boolean(record.jana_locked));
+    playerMapElements.tobias?.classList.toggle('is-locked-in', Boolean(record.tobias_locked));
+
     if (!playerInputLocked) {
         lockPlayerInputButton.textContent = "Input Verbieten";
         lockPlayerInputButton.style.backgroundColor = "red";
@@ -480,10 +494,12 @@ function initEventListeners() {
         await resetGameState();
         latestPlayerRecords.clear;
 
-        let pointByName = {
+        pointByName = {
             jana: 0,
             tobias: 0
         };
+
+        updateCurrentPointDisplay()
         
     });
 

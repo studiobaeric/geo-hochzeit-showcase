@@ -13,11 +13,11 @@ export async function startNextRound(round) {
     await loadPhoto(round);
     updateRoundDisplay(round);
 
-
     console.log("Check gamestate...")
-    if (await getGamestateRecord().state === "playing") {
-        showView("mapView");
+    if ((await getGamestateRecord()).state === "playing") {
+        showView("photoView");
     }
+    
 }
 
 function resetMap() {
@@ -73,8 +73,9 @@ function showView(viewName) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
 
+// document.addEventListener('DOMContentLoaded', async () => {
+async function initGame() {
     if (map) return;
 
     const mapEl = document.getElementById('map');
@@ -182,4 +183,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Verstecke "Zurück zum Foto" Button
         document.getElementById('backToPhotoButton').style.display = 'none';
     });
-});
+// });
+}
+
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGame);
+} else {
+    initGame();
+}
