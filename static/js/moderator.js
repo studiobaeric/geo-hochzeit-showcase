@@ -474,6 +474,12 @@ function initEventListeners() {
     resetGameButton?.addEventListener('click', async () => {
         await resetGameState();
         latestPlayerRecords.clear;
+
+        let pointByName = {
+            jana: 0,
+            tobias: 0
+        };
+        
     });
 
     resultContinueButton?.addEventListener('click', async () => {
