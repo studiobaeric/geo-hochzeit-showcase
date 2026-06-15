@@ -53,6 +53,7 @@ liegt bereits eingecheckt in `static/`.
 
 ```bash
 source .venv/bin/activate        # falls noch nicht aktiv
+./pocketbase serve --dir ./static/data/pb_data --http 0.0.0.0:8090 # Datenbank starten (Windows) 
 python app.py                    # http://localhost:8080
 ```
 

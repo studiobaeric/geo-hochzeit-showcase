@@ -19,3 +19,6 @@ tools/bin/
 
 **/.DS_Store
 /pocketbase.exe
+
+#Datenbanken
+static/data/pb_data/
