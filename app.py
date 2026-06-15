@@ -25,12 +25,6 @@ def start():
 def game():
     return render_template('game.html')
 
-
-@app.route('/wait_screen')
-def wait_screen():
-    return render_template('wait_screen.html')
-
-
 @app.route('/moderator')
 def moderator():
     return render_template('moderator.html')

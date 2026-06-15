@@ -1,6 +1,7 @@
 import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
+import {showView} from "./map.js";
 
 //192.168.179.2
 const pb = new PocketBase('http://192.168.179.2:8090/');
@@ -39,9 +40,11 @@ async function initGamestateSubscription() {
                     return;
                 }
                 if (record.state === "playing") {
-                    window.location.href = "/game";
+                    console.log("Setting View to PHOTO");
+                    startNextRound();
                 } else if (record.state === "waiting") {
-                    window.location.href = "/wait_screen";
+                    console.log("Setting View to WAIT");
+                    showView('waitView');
                 }
             }
             if (name === "Moderator") {

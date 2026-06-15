@@ -34,8 +34,16 @@
     </div>
     <!-- Photo Controls - oben rechts -->
     <div id="photoControls">
-        <button id="resetZoomButton" class="btn-secondary" style="display: none;">Zoom zurücksetzen</button>
-        <button id="guessButton" class="btn-primary">Tipp abgeben</button>
+        <button id="resetZoomButton" class="btn-secondary" style="display: none;" hidden="">Zoom zurücksetzen</button>
+        <button id="guessButton" class="btn-primary" hidden="">Tipp abgeben</button>
+    </div>
+</div>
+<!-- Waiting View -->
+<div id="waitView" class="view">
+    <div class="container">
+        <div class="message">Warten auf Moderator</div>
+        <div class="subtext">Bitte auf den Beamer schauen!</div>
+        <div class="spinner"></div>
     </div>
 </div>
 

@@ -13,11 +13,13 @@ export async function startNextRound(round) {
     await loadPhoto(round);
     updateRoundDisplay(round);
 
-    console.log("Check gamestate...")
+    console.log("Checking gamestate")
+    console.log((await getGamestateRecord()).state);
     if ((await getGamestateRecord()).state === "playing") {
-        showView("photoView");
+        showView('photoView');
+
     }
-    
+
 }
 
 function resetMap() {
@@ -50,8 +52,8 @@ function updateRoundDisplay(round) {
     document.getElementById('roundInfo').textContent = `Runde ${round}`;
 }
 
-// View-Wechsel (Photo <-> Map)
-function showView(viewName) {
+// View-Wechsel (Wait <-> Photo <-> Map)
+export function showView(viewName) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewName).classList.add('active');
 
@@ -59,7 +61,9 @@ function showView(viewName) {
     const photoControls = document.getElementById('photoControls');
     if (viewName === 'photoView') {
         photoControls.style.display = 'flex';
-    } else {
+    } else if (viewName === 'mapView') {
+        photoControls.style.display = 'none';
+    } else if (viewName === 'waitView') {
         photoControls.style.display = 'none';
     }
 
