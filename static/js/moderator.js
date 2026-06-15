@@ -479,6 +479,8 @@ function initEventListeners() {
             jana: 0,
             tobias: 0
         };
+
+        updateCurrentPointDisplay()
         
     });
 
