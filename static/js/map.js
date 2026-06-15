@@ -12,6 +12,12 @@ export async function startNextRound(round) {
     resetButtons();
     await loadPhoto(round);
     updateRoundDisplay(round);
+
+
+    console.log("Check gamestate...")
+    if (await getGamestateRecord().state === "playing") {
+        showView("mapView");
+    }
 }
 
 function resetMap() {
