@@ -475,7 +475,7 @@ function initEventListeners() {
         await resetGameState();
         latestPlayerRecords.clear;
 
-        let pointByName = {
+        pointByName = {
             jana: 0,
             tobias: 0
         };
