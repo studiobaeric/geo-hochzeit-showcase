@@ -1,4 +1,4 @@
-import {startNextRound, resetGameState} from './multiplayer.js';
+import {startNextRound, resetGameState, init_pocketbase} from './multiplayer.js';
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
@@ -311,6 +311,8 @@ function showRoundResult(results) {
 }
 
 if (moderatorApp) {
+
+    await init_pocketbase();
 
     mainControlButton?.addEventListener('click', showResolutionView);
     
