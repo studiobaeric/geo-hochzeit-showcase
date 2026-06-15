@@ -173,6 +173,23 @@ export async function lockPlayerInput() {
     }
 }
 
+export async function startNextRound() {
+
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+
+    if (!pb.authStore.isValid) {
+        await init_pocketbase();
+    }
+
+    console.log("Starting next round...")
+
+    try {
+        pb.collection('gamestate').update(gamestate_id, {state: "playing", round: (await getGamestateRecord()).round + 1});
+    } catch (e) {
+        console.error(e)
+    }
+}
+
 export async function resetGameState() {
     if (sessionStorage.getItem("name") !== "Moderator") return;
 

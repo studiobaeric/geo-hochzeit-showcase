@@ -1,4 +1,5 @@
-import {unlockPlayerInput, lockPlayerInput, resetGameState, init_pocketbase, getGamestateRecord} from './multiplayer.js';
+import {unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, init_pocketbase, getGamestateRecord} from './multiplayer.js';
+
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
@@ -152,8 +153,6 @@ export async function updateMapPosition(record) {
     latestPlayerRecords[playerName] = record;
     syncResolutionPlayerMarkers();
 
-    //if (!resolutionMap) return;
-
     if (!leftPlayerMap || !rightPlayerMap) {
         await initModeratorMaps();
     }
@@ -285,9 +284,9 @@ async function showResolutionView() {
 
 async function showModPageNextRound() {
 
-    round = round + 1;
+    await loadCurrentPhoto(round);
 
-    loadCurrentPhoto(round);
+    await startNextRound();
 
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
