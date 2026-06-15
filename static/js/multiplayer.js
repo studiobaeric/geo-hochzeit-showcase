@@ -1,5 +1,5 @@
 import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
-import {updateMapPosition} from './moderator.js';
+import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 
 const pb = new PocketBase('http://localhost:8090/');
@@ -37,8 +37,8 @@ async function initGamestateSubscription() {
     await pb.collection('gamestate').subscribe('*', (e) => {
 
         const record = e.record
-        gamestateRecord = record;
-        console.log("Received Gamestate Record:\n" + e.record);
+        gamestateRecord = e.record;
+        console.log("Received Gamestate Record:\n", e.record);
 
         if (e.action === "create" || e.action === "update") {
             const name = sessionStorage.getItem("name");
@@ -52,6 +52,9 @@ async function initGamestateSubscription() {
                 } else if (record.state === "waiting") {
                     window.location.href = "/wait_screen";
                 }
+            }
+            if (name === "Moderator") {
+                onGamestateUpdate(record);
             }
         }
     }, (err) => {
@@ -87,7 +90,7 @@ export async function getGamestateRecord() {
         if (gamestateRecord == null) {
             gamestateRecord = await pb.collection('gamestate').getFirstListItem('');
         }
-        console.log("Received Gamestate:", gamestateRecord);
+        console.log("Gamestate:", gamestateRecord);
         return gamestateRecord;
     } catch (e) {
         if (e instanceof ClientResponseError) {
@@ -137,7 +140,7 @@ export async function pushLocation(latlng) {
 }
 
 export async function startNextRound() {
-    console.log(sessionStorage.getItem("name"));
+
     if (sessionStorage.getItem("name") !== "Moderator") return;
 
     if (!pb.authStore.isValid) {
@@ -148,6 +151,23 @@ export async function startNextRound() {
 
     try {
         pb.collection('gamestate').update(gamestate_id, {state: "playing"});
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+export async function stopCurrentRound() {
+
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+
+    if (!pb.authStore.isValid) {
+        await init_pocketbase();
+    }
+
+    console.log("Starting next round...")
+
+    try {
+        pb.collection('gamestate').update(gamestate_id, {state: "waiting"});
     } catch (e) {
         console.error(e)
     }

@@ -1,4 +1,4 @@
-import {startNextRound, resetGameState, init_pocketbase} from './multiplayer.js';
+import {startNextRound, stopCurrentRound, resetGameState, init_pocketbase, getGamestateRecord} from './multiplayer.js';
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
@@ -28,6 +28,7 @@ let rightPlayerMarker = null;
 let isPmtilesProtocolRegistered = false;
 
 let round = 0
+let roundRunning = false;
 
 function ensurePmtilesProtocol() {
     if (isPmtilesProtocolRegistered) return;
@@ -38,7 +39,7 @@ function ensurePmtilesProtocol() {
 }
 
 // aufrufen mit neuer nummer für neues photo
-async function loadCurrentPhoto(photo=round) {
+async function loadCurrentPhoto(photo = round) {
     if (!currentPhotoImage || !currentPhotoFallback) return;
 
     try {
@@ -282,7 +283,7 @@ async function showResolutionView() {
     }
 }
 
-async function showModPageNextRound(){
+async function showModPageNextRound() {
 
     round = round + 1;
 
@@ -290,7 +291,6 @@ async function showModPageNextRound(){
 
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
-    
 
 
 }
@@ -310,20 +310,35 @@ function showRoundResult(results) {
     roundResultView.classList.add('is-active');
 }
 
-if (moderatorApp) {
+export async function onGamestateUpdate(record) {
+    console.log("Moderator updating with Gamestate: ", record)
 
-    await init_pocketbase();
+    roundRunning = (record.state === "playing");
+    console.log("round running: " + roundRunning);
+    round = record.round;
+    console.log("Round: ", round)
 
-    mainControlButton?.addEventListener('click', showResolutionView);
-    
-    startButton?.addEventListener('click', () => {
-        console.log("Clicked Start button");
-        startNextRound();
+    if (roundRunning) {
+        startButton.textContent = "Stop Round";
+        startButton.style.backgroundColor = "red";
+        startButton.style.color = "white";
+    } else {
+        startButton.textContent = "Start Round";
+        startButton.style.backgroundColor = "green";
+        startButton.style.color = "";
+    }
 
-        startButton.textContent = "Gestartet ...";
-        startButton.disabled = true;
-        } 
-    );
+    await loadCurrentPhoto()
+}
+
+function initEventListeners() {
+    startButton?.addEventListener('click', async () => {
+        if (!roundRunning) {
+            await startNextRound();
+        } else {
+            await stopCurrentRound();
+        }
+    });
 
     continueButton?.addEventListener('click', () => {
         showRoundResult([
@@ -336,26 +351,33 @@ if (moderatorApp) {
 
     resetGameButton?.addEventListener('click', () => {
         resetGameState();
+        latestPlayerRecords.clear;
     });
 
     resultContinueButton?.addEventListener('click', () => {
-
         roundResultView.classList.remove('is-active');
         showModPageNextRound();
-
-
-    });
-
-    loadCurrentPhoto();
-
-    initModeratorMaps().catch((error) => {
-        console.error('Moderator maps could not be loaded:', error);
     });
 
     window.addEventListener('resize', () => {
         leftPlayerMap?.invalidateSize(true);
         rightPlayerMap?.invalidateSize(true);
     });
+}
 
+if (moderatorApp) {
 
+    await init_pocketbase();
+
+    await onGamestateUpdate(await getGamestateRecord());
+
+    mainControlButton?.addEventListener('click', showResolutionView);
+
+    initEventListeners();
+
+    await loadCurrentPhoto();
+
+    initModeratorMaps().catch((error) => {
+        console.error('Moderator maps could not be loaded:', error);
+    });
 }

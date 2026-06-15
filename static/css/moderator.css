@@ -25,6 +25,12 @@ body {
     padding: 12px;
 }
 
+.is-danger {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+}
+
 .moderator-app.is-hidden {
     display: none;
 }
