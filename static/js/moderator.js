@@ -16,6 +16,14 @@ const resetGameButton = document.getElementById('resetGameButton');
 const resultContinueButton = document.getElementById('resultContinueButton');
 
 const roundResultView = document.getElementById('roundResultView');
+const playerPointElements = {
+    jana: document.getElementById('janaCurrentPoints'),
+    tobias: document.getElementById('tobiasCurrentPoints')
+};
+const resolutionDistanceElements = {
+    jana: document.getElementById('janaResolutionDistance'),
+    tobias: document.getElementById('tobiasResolutionDistance')
+};
 
 let currentPhoto = null;
 let resolutionMap = null;
@@ -33,6 +41,22 @@ let isPmtilesProtocolRegistered = false;
 let round = 0;
 let playerInputLocked = false;
 
+let pointByName = {
+    jana: 0,
+    tobias: 0
+};
+
+const playerStyles = {
+        jana: {
+            iconUrl: '/static/img/marker-icon-2x-blue.png',
+            lineColor: '#2563eb'
+        },
+        tobias: {
+            iconUrl: '/static/img/marker-icon-2x-red.png',
+            lineColor: '#dc2626'
+        }
+};
+
 function ensurePmtilesProtocol() {
     if (isPmtilesProtocolRegistered) return;
 
@@ -42,7 +66,7 @@ function ensurePmtilesProtocol() {
 }
 
 // aufrufen mit neuer nummer für neues photo
-async function loadCurrentPhoto(photo = round) {
+async function loadCurrentPhoto(photo=round) {
     if (!currentPhotoImage || !currentPhotoFallback) return;
 
     try {
@@ -109,30 +133,52 @@ function isCurrentPhotoRecord(record) {
     return Number(record?.round_number) === Number(currentPhoto.id);
 }
 
+function formatDistance(distanceMeters) {
+    if (distanceMeters < 1000) {
+        return `${Math.round(distanceMeters)} m`;
+    }
+
+    return `${(distanceMeters / 1000).toFixed(1)} km`;
+}
+
+function updateResolutionDistanceDisplay(playerName, distanceMeters) {
+    const distanceElement = resolutionDistanceElements[playerName];
+    if (!distanceElement) return;
+
+    const displayName = playerName.charAt(0).toUpperCase() + playerName.slice(1);
+    distanceElement.textContent = `${displayName}: ${formatDistance(distanceMeters)}`;
+}
+
 function syncResolutionPlayerMarkers() {
     if (!resolutionMap) return;
 
-    const visiblePositions = currentPhoto?.location
-        ? [[currentPhoto.location.lat, currentPhoto.location.lng]]
-        : [];
+    const photoLatLng = currentPhoto?.location
+        ? [currentPhoto.location.lat, currentPhoto.location.lng]
+        : null;
+    const visiblePositions = photoLatLng ? [photoLatLng] : [];
 
-    Object.values(latestPlayerRecords).forEach((record) => {
-        if (!isCurrentPhotoRecord(record)) return;
 
+    Object.entries(latestPlayerRecords).forEach(([playerName, record]) => {
         const latLng = getRecordLatLng(record);
-        const playerName = getPlayerName(record);
-
         if (!latLng || !playerName) return;
+
+        const playerStyle = playerStyles[playerName] ?? playerStyles.jana;
         visiblePositions.push(latLng);
 
         if (resolutionPlayerMarkers[playerName]) {
             resolutionPlayerMarkers[playerName].setLatLng(latLng);
+            if (photoLatLng) {
+                const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
+
+                resolutionPlayerMarkers[playerName].line?.setLatLngs([latLng, photoLatLng]);
+                updateResolutionDistanceDisplay(playerName, distanceMeters);
+            }
             return;
         }
 
         const marker = L.marker(latLng, {
             icon: L.icon({
-                iconUrl: '/static/img/marker-icon-2x-blue.png',
+                iconUrl: playerStyle.iconUrl,
                 shadowUrl: '/static/img/marker-shadow.png',
                 iconSize: [25, 41],
                 iconAnchor: [12, 41],
@@ -141,7 +187,21 @@ function syncResolutionPlayerMarkers() {
             })
         }).addTo(resolutionMap);
 
-        marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}s Tipp`);
+        marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}`);
+
+        if (photoLatLng) {
+            const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
+
+            marker.line = L.polyline([latLng, photoLatLng], {
+                color: playerStyle.lineColor,
+                weight: 3,
+                opacity: 0.8,
+                dashArray: '8 8'
+            }).addTo(resolutionMap);
+
+            updateResolutionDistanceDisplay(playerName, distanceMeters);
+        }
+
         resolutionPlayerMarkers[playerName] = marker;
     });
 
@@ -153,7 +213,9 @@ function syncResolutionPlayerMarkers() {
 export async function updateMapPosition(record) {
     const playerName = getPlayerName(record);
     latestPlayerRecords[playerName] = record;
-    syncResolutionPlayerMarkers();
+    calculatePoints();
+
+
 
     if (!leftPlayerMap || !rightPlayerMap) {
         await initModeratorMaps();
@@ -169,7 +231,7 @@ export async function updateMapPosition(record) {
     } else {
         const marker = L.marker(latLng, {
             icon: L.icon({
-                iconUrl: '/static/img/marker-icon-2x-blue.png',
+                iconUrl: playerName == "jana"? playerStyles["jana"].iconUrl : playerStyles["tobias"].iconUrl,
                 shadowUrl: '/static/img/marker-shadow.png',
                 iconSize: [25, 41],
                 iconAnchor: [12, 41],
@@ -183,7 +245,6 @@ export async function updateMapPosition(record) {
     }
 
     target.map.setView(latLng, Math.max(target.map.getZoom(), 8));
-    syncResolutionPlayerMarkers();
 }
 
 
@@ -249,7 +310,7 @@ async function initResolutionMap() {
 
     locationMarker = L.marker([lat, lng], {
         icon: L.icon({
-            iconUrl: '/static/img/marker-icon-2x-red.png',
+            iconUrl: '/static/img/marker-icon-2x-green.png',
             shadowUrl: '/static/img/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
@@ -261,6 +322,7 @@ async function initResolutionMap() {
 }
 
 async function showResolutionView() {
+
     if (!currentPhoto?.location) return;
 
     moderatorApp.classList.add('is-hidden');
@@ -293,11 +355,66 @@ async function showModPageNextRound() {
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
 
+    latestPlayerRecords = {}
+
+    leftPlayerMarker?.remove();
+    rightPlayerMarker?.remove();
+
+    leftPlayerMarker = null;
+    rightPlayerMarker = null;
 
 }
 
-function showRoundResult(results) {
-    const sortedResults = [...results].sort((a, b) => b.points - a.points);
+function distanceCalculator(playerLatLng, targetLatLng){
+    return L.latLng(playerLatLng).distanceTo(L.latLng(targetLatLng));
+}
+
+
+/***
+ * pointByName
+ */
+function calculatePoints(){
+    if (!currentPhoto?.location) {
+        return [];
+    }
+
+    const targetLatLng = [currentPhoto.location.lat, currentPhoto.location.lng];
+    const maxPoints = 1000;
+    const minPoints = 100;
+    const distanceScaleMeters = 1000000;
+
+    ["jana", "tobias"].map((name) => {
+        const playerLatLng = getRecordLatLng(latestPlayerRecords[name]);
+        let points = 0;
+
+        if (playerLatLng) {
+            const distanceMeters = distanceCalculator(playerLatLng, targetLatLng)
+            points = Math.round(minPoints + ((maxPoints - minPoints) * Math.exp(-distanceMeters / distanceScaleMeters)));
+        }
+
+        pointByName[name] = pointByName[name] + points;
+    });
+
+
+}
+
+function updateCurrentPointDisplay() {
+    Object.entries(pointByName).forEach(([name, points]) => {
+        const pointElement = playerPointElements[name];
+        if (!pointElement) return;
+
+        pointElement.textContent = `${points} Punkte`;
+    });
+}
+
+function showRoundResult() {
+    const sortedResults = Object.entries(pointByName)
+        .map(([name, points]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            points
+        }))
+        .sort((a, b) => b.points - a.points);
+
     const resultRows = document.querySelectorAll('.result-row');
 
     sortedResults.forEach((result, index) => {
@@ -330,23 +447,26 @@ export async function onGamestateUpdate(record) {
         lockPlayerInputButton.style.color = "white";
     }
 
-    await loadCurrentPhoto()
+    await loadCurrentPhoto();
 }
 
-function initEventListeners() {
-    lockPlayerInputButton?.addEventListener('click', async () => {
-        if (playerInputLocked) {
+await function lockPlayerScreen(){
+
+    if (playerInputLocked) {
             await unlockPlayerInput();
         } else {
             await lockPlayerInput();
-        }
+    }
+};
+
+function initEventListeners() {
+    lockPlayerInputButton?.addEventListener('click', async () => {
+        await lockPlayerScreen();
     });
 
     continueButton?.addEventListener('click', () => {
-        showRoundResult([
-            {name: 'Jana', points: 850},
-            {name: 'Tobias', points: 620}
-        ]);
+        calculatePoints();
+        showRoundResult();
         continueButton.classList.remove('is-active');
     });
 
@@ -354,10 +474,17 @@ function initEventListeners() {
     resetGameButton?.addEventListener('click', async () => {
         await resetGameState();
         latestPlayerRecords.clear;
+
+        let pointByName = {
+            jana: 0,
+            tobias: 0
+        };
+        
     });
 
     resultContinueButton?.addEventListener('click', async () => {
         roundResultView.classList.remove('is-active');
+        updateCurrentPointDisplay();
         await showModPageNextRound();
     });
 
@@ -372,12 +499,17 @@ if (moderatorApp) {
     await init_pocketbase();
 
     await onGamestateUpdate(await getGamestateRecord());
+    updateCurrentPointDisplay();
 
-    mainControlButton?.addEventListener('click', showResolutionView);
 
     initEventListeners();
 
     await loadCurrentPhoto();
+
+    mainControlButton?.addEventListener('click', () => {
+        showResolutionView();
+        await lockPlayerScreen();
+    });
 
     initModeratorMaps().catch((error) => {
         console.error('Moderator maps could not be loaded:', error);
