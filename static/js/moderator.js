@@ -24,6 +24,10 @@ const resolutionDistanceElements = {
     jana: document.getElementById('janaResolutionDistance'),
     tobias: document.getElementById('tobiasResolutionDistance')
 };
+const playerMapElements = {
+    jana: document.getElementById('leftPlayerMap'),
+    tobias: document.getElementById('rightPlayerMap')
+};
 
 let currentPhoto = null;
 let resolutionMap = null;
@@ -443,6 +447,9 @@ export async function onGamestateUpdate(record) {
     round = record.round;
     console.log("Round: ", round)
     roundIndicator.textContent = round;
+
+    playerMapElements.jana?.classList.toggle('is-locked-in', Boolean(record.jana_locked));
+    playerMapElements.tobias?.classList.toggle('is-locked-in', Boolean(record.tobias_locked));
 
     if (!playerInputLocked) {
         lockPlayerInputButton.textContent = "Input Verbieten";
