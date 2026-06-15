@@ -355,7 +355,7 @@ async function showModPageNextRound() {
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
 
-    latestPlayerRecords = {}
+    latestPlayerRecords.clear;
 
     leftPlayerMarker?.remove();
     rightPlayerMarker?.remove();
