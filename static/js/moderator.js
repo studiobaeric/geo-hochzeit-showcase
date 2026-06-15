@@ -335,7 +335,8 @@ function calculatePoints(){
 
     const targetLatLng = [currentPhoto.location.lat, currentPhoto.location.lng];
     const maxPoints = 1000;
-    const distanceScaleMeters = 250;
+    const minPoints = 100;
+    const distanceScaleMeters = 1000000;
 
     ["jana", "tobias"].map((name) => {
         const playerLatLng = getRecordLatLng(latestPlayerRecords[name]);
@@ -343,7 +344,7 @@ function calculatePoints(){
 
         if (playerLatLng) {
             const distanceMeters = L.latLng(playerLatLng).distanceTo(L.latLng(targetLatLng));
-            points = Math.round((maxPoints / (1 + (distanceMeters / distanceScaleMeters))) * 1000);
+            points = Math.round(minPoints + ((maxPoints - minPoints) * Math.exp(-distanceMeters / distanceScaleMeters)));
         }
 
         pointByName[name] = points;
