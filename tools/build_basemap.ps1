@@ -27,7 +27,7 @@ $MAXZOOM         = if ($env:MAXZOOM)         { [int]$env:MAXZOOM }         else 
 $WORLD_MAXZOOM   = if ($env:WORLD_MAXZOOM)   { [int]$env:WORLD_MAXZOOM }   else { 5 }
 $EUROPE_BBOX     = if ($env:EUROPE_BBOX)     { $env:EUROPE_BBOX }          else { "-25,32,45,72" }
 $WORLD_BBOX      = "-180,-90,180,90"
-$BUILD_DATE      = if ($env:BUILD_DATE)      { $env:BUILD_DATE }           else { "20260608" }
+$BUILD_DATE      = if ($env:BUILD_DATE)      { $env:BUILD_DATE }           else { "20260609" }
 $FORCE_REBUILD   = if ($env:FORCE_REBUILD)   { [bool]::Parse($env:FORCE_REBUILD) } else { $false }
 $PMTILES_VERSION = if ($env:PMTILES_VERSION) { $env:PMTILES_VERSION }      else { "1.30.3" }
 
