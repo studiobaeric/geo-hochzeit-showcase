@@ -259,6 +259,50 @@ body {
     height: 100%;
 }
 
+.resolution-map .leaflet-popup-content {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.resolution-distance {
+    position: fixed;
+    top: calc(clamp(10px, 2vw, 16px) + env(safe-area-inset-top));
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: clamp(42px, 7vw, 54px);
+    padding: 10px 14px;
+    border: 1px solid rgba(17, 24, 39, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #111827;
+    font-size: clamp(18px, 2vw, 26px);
+    font-weight: 900;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
+}
+
+.resolution-distance-left {
+    left: calc(clamp(120px, 18vw, 160px) + env(safe-area-inset-left));
+}
+
+.resolution-distance-right {
+    right: calc(clamp(10px, 2vw, 16px) + env(safe-area-inset-right));
+}
+
+.resolution-distance-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.22);
+}
+
+.resolution-distance-tobias .resolution-distance-marker {
+    background: #dc2626;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.22);
+}
+
 .continue-button {
     display: none;
     position: fixed;

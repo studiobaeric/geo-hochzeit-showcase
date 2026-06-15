@@ -17,6 +17,10 @@ const playerPointElements = {
     jana: document.getElementById('janaCurrentPoints'),
     tobias: document.getElementById('tobiasCurrentPoints')
 };
+const resolutionDistanceElements = {
+    jana: document.getElementById('janaResolutionDistance'),
+    tobias: document.getElementById('tobiasResolutionDistance')
+};
 
 let currentPhoto = null;
 let resolutionMap = null;
@@ -126,6 +130,22 @@ function isCurrentPhotoRecord(record) {
     return Number(record?.round_number) === Number(currentPhoto.id);
 }
 
+function formatDistance(distanceMeters) {
+    if (distanceMeters < 1000) {
+        return `${Math.round(distanceMeters)} m`;
+    }
+
+    return `${(distanceMeters / 1000).toFixed(1)} km`;
+}
+
+function updateResolutionDistanceDisplay(playerName, distanceMeters) {
+    const distanceElement = resolutionDistanceElements[playerName];
+    if (!distanceElement) return;
+
+    const displayName = playerName.charAt(0).toUpperCase() + playerName.slice(1);
+    distanceElement.textContent = `${displayName}: ${formatDistance(distanceMeters)}`;
+}
+
 function syncResolutionPlayerMarkers() {
     if (!resolutionMap) return;
 
@@ -145,7 +165,10 @@ function syncResolutionPlayerMarkers() {
         if (resolutionPlayerMarkers[playerName]) {
             resolutionPlayerMarkers[playerName].setLatLng(latLng);
             if (photoLatLng) {
+                const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
+
                 resolutionPlayerMarkers[playerName].line?.setLatLngs([latLng, photoLatLng]);
+                updateResolutionDistanceDisplay(playerName, distanceMeters);
             }
             return;
         }
@@ -164,12 +187,16 @@ function syncResolutionPlayerMarkers() {
         marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}s Tipp`);
 
         if (photoLatLng) {
+            const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
+
             marker.line = L.polyline([latLng, photoLatLng], {
                 color: playerStyle.lineColor,
                 weight: 3,
                 opacity: 0.8,
                 dashArray: '8 8'
             }).addTo(resolutionMap);
+
+            updateResolutionDistanceDisplay(playerName, distanceMeters);
         }
 
         resolutionPlayerMarkers[playerName] = marker;
@@ -328,6 +355,9 @@ async function showModPageNextRound() {
 
 }
 
+function distanceCalculator(playerLatLng, targetLatLng){
+    return L.latLng(playerLatLng).distanceTo(L.latLng(targetLatLng));
+}
 
 
 /***
@@ -348,7 +378,7 @@ function calculatePoints(){
         let points = 0;
 
         if (playerLatLng) {
-            const distanceMeters = L.latLng(playerLatLng).distanceTo(L.latLng(targetLatLng));
+            const distanceMeters = distanceCalculator(playerLatLng, targetLatLng)
             points = Math.round(minPoints + ((maxPoints - minPoints) * Math.exp(-distanceMeters / distanceScaleMeters)));
         }
 
