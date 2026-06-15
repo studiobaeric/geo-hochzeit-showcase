@@ -39,7 +39,7 @@ async function loadPhoto(round) {
     try {
         const response = await fetch('/static/data/photos.json');
         let photos = await response.json();
-        currentPhoto = photos[round];
+        currentPhoto = photos[round - 1];
         document.getElementById('photoImage').src = `/static/photos/${currentPhoto.filename}`;
     } catch (error) {
         console.error('Fehler beim Laden der Fotos:\n', error);
