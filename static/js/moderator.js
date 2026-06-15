@@ -450,7 +450,7 @@ export async function onGamestateUpdate(record) {
     await loadCurrentPhoto();
 }
 
-await function lockPlayerScreen(){
+async function lockPlayerScreen(){
 
     if (playerInputLocked) {
             await unlockPlayerInput();
@@ -506,7 +506,7 @@ if (moderatorApp) {
 
     await loadCurrentPhoto();
 
-    mainControlButton?.addEventListener('click', () => {
+    mainControlButton?.addEventListener('click', async () => {
         showResolutionView();
         await lockPlayerScreen();
     });
