@@ -152,7 +152,7 @@ export async function updateMapPosition(record) {
     latestPlayerRecords[playerName] = record;
     syncResolutionPlayerMarkers();
 
-    if (!resolutionMap) return;
+    //if (!resolutionMap) return;
 
     if (!leftPlayerMap || !rightPlayerMap) {
         await initModeratorMaps();
