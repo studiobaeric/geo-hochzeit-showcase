@@ -117,6 +117,15 @@ function addLayer(layer) {
     return layer;
 }
 
+function bindPermanentMarkerLabel(marker, label) {
+    return marker.bindTooltip(label, {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -36],
+        className: 'end-marker-label'
+    });
+}
+
 function createPlayerIcon(playerName) {
     const style = playerStyles[playerName] ?? playerStyles.jana;
 
@@ -140,7 +149,7 @@ function renderRoundMap(roundResult) {
 
     if (photoLatLng) {
         visiblePositions.push(photoLatLng);
-        addLayer(L.marker(photoLatLng, {
+        const goalMarker = addLayer(L.marker(photoLatLng, {
             icon: L.icon({
                 iconUrl: '/static/img/marker-icon-2x-green.png',
                 shadowUrl: '/static/img/marker-shadow.png',
@@ -149,7 +158,9 @@ function renderRoundMap(roundResult) {
                 popupAnchor: [1, -34],
                 shadowSize: [41, 41]
             })
-        }).addTo(endGameMap)).bindPopup(roundResult.photo?.description || 'Ziel');
+        }).addTo(endGameMap));
+
+        bindPermanentMarkerLabel(goalMarker, roundResult.photo?.description || 'Ziel');
     }
 
     Object.entries(roundResult.players || {}).forEach(([playerName, playerResult]) => {
@@ -160,9 +171,11 @@ function renderRoundMap(roundResult) {
         const label = style.label;
 
         visiblePositions.push(playerLatLng);
-        addLayer(L.marker(playerLatLng, {
+        const playerMarker = addLayer(L.marker(playerLatLng, {
             icon: createPlayerIcon(playerName)
-        }).addTo(endGameMap)).bindPopup(`${label}: ${formatPoints(playerResult.points)}`);
+        }).addTo(endGameMap));
+
+        bindPermanentMarkerLabel(playerMarker, `${label}: ${formatPoints(playerResult.points)}`);
 
         if (photoLatLng) {
             addLayer(L.polyline([playerLatLng, photoLatLng], {
