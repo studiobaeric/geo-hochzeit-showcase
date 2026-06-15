@@ -411,6 +411,8 @@ function calculatePoints() {
 
     const perfectRadiusMeters = 500; // bis hier volle Punkte
     const distanceScaleMeters = 100000;
+    let roundPoints = {};
+
 
     ["jana", "tobias"].forEach((name) => {
         const playerLatLng = getRecordLatLng(latestPlayerRecords[name]);
@@ -446,7 +448,7 @@ function calculatePoints() {
         
         roundPoints[name] = {
             points: points,
-            distnace: distnace
+            distance: distanceMeters
         }
 
         pointByName[name] += points;
