@@ -139,7 +139,7 @@ export async function pushLocation(latlng) {
     }
 }
 
-export async function startNextRound() {
+export async function unlockPlayerInput() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;
 
@@ -156,7 +156,7 @@ export async function startNextRound() {
     }
 }
 
-export async function stopCurrentRound() {
+export async function lockPlayerInput() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;
 
@@ -168,6 +168,23 @@ export async function stopCurrentRound() {
 
     try {
         pb.collection('gamestate').update(gamestate_id, {state: "waiting"});
+    } catch (e) {
+        console.error(e)
+    }
+}
+
+export async function startNextRound() {
+
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+
+    if (!pb.authStore.isValid) {
+        await init_pocketbase();
+    }
+
+    console.log("Starting next round...")
+
+    try {
+        pb.collection('gamestate').update(gamestate_id, {state: "playing", round: (await getGamestateRecord()).round + 1});
     } catch (e) {
         console.error(e)
     }
