@@ -213,8 +213,6 @@ function syncResolutionPlayerMarkers() {
 export async function updateMapPosition(record) {
     const playerName = getPlayerName(record);
     latestPlayerRecords[playerName] = record;
-    calculatePoints();
-
 
 
     if (!leftPlayerMap || !rightPlayerMap) {
@@ -373,29 +371,55 @@ function distanceCalculator(playerLatLng, targetLatLng){
 /***
  * pointByName
  */
-function calculatePoints(){
+function calculatePoints() {
     if (!currentPhoto?.location) {
         return [];
     }
 
-    const targetLatLng = [currentPhoto.location.lat, currentPhoto.location.lng];
+    const targetLatLng = [
+        currentPhoto.location.lat,
+        currentPhoto.location.lng
+    ];
+
     const maxPoints = 1000;
     const minPoints = 100;
-    const distanceScaleMeters = 1000000;
 
-    ["jana", "tobias"].map((name) => {
+    const perfectRadiusMeters = 500; // bis hier volle Punkte
+    const distanceScaleMeters = 100000;
+
+    ["jana", "tobias"].forEach((name) => {
         const playerLatLng = getRecordLatLng(latestPlayerRecords[name]);
         let points = 0;
 
         if (playerLatLng) {
-            const distanceMeters = distanceCalculator(playerLatLng, targetLatLng)
-            points = Math.round(minPoints + ((maxPoints - minPoints) * Math.exp(-distanceMeters / distanceScaleMeters)));
+            const distanceMeters = distanceCalculator(
+                playerLatLng,
+                targetLatLng
+            );
+
+            if (distanceMeters <= perfectRadiusMeters) {
+                points = maxPoints;
+            } else {
+                const effectiveDistance =
+                    distanceMeters - perfectRadiusMeters;
+
+                points = Math.round(
+                    minPoints +
+                    (maxPoints - minPoints) *
+                    Math.exp(
+                        -effectiveDistance / distanceScaleMeters
+                    )
+                );
+
+                // niemals unter minPoints
+                points = Math.max(minPoints, points);
+                points = Math.min(maxPoints, points);
+
+            }
         }
 
-        pointByName[name] = pointByName[name] + points;
+        pointByName[name] += points;
     });
-
-
 }
 
 function updateCurrentPointDisplay() {
