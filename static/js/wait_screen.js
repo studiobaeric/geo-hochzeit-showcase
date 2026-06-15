@@ -1,7 +1,6 @@
-import {getGamestateRecord, init_pocketbase} from "./multiplayer.js";
+import {getGamestateRecord, initSubscriptions} from "./multiplayer.js";
 
-await init_pocketbase().then(r => console.log(r));
-
+await initSubscriptions();
 
 let state = (await getGamestateRecord()).state;
 

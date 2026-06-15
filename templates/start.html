@@ -161,7 +161,6 @@
 </div>
 
 <script type="module">
-    import {init_pocketbase} from "../static/js/multiplayer.js";
 
     async function startGame(name) {
         sessionStorage.setItem('name', name);
@@ -179,8 +178,6 @@
     function startPlayer() {
         window.location.href = '/wait_screen';
     }
-
-    init_pocketbase();
 
     // Event Listener statt onclick
     document.querySelectorAll('.start-button').forEach(btn => {

@@ -1,4 +1,7 @@
-import {unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, init_pocketbase, getGamestateRecord} from './multiplayer.js';
+import pb, {
+    unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
+    initSubscriptions
+} from './multiplayer.js';
 
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
@@ -24,6 +27,8 @@ const resolutionDistanceElements = {
     jana: document.getElementById('janaResolutionDistance'),
     tobias: document.getElementById('tobiasResolutionDistance')
 };
+
+
 
 let currentPhoto = null;
 let resolutionMap = null;
@@ -496,7 +501,7 @@ function initEventListeners() {
 
 if (moderatorApp) {
 
-    await init_pocketbase();
+    await initSubscriptions();
 
     await onGamestateUpdate(await getGamestateRecord());
     updateCurrentPointDisplay();

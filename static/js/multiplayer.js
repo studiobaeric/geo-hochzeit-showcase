@@ -2,43 +2,30 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 
+//192.168.179.2
 const pb = new PocketBase('http://192.168.179.2:8090/');
 const gamestate_id = "000000000000000";
-let initPromise = null;
 let gamestateRecord = null;
 
 export default pb;
 
-export async function init_pocketbase() {
-    if (initPromise) return initPromise; // prevent duplicates
-    console.log("Initialising Pocketbase connection...");
+export async function initSubscriptions() {
+    console.log("Initialising Subscriptions");
+    try {
+        await initGamestateSubscription();
+        await initPlacedPointsSubscription()
+        await getGamestateRecord();
+    } catch (e) {
+        console.error(e)
+    }
 
-    initPromise = (async () => {
-        await pb.collection("users").authWithPassword(
-            "nico@mail.de",
-            "12345678"
-        );
-        console.log("Authenticated: " + pb.authStore.isValid);
-    })();
-
-    await (initPromise);
-
-    console.log("Authorization finished. Subscribing...")
-
-    await initGamestateSubscription();
-    await initPlacedPointsSubscription()
-    await getGamestateRecord();
-
-    console.log("Initialization finished");
-
-    return pb;
+    console.log("Subscribed");
 }
 
 async function initGamestateSubscription() {
     await pb.collection('gamestate').subscribe('*', (e) => {
 
         const record = e.record;
-
         console.log("Received Gamestate Record:\n", e.record);
 
         if (e.action === "create" || e.action === "update") {
@@ -89,9 +76,6 @@ async function initPlacedPointsSubscription() {
 
 export async function getGamestateRecord() {
     try {
-        if (!pb.authStore.isValid) {
-            await init_pocketbase();
-        }
         if (gamestateRecord == null) {
             gamestateRecord = await pb.collection('gamestate').getFirstListItem('');
         }
@@ -108,10 +92,6 @@ export async function getGamestateRecord() {
 }
 
 export async function pushLocation(latlng) {
-    if (!pb.authStore.isValid) {
-        await init_pocketbase();
-    }
-
     const roundnumber = gamestateRecord.round;
     const player = sessionStorage.getItem("name").toLowerCase();
     const data = {
@@ -148,10 +128,6 @@ export async function unlockPlayerInput() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;
 
-    if (!pb.authStore.isValid) {
-        await init_pocketbase();
-    }
-
     console.log("Starting next round...")
 
     try {
@@ -165,10 +141,6 @@ export async function lockPlayerInput() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;
 
-    if (!pb.authStore.isValid) {
-        await init_pocketbase();
-    }
-
     console.log("Starting next round...")
 
     try {
@@ -181,10 +153,6 @@ export async function lockPlayerInput() {
 export async function startNextRound() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;
-
-    if (!pb.authStore.isValid) {
-        await init_pocketbase();
-    }
 
     console.log("Starting next round...")
 
@@ -202,10 +170,6 @@ export async function startNextRound() {
 
 export async function resetGameState() {
     if (sessionStorage.getItem("name") !== "Moderator") return;
-
-    if (!pb.authStore.isValid) {
-        await init_pocketbase();
-    }
 
     console.warn("MEHRZWECKEIER");
 
@@ -232,11 +196,13 @@ export async function resetGameState() {
 }
 
 export async function lockInSolution() {
+    console.log("Locking in...")
     if (sessionStorage.getItem("name") === "Jana") {
         pb.collection("gamestate").update(gamestate_id, {
             jana_locked: true
         });
         console.log("Pushed Jana lockIn")
+
     } else if (sessionStorage.getItem("name") === "Tobias") {
         pb.collection("gamestate").update(gamestate_id, {
             tobias_locked: true

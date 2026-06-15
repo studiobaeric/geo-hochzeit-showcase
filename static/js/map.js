@@ -1,5 +1,5 @@
 // Spielzustand
-import {getGamestateRecord, init_pocketbase, lockInSolution, pushLocation} from "./multiplayer.js";
+import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation} from "./multiplayer.js";
 
 let guessMarker = null;
 let isLocked = false;
@@ -83,7 +83,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    await init_pocketbase();
+    await initSubscriptions();
+
     let round = (await getGamestateRecord()).round;
     console.log("Round: ", round)
     await startNextRound(round);
