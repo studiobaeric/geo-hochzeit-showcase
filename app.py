@@ -6,17 +6,15 @@ from flask_compress import Compress
 mimetypes.add_type('application/javascript', '.mjs')
 
 app = Flask(__name__)
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 Compress(app)
 
 
 @app.after_request
 def add_cache_headers(response):
-    if response.content_type in ('text/css', 'application/javascript',
-                                 'image/png', 'image/jpeg'):
-        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    if response.content_type in ('text/css', 'application/javascript'):
+        response.headers['Cache-Control'] = 'no-cache'
     return response
-
 
 @app.route('/')
 def start():
