@@ -392,10 +392,10 @@ function calculatePoints(){
             points = Math.round(minPoints + ((maxPoints - minPoints) * Math.exp(-distanceMeters / distanceScaleMeters)));
         }
 
-        pointByName[name] = points;
+        pointByName[name] = pointByName[name] + points;
     });
 
-    updateCurrentPointDisplay();
+
 }
 
 function updateCurrentPointDisplay() {
@@ -473,6 +473,7 @@ function initEventListeners() {
 
     resultContinueButton?.addEventListener('click', async () => {
         roundResultView.classList.remove('is-active');
+        updateCurrentPointDisplay();
         await showModPageNextRound();
     });
 
