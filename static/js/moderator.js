@@ -185,7 +185,7 @@ function syncResolutionPlayerMarkers() {
             })
         }).addTo(resolutionMap);
 
-        marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}s Tipp`);
+        marker.bindPopup(`${playerName.charAt(0).toUpperCase() + playerName.slice(1)}`);
 
         if (photoLatLng) {
             const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
@@ -353,6 +353,13 @@ async function showModPageNextRound() {
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
 
+    latestPlayerRecords = {}
+
+    leftPlayerMarker?.remove();
+    rightPlayerMarker?.remove();
+
+    leftPlayerMarker = null;
+    rightPlayerMarker = null;
 
 }
 
