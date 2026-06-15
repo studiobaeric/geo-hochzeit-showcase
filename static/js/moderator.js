@@ -1,4 +1,4 @@
-import {startNextRound, stopCurrentRound, resetGameState, init_pocketbase, getGamestateRecord} from './multiplayer.js';
+import {unlockPlayerInput, lockPlayerInput, resetGameState, init_pocketbase, getGamestateRecord} from './multiplayer.js';
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
@@ -7,7 +7,7 @@ const resolutionView = document.getElementById('resolutionView');
 const resolutionMapElement = document.getElementById('resolutionMap');
 const mainControlButton = document.getElementById('mainControlButton');
 
-const startButton = document.getElementById('startButton');
+const lockPlayerInputButton = document.getElementById('lockPlayerInputButton');
 const continueButton = document.getElementById('continueButton');
 const resetGameButton = document.getElementById('resetGameButton');
 const resultContinueButton = document.getElementById('resultContinueButton');
@@ -28,7 +28,7 @@ let rightPlayerMarker = null;
 let isPmtilesProtocolRegistered = false;
 
 let round = 0
-let roundRunning = false;
+let playerInputLocked = false;
 
 function ensurePmtilesProtocol() {
     if (isPmtilesProtocolRegistered) return;
@@ -313,30 +313,30 @@ function showRoundResult(results) {
 export async function onGamestateUpdate(record) {
     console.log("Moderator updating with Gamestate: ", record)
 
-    roundRunning = (record.state === "playing");
-    console.log("round running: " + roundRunning);
+    playerInputLocked = (record.state === "waiting");
+    console.log("round running: " + playerInputLocked);
     round = record.round;
     console.log("Round: ", round)
 
-    if (roundRunning) {
-        startButton.textContent = "Stop Round";
-        startButton.style.backgroundColor = "red";
-        startButton.style.color = "white";
+    if (!playerInputLocked) {
+        lockPlayerInputButton.textContent = "Input Verbieten";
+        lockPlayerInputButton.style.backgroundColor = "red";
+        lockPlayerInputButton.style.color = "white";
     } else {
-        startButton.textContent = "Start Round";
-        startButton.style.backgroundColor = "green";
-        startButton.style.color = "";
+        lockPlayerInputButton.textContent = "Input Erlauben";
+        lockPlayerInputButton.style.backgroundColor = "green";
+        lockPlayerInputButton.style.color = "white";
     }
 
     await loadCurrentPhoto()
 }
 
 function initEventListeners() {
-    startButton?.addEventListener('click', async () => {
-        if (!roundRunning) {
-            await startNextRound();
+    playerInputLocked?.addEventListener('click', async () => {
+        if (!playerInputLocked) {
+            await unlockPlayerInput();
         } else {
-            await stopCurrentRound();
+            await lockPlayerInput();
         }
     });
 
@@ -349,14 +349,14 @@ function initEventListeners() {
     });
 
 
-    resetGameButton?.addEventListener('click', () => {
-        resetGameState();
+    resetGameButton?.addEventListener('click', async () => {
+        await resetGameState();
         latestPlayerRecords.clear;
     });
 
-    resultContinueButton?.addEventListener('click', () => {
+    resultContinueButton?.addEventListener('click', async () => {
         roundResultView.classList.remove('is-active');
-        showModPageNextRound();
+        await showModPageNextRound();
     });
 
     window.addEventListener('resize', () => {

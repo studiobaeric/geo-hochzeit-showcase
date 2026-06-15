@@ -139,7 +139,7 @@ export async function pushLocation(latlng) {
     }
 }
 
-export async function startNextRound() {
+export async function unlockPlayerInput() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;
 
@@ -156,7 +156,7 @@ export async function startNextRound() {
     }
 }
 
-export async function stopCurrentRound() {
+export async function lockPlayerInput() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;
 
