@@ -13,13 +13,16 @@ export async function startNextRound(round) {
     await loadPhoto(round);
     updateRoundDisplay(round);
 
-    console.log("Checking gamestate")
-    console.log((await getGamestateRecord()).state);
-    if ((await getGamestateRecord()).state === "playing") {
+
+    let state;
+    console.log("Checking gamestate", state = (await getGamestateRecord()).state)
+
+    console.log("Synchronizing current View to Gamestate...")
+    if (state === "playing") {
         showView('photoView');
-
+    } else if (state === "waiting") {
+        showView('waitView')
     }
-
 }
 
 function resetMap() {
@@ -59,6 +62,8 @@ export function showView(viewName) {
 
     // Zeige/verstecke photoControls basierend auf aktiver View
     const photoControls = document.getElementById('photoControls');
+
+    console.log("Showing View: ", viewName)
     if (viewName === 'photoView') {
         photoControls.style.display = 'flex';
     } else if (viewName === 'mapView') {
@@ -78,7 +83,6 @@ export function showView(viewName) {
 }
 
 
-// document.addEventListener('DOMContentLoaded', async () => {
 async function initGame() {
     if (map) return;
 

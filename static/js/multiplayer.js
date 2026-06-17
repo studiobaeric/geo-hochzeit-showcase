@@ -4,7 +4,7 @@ import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 import {showView} from "./map.js";
 
 //192.168.179.2
-const pb = new PocketBase('http://192.168.179.2:8090/');
+const pb = new PocketBase('http://localhost:8090/');
 const gamestate_id = "000000000000000";
 let gamestateRecord = null;
 
@@ -39,13 +39,7 @@ async function initGamestateSubscription() {
                     gamestateRecord = e.record;
                     return;
                 }
-                if (record.state === "playing") {
-                    console.log("Setting View to PHOTO");
-                    startNextRound();
-                } else if (record.state === "waiting") {
-                    console.log("Setting View to WAIT");
-                    showView('waitView');
-                }
+                startNextRound();
             }
             if (name === "Moderator") {
                 onGamestateUpdate(record);
