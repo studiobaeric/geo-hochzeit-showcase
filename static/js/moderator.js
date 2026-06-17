@@ -422,7 +422,7 @@ function calculatePoints() {
         let distanceMeters = null;
 
         if (playerLatLng) {
-            const distanceMeters = distanceCalculator(
+            distanceMeters = distanceCalculator(
                 playerLatLng,
                 targetLatLng
             );
