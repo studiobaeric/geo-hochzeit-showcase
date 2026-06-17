@@ -3,7 +3,6 @@ import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 
 const host = window.location.hostname;
-alert("host:" + host);
 const pb = new PocketBase(`http://${host}:8090/`);
 const gamestate_id = "000000000000000";
 let initPromise = null;
