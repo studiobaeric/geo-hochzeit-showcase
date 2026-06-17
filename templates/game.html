@@ -22,21 +22,8 @@
     <div id="controls">
         <button id="backToPhotoButton" class="btn-secondary">Zurück zum Foto</button>
         <button id="lockButton" disabled>Einlocken</button>
-        <button id="nextPhotoButton" class="btn-primary" style="display: none;">Nächstes Foto</button>
     </div>
     <div id="result"></div>
-</div>
-<!-- Foto-Ansicht -->
-<div id="photoView" class="view active">
-    <div id="roundInfo" style="text-align: center; margin-bottom: 10px; font-weight: bold;">Runde 1 / 1</div>
-    <div id="photoContainer" class="zoom-container">
-        <img id="photoImage" src="" alt="Hochzeitsfoto" class="zoomable">
-    </div>
-    <!-- Photo Controls - oben rechts -->
-    <div id="photoControls">
-        <button id="resetZoomButton" class="btn-secondary" style="display: none;" hidden="">Zoom zurücksetzen</button>
-        <button id="guessButton" class="btn-primary" hidden="">Tipp abgeben</button>
-    </div>
 </div>
 <!-- Waiting View -->
 <div id="waitView" class="view">
@@ -46,12 +33,24 @@
         <div class="spinner"></div>
     </div>
 </div>
+<!-- Foto-Ansicht -->
+<div id="photoView" class="view">
+    <div id="roundInfo" style="text-align: center; margin-bottom: 10px; font-weight: bold;">Runde 1 / 1</div>
+    <div id="photoContainer" class="zoom-container">
+        <img id="photoImage" src="" alt="Hochzeitsfoto" class="zoomable">
+    </div>
+    <!-- Photo Controls - oben rechts -->
+    <div id="photoControls">
+        <button id="resetZoomButton" class="btn-secondary" style="display: none;">Zoom zurücksetzen</button>
+        <button id="guessButton" class="btn-primary">Tipp abgeben</button>
+    </div>
+</div>
 
 
 <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
-<script type="module" src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/game.js') }}"></script>
 </body>
 </html>

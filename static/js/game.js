@@ -7,16 +7,14 @@ let currentPhoto = null;
 let map = null;
 
 // Lade Foto für Runde
-export async function startNextRound(round) {
+export async function loadNextRound(round) {
     resetMap();
     resetButtons();
     await loadPhoto(round);
     updateRoundDisplay(round);
+}
 
-
-    let state;
-    console.log("Checking gamestate", state = (await getGamestateRecord()).state)
-
+export function updateView(state) {
     console.log("Synchronizing current View to Gamestate...")
     if (state === "playing") {
         showView('photoView');
@@ -56,21 +54,21 @@ function updateRoundDisplay(round) {
 }
 
 // View-Wechsel (Wait <-> Photo <-> Map)
-export function showView(viewName) {
+function showView(viewName) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    console.log("Showing View: ", document.getElementById(viewName))
     document.getElementById(viewName).classList.add('active');
 
     // Zeige/verstecke photoControls basierend auf aktiver View
     const photoControls = document.getElementById('photoControls');
+    photoControls.classList.remove('active');
 
     console.log("Showing View: ", viewName)
-    if (viewName === 'photoView') {
-        photoControls.style.display = 'flex';
-    } else if (viewName === 'mapView') {
-        photoControls.style.display = 'none';
-    } else if (viewName === 'waitView') {
-        photoControls.style.display = 'none';
+
+    if (viewName == 'photoView') {
+        photoControls.classList.add('active');
     }
+
 
     // Karte neu rendern wenn zu mapView gewechselt wird
     if (viewName === 'mapView') {
@@ -84,19 +82,25 @@ export function showView(viewName) {
 
 
 async function initGame() {
+    if (sessionStorage.getItem("name") === null) {
+        window.location.href = "/";
+        return;
+    }
+
     if (map) return;
 
     const mapEl = document.getElementById('map');
     if (!mapEl) {
-        console.warn('initMap: #map nicht gefunden; Abbruch');
+        console.warn('initGame: #game nicht gefunden; Abbruch');
         return;
     }
 
     await initSubscriptions();
 
-    let round = (await getGamestateRecord()).round;
-    console.log("Round: ", round)
-    await startNextRound(round);
+    let gamestateRecord = await getGamestateRecord();
+    console.log("Gamestate: ", gamestateRecord);
+    await loadNextRound(gamestateRecord.round);
+    updateView(gamestateRecord.state)
 
     map = L.map('map', {minZoom: 1, maxZoom: 18})
         .setView([49.3690, 9.5436], 6);
@@ -191,12 +195,13 @@ async function initGame() {
         // Verstecke "Zurück zum Foto" Button
         document.getElementById('backToPhotoButton').style.display = 'none';
     });
-// });
 }
 
+if (!(sessionStorage.getItem("name") === "Moderator")) {
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initGame);
-} else {
-    initGame();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initGame);
+    } else {
+        initGame();
+    }
 }

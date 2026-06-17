@@ -247,7 +247,7 @@ export async function updateMapPosition(record) {
     } else {
         const marker = L.marker(latLng, {
             icon: L.icon({
-                iconUrl: playerName == "jana"? playerStyles["jana"].iconUrl : playerStyles["tobias"].iconUrl,
+                iconUrl: playerName === "jana"? playerStyles["jana"].iconUrl : playerStyles["tobias"].iconUrl,
                 shadowUrl: '/static/img/marker-shadow.png',
                 iconSize: [25, 41],
                 iconAnchor: [12, 41],
@@ -469,7 +469,7 @@ export async function onGamestateUpdate(record) {
     await loadCurrentPhoto();
 }
 
-async function lockPlayerScreen(){
+async function toggleLockPlayerScreen(){
 
     if (playerInputLocked) {
             await unlockPlayerInput();
@@ -480,10 +480,11 @@ async function lockPlayerScreen(){
 
 function initEventListeners() {
     lockPlayerInputButton?.addEventListener('click', async () => {
-        await lockPlayerScreen();
+        await toggleLockPlayerScreen();
     });
 
-    continueButton?.addEventListener('click', () => {
+    continueButton?.addEventListener('click', async () => {
+        await lockPlayerInput();
         calculatePoints();
         showRoundResult();
         continueButton.classList.remove('is-active');
@@ -517,6 +518,10 @@ function initEventListeners() {
 
 if (moderatorApp) {
 
+    if (sessionStorage.getItem("name") === null) {
+        sessionStorage.setItem("name", "Moderator");
+    }
+
     await initSubscriptions();
 
     await onGamestateUpdate(await getGamestateRecord());
@@ -529,7 +534,7 @@ if (moderatorApp) {
 
     mainControlButton?.addEventListener('click', async () => {
         showResolutionView();
-        await lockPlayerScreen();
+        await toggleLockPlayerScreen();
     });
 
     initModeratorMaps().catch((error) => {

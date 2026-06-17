@@ -1,7 +1,7 @@
 import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
-import {showView} from "./map.js";
+import {loadNextRound, updateView} from "./game.js";
 
 //192.168.179.2
 const pb = new PocketBase('http://localhost:8090/');
@@ -24,7 +24,7 @@ export async function initSubscriptions() {
 }
 
 async function initGamestateSubscription() {
-    await pb.collection('gamestate').subscribe('*', (e) => {
+    await pb.collection('gamestate').subscribe('*', async (e) => {
 
         const record = e.record;
         console.log("Received Gamestate Record:\n", e.record);
@@ -39,10 +39,10 @@ async function initGamestateSubscription() {
                     gamestateRecord = e.record;
                     return;
                 }
-                startNextRound();
-            }
-            if (name === "Moderator") {
-                onGamestateUpdate(record);
+                await loadNextRound(record.round);
+                updateView(record.state);
+            }else if (name === "Moderator") {
+                await onGamestateUpdate(record);
             }
         }
         gamestateRecord = e.record;

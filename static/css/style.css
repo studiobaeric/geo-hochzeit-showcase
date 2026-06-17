@@ -4,6 +4,40 @@
     box-sizing: border-box;
 }
 
+/* =========================
+   VIEW SYSTEM (FIXED)
+   ========================= */
+
+.view {
+    position: absolute;
+    inset: 0; /* cleaner than top/left/width/height */
+    display: none;
+}
+
+/* Only active view is shown */
+.view.active {
+    display: flex; /* default safe fallback */
+}
+
+/* Override per view type */
+#mapView.active {
+    display: block;
+}
+
+/* Photo + Wait need flex */
+#photoView.active,
+#waitView.active {
+    display: flex;
+}
+
+#photoControls {
+    display: none;
+}
+
+#photoControls.active {
+    display: flex;
+}
+
 body, html {
     width: 100vw;
     height: 100vh;
@@ -29,14 +63,9 @@ body, html {
     display: none;
 }
 
-.view.active {
-    display: block;
-}
-
 /* Foto-Ansicht */
 #photoView {
     background: #000;
-    display: flex;
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
@@ -265,102 +294,13 @@ body, html {
     color: #666;
 }
 
-/* Moderator-Ansicht */
-body.moderator-mode #photoView,
-body.moderator-mode #mapView {
-    display: block;
-}
-
-body.moderator-mode #photoView {
-    left: 0;
-    width: 50%;
-    background: #000;
-    display: flex;
-}
-
-body.moderator-mode #mapView {
-    left: 50%;
-    width: 50%;
-}
-
-body.moderator-mode #photoContainer {
-    max-height: calc(100dvh - 70px);
-}
-
-body.moderator-mode #map {
-    width: 100%;
-    height: 100dvh;
-}
-
-body.moderator-mode #photoControls,
-body.moderator-mode #controls,
-body.moderator-mode #result {
-    display: none !important;
-}
-
-#moderatorControls {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 1000;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-body.moderator-mode #moderatorControls {
-    display: flex !important;
-}
-
-@media (max-width: 768px) {
-    body.moderator-mode #photoView {
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 50dvh;
-        padding-bottom: 0;
-    }
-
-    body.moderator-mode #mapView {
-        top: 50dvh;
-        left: 0;
-        width: 100%;
-        height: 50dvh;
-    }
-
-    body.moderator-mode #photoContainer {
-        max-height: calc(50dvh - 45px);
-    }
-
-    body.moderator-mode #map {
-        height: 50dvh;
-    }
-
-    #moderatorControls {
-        left: 50%;
-        bottom: 12px;
-        transform: translateX(-50%);
-        justify-content: center;
-        max-width: 90vw;
-    }
-}
-
 /* =========================
    WAIT VIEW (Waiting Screen)
    ========================= */
 
-#waitView.active {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-}
-
 #waitView {
     background: #0f172a; /* same dark background as your old page */
     color: #e2e8f0;
-
-    display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
@@ -379,10 +319,6 @@ body.moderator-mode #moderatorControls {
 #waitView .subtext {
     font-size: 1rem;
     opacity: 0.8;
-}
-
-.view:not(.active) {
-    display: none;
 }
 
 #waitView .spinner {
