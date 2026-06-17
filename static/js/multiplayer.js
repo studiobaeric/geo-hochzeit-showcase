@@ -2,7 +2,9 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 
-const pb = new PocketBase('http://192.168.179.2:8090/');
+const host = window.location.hostname;
+alert("host:" + host);
+const pb = new PocketBase(`http://${host}:8090/`);
 const gamestate_id = "000000000000000";
 let initPromise = null;
 let gamestateRecord = null;
@@ -102,6 +104,7 @@ export async function getGamestateRecord() {
             gamestateRecord = await pb.collection("gamestate").create({
                 id: gamestate_id,
                 state: "waiting",
+                round: 1
             });
         }
     }
