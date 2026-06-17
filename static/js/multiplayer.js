@@ -3,8 +3,8 @@ import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 import {loadNextRound, updateView} from "./game.js";
 
-//192.168.179.2
-const pb = new PocketBase('http://localhost:8090/');
+const host = window.location.hostname;
+const pb = new PocketBase(`http://${host}:8090/`);
 const gamestate_id = "000000000000000";
 let gamestateRecord = null;
 
@@ -27,6 +27,7 @@ async function initGamestateSubscription() {
     await pb.collection('gamestate').subscribe('*', async (e) => {
 
         const record = e.record;
+
         console.log("Received Gamestate Record:\n", e.record);
 
         if (e.action === "create" || e.action === "update") {
@@ -83,6 +84,7 @@ export async function getGamestateRecord() {
             gamestateRecord = await pb.collection("gamestate").create({
                 id: gamestate_id,
                 state: "waiting",
+                round: 1
             });
         }
     }
