@@ -10,6 +10,38 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/end_of_game.css') }}">
 </head>
 <body>
+<section class="credits credits-overlay">
+    <div class="credits-container">
+        <h2 class="credits-title">Danke fürs Entwickeln!</h2>
+        <div class="contributors-grid">
+            <div class="contributor">
+                <span class="contributor-dot contributor-dot-1"></span>
+                <span class="contributor-name">Eric<br>(Single)</span>
+            </div>
+            <div class="contributor">
+                <span class="contributor-dot contributor-dot-2"></span>
+                <span class="contributor-name">Niklas</span>
+            </div>
+            <div class="contributor">
+                <span class="contributor-dot contributor-dot-3"></span>
+                <span class="contributor-name">Max</span>
+            </div>
+            <div class="contributor">
+                <span class="contributor-dot contributor-dot-4"></span>
+                <span class="contributor-name">Felix</span>
+            </div>
+            <div class="contributor">
+                <span class="contributor-dot contributor-dot-5"></span>
+                <span class="contributor-name">Paul</span>
+            </div>
+            <div class="contributor">
+                <span class="contributor-dot contributor-dot-claude"></span>
+                <span class="contributor-name">Claude<br>(KI)</span>
+            </div>
+        </div>
+    </div>
+</section>
+
 <main class="end-page">
     <div id="endGameMap" class="end-map" aria-label="Endergebnis Karte"></div>
 
@@ -33,37 +65,6 @@
                 </div>
             </div>
         </header>
-        <section class="credits">
-            <div class="credits-container">
-                <h2 class="credits-title">Danke fürs Entwickeln!</h2>
-                <div class="contributors-grid">
-                    <div class="contributor">
-                        <span class="contributor-dot contributor-dot-1"></span>
-                        <span class="contributor-name">Eric<br>(Single)</span>
-                    </div>
-                    <div class="contributor">
-                        <span class="contributor-dot contributor-dot-2"></span>
-                        <span class="contributor-name">Niklas</span>
-                    </div>
-                    <div class="contributor">
-                        <span class="contributor-dot contributor-dot-3"></span>
-                        <span class="contributor-name">Max</span>
-                    </div>
-                    <div class="contributor">
-                        <span class="contributor-dot contributor-dot-4"></span>
-                        <span class="contributor-name">Felix</span>
-                    </div>
-                    <div class="contributor">
-                        <span class="contributor-dot contributor-dot-5"></span>
-                        <span class="contributor-name">Paul</span>
-                    </div>
-                    <div class="contributor">
-                        <span class="contributor-dot contributor-dot-claude"></span>
-                        <span class="contributor-name">Claude<br>(KI)</span>
-                    </div>
-                </div>
-            </div>
-        </section>
         <section id="roundList" class="round-list" aria-label="Rundenergebnisse"></section>
     </aside>
 </main>
