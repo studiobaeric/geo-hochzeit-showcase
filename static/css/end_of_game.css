@@ -178,12 +178,11 @@ body {
 .credits-overlay {
     position: fixed;
     bottom: 28px;
-    left: 50%;
+    left: 0;
+    right: auto;
     width: auto;
-    max-width: 60vw;
-    transform: translateX(-50%);
-    display: flex;
-    justify-content: center;
+    max-width: 80vw;
+    display: block;
     padding: 0 28px;
     box-sizing: border-box;
     z-index: 99999;
