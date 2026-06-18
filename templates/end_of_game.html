@@ -10,38 +10,68 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/end_of_game.css') }}">
 </head>
 <body>
-    <main class="end-page">
-        <div id="endGameMap" class="end-map" aria-label="Endergebnis Karte"></div>
+<main class="end-page">
+    <div id="endGameMap" class="end-map" aria-label="Endergebnis Karte"></div>
 
-        <aside class="end-panel">
-            <header class="end-header">
-                <h1>Endergebnis</h1>
-                <div class="total-grid">
-                    <div class="total-card">
-                        <div class="player-line">
-                            <span class="player-dot player-dot-jana"></span>
-                            <span class="player-name">Jana</span>
-                        </div>
-                        <strong id="janaTotalPoints" class="total-points">0 Punkte</strong>
+    <aside class="end-panel">
+        <header class="end-header">
+            <h1>Endergebnis</h1>
+            <div class="total-grid">
+                <div class="total-card">
+                    <div class="player-line">
+                        <span class="player-dot player-dot-jana"></span>
+                        <span class="player-name">Jana</span>
                     </div>
-                    <div class="total-card">
-                        <div class="player-line">
-                            <span class="player-dot player-dot-tobias"></span>
-                            <span class="player-name">Tobias</span>
-                        </div>
-                        <strong id="tobiasTotalPoints" class="total-points">0 Punkte</strong>
+                    <strong id="janaTotalPoints" class="total-points">0 Punkte</strong>
+                </div>
+                <div class="total-card">
+                    <div class="player-line">
+                        <span class="player-dot player-dot-tobias"></span>
+                        <span class="player-name">Tobias</span>
+                    </div>
+                    <strong id="tobiasTotalPoints" class="total-points">0 Punkte</strong>
+                </div>
+            </div>
+        </header>
+        <section class="credits">
+            <div class="credits-container">
+                <h2 class="credits-title">Danke fürs Entwickeln!</h2>
+                <div class="contributors-grid">
+                    <div class="contributor">
+                        <span class="contributor-dot contributor-dot-1"></span>
+                        <span class="contributor-name">Eric<br>(Single)</span>
+                    </div>
+                    <div class="contributor">
+                        <span class="contributor-dot contributor-dot-2"></span>
+                        <span class="contributor-name">Niklas</span>
+                    </div>
+                    <div class="contributor">
+                        <span class="contributor-dot contributor-dot-3"></span>
+                        <span class="contributor-name">Max</span>
+                    </div>
+                    <div class="contributor">
+                        <span class="contributor-dot contributor-dot-4"></span>
+                        <span class="contributor-name">Felix</span>
+                    </div>
+                    <div class="contributor">
+                        <span class="contributor-dot contributor-dot-5"></span>
+                        <span class="contributor-name">Paul</span>
+                    </div>
+                    <div class="contributor">
+                        <span class="contributor-dot contributor-dot-claude"></span>
+                        <span class="contributor-name">Claude<br>(KI)</span>
                     </div>
                 </div>
-            </header>
+            </div>
+        </section>
+        <section id="roundList" class="round-list" aria-label="Rundenergebnisse"></section>
+    </aside>
+</main>
 
-            <section id="roundList" class="round-list" aria-label="Rundenergebnisse"></section>
-        </aside>
-    </main>
-
-    <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/end_of_game.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/end_of_game.js') }}"></script>
 </body>
 </html>
