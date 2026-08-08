@@ -14,12 +14,8 @@ tools/bin/
 
 # Python-Umgebung
 .venv/
+__pycache__/
 
 /server.log
 
 **/.DS_Store
-/pocketbase.exe
-
-#Datenbanken
-static/data/pb_data/
-pb_data

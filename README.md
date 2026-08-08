@@ -51,9 +51,11 @@ liegt bereits eingecheckt in `static/`.
 
 ## App starten
 
+Spielstand und Live-Sync laufen direkt in Flask (siehe `game_state.py`) -
+kein separater Datenbankprozess mehr nötig.
+
 ```bash
 source .venv/bin/activate        # falls noch nicht aktiv
-./pocketbase serve --dir ./static/data/pb_data --http 0.0.0.0:8090 # Datenbank starten (Windows) 
 python app.py                    # http://localhost:8080
 ```
 
@@ -251,10 +253,3 @@ cd tools && npm install && node build_style.mjs
 Die Glyph-Fonts (`static/fonts/`, via `tools/fetch_fonts.sh`) und das Sprite
 (`static/sprites/`) stammen aus
 [`protomaps/basemaps-assets`](https://github.com/protomaps/basemaps-assets).
-
-
-
-
-### Datenbanksuperuser und Datenbankuser: 
-user: nico@mail.de
-PW: 12345678
