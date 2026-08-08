@@ -1,5 +1,7 @@
 # Hochzeits-Geoguesser
 
+[![Tests](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml/badge.svg)](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml)
+
 Errate die Orte von Hochzeitsfotos auf einer Karte. Die Karte ist eine
 **komplett offline** gerenderte OpenStreetMap-Vektorkarte (MapLibre GL +
 PMTiles) – im Spielbetrieb wird **kein** Internet benötigt.
@@ -67,6 +69,15 @@ kein separater Datenbankprozess mehr nötig.
 ```bash
 source .venv/bin/activate        # falls noch nicht aktiv
 python app.py                    # http://localhost:8080
+```
+
+## Tests
+
+Backend-Tests (Flask-Routen + `/api/*`) mit pytest:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
 ```
 
 ## Offline-Karte (PMTiles) bauen
