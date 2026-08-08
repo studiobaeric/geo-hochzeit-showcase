@@ -7,7 +7,12 @@ let guessMarker = null;
 let isLocked = false;
 let currentPhoto = null;
 let map = null;
-const photoZoom = new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton');
+// game.js is imported (for loadNextRound/updateView) from every role's page via
+// multiplayer.js, but #photoContainer only exists on the player's photo view -
+// guard the PhotoZoom setup so it's a no-op on the moderator page.
+const photoZoom = document.getElementById('photoContainer')
+    ? new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton')
+    : null;
 
 // Lade Foto für Runde
 export async function loadNextRound(round) {
@@ -38,7 +43,7 @@ function resetButtons() {
     document.getElementById('lockButton').disabled = true;
     document.getElementById('lockButton').textContent = 'Einlocken';
     document.getElementById('backToPhotoButton').style.display = 'inline-block';
-    photoZoom.reset();
+    photoZoom?.reset();
 }
 
 async function loadPhoto(round) {

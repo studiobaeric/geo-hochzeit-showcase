@@ -1,18 +1,14 @@
-import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
-import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 import {loadNextRound, updateView} from "./game.js";
 import {displayNames} from '../config/players.js';
 
-const host = window.location.hostname;
-const pb = new PocketBase(`http://${host}:8090/`);
-const gamestate_id = "000000000000000";
+const API_BASE = '/api';
 let gamestateRecord = null;
+let eventSource = null;
 
 // Maps the app-wide role keys (player1/player2) to the fixed field/value
-// names the PocketBase schema currently uses. This mapping is the only
-// place that still hardcodes "jana"/"tobias" — it will be updated when the
-// database schema itself changes.
+// names the backend still uses. This mapping is the only place that still
+// hardcodes "jana"/"tobias".
 const ROLE_TO_DB_KEY = {player1: 'jana', player2: 'tobias'};
 const DB_KEY_TO_ROLE = {jana: 'player1', tobias: 'player2'};
 
@@ -24,14 +20,26 @@ export function roleForDbKey(dbKey) {
     return DB_KEY_TO_ROLE[dbKey];
 }
 
-export default pb;
+async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, {
+        headers: {'Content-Type': 'application/json'},
+        ...options
+    });
+
+    if (!response.ok) {
+        const error = new Error(`API request to ${path} failed with ${response.status}`);
+        error.status = response.status;
+        throw error;
+    }
+
+    return response.status === 204 ? null : response.json();
+}
 
 export async function initSubscriptions() {
     console.log("Initialising Subscriptions");
     try {
-        await initGamestateSubscription();
-        await initPlacedPointsSubscription()
         await getGamestateRecord();
+        initEventStream();
     } catch (e) {
         console.error(e)
     }
@@ -39,71 +47,57 @@ export async function initSubscriptions() {
     console.log("Subscribed");
 }
 
-async function initGamestateSubscription() {
-    await pb.collection('gamestate').subscribe('*', async (e) => {
+function initEventStream() {
+    if (eventSource) return;
 
-        const record = e.record;
+    eventSource = new EventSource(`${API_BASE}/events`);
 
-        console.log("Received Gamestate Record:\n", e.record);
+    eventSource.addEventListener('gamestate', async (event) => {
+        const record = JSON.parse(event.data);
 
-        if (e.action === "create" || e.action === "update") {
-            const name = sessionStorage.getItem("name");
-            console.log("Registered as: " + name);
+        console.log("Received Gamestate Record:\n", record);
 
-            if (name === "player1" || name === "player2") {
-                console.log(record.state);
-                if (gamestateRecord.state === record.state && gamestateRecord.round === record.round) {
-                    gamestateRecord = e.record;
-                    return;
-                }
-                await loadNextRound(record.round);
-                updateView(record.state);
-            }else if (name === "Moderator") {
-                await onGamestateUpdate(record);
+        const name = sessionStorage.getItem("name");
+        console.log("Registered as: " + name);
+
+        if (name === "player1" || name === "player2") {
+            console.log(record.state);
+            if (gamestateRecord && gamestateRecord.state === record.state && gamestateRecord.round === record.round) {
+                gamestateRecord = record;
+                return;
             }
+            await loadNextRound(record.round);
+            updateView(record.state);
+        } else if (name === "Moderator") {
+            await onGamestateUpdate(record);
         }
-        gamestateRecord = e.record;
-    }, (err) => {
+        gamestateRecord = record;
+    });
+
+    eventSource.addEventListener('placed_point', (event) => {
+        const record = JSON.parse(event.data);
+        console.log("Received Point Data:" + JSON.stringify(record));
+
+        const name = sessionStorage.getItem("name");
+        console.log("User is:" + name);
+
+        if (name === "Moderator") {
+            console.log("Updating Moderator Interface...")
+            updateMapPosition(record);
+        }
+    });
+
+    eventSource.onerror = (err) => {
         console.error("Subscription error: ", err);
-    });
-}
-
-async function initPlacedPointsSubscription() {
-    await pb.collection('placed_points').subscribe('*', (e) => {
-        console.log("Received Point Data:" + e.record);
-
-        const record = e.record;
-
-        if (e.action === "create" || e.action === "update") {
-            const name = sessionStorage.getItem("name");
-            console.log("User is:" + name);
-
-            if (name === "Moderator") {
-                console.log("Updating Moderator Interface...")
-                updateMapPosition(record);
-            }
-        }
-    }, (err) => {
-        console.error("Subscription error:  ", err);
-    });
+    };
 }
 
 export async function getGamestateRecord() {
-    try {
-        if (gamestateRecord == null) {
-            gamestateRecord = await pb.collection('gamestate').getFirstListItem('');
-        }
-        console.log("Gamestate:", gamestateRecord);
-        return gamestateRecord;
-    } catch (e) {
-        if (e instanceof ClientResponseError) {
-            gamestateRecord = await pb.collection("gamestate").create({
-                id: gamestate_id,
-                state: "waiting",
-                round: 1
-            });
-        }
+    if (gamestateRecord == null) {
+        gamestateRecord = await apiRequest('/gamestate');
     }
+    console.log("Gamestate:", gamestateRecord);
+    return gamestateRecord;
 }
 
 export async function pushLocation(latlng) {
@@ -120,23 +114,7 @@ export async function pushLocation(latlng) {
 
     console.log(latlng);
 
-    try {
-        // Try to find an existing record for this round and player
-        const existingRecord = await pb.collection("placed_points").getFirstListItem(
-            `round_number = ${roundnumber} && placed_by = "${player}"`
-        );
-        // If found, update it
-        await pb.collection("placed_points").update(existingRecord.id, data);
-        console.log("Updated existing record");
-    } catch (err) {
-        // If not found (404), create a new record
-        if (err.status === 404) {
-            await pb.collection("placed_points").create(data);
-            console.log("Created new record");
-        } else {
-            throw err; // Re-throw other errors
-        }
-    }
+    await apiRequest('/points', {method: 'POST', body: JSON.stringify(data)});
 }
 
 export async function unlockPlayerInput() {
@@ -146,7 +124,7 @@ export async function unlockPlayerInput() {
     console.log("Starting next round...")
 
     try {
-        pb.collection('gamestate').update(gamestate_id, {state: "playing"});
+        await apiRequest('/gamestate', {method: 'PATCH', body: JSON.stringify({state: "playing"})});
     } catch (e) {
         console.error(e)
     }
@@ -159,7 +137,7 @@ export async function lockPlayerInput() {
     console.log("Starting next round...")
 
     try {
-        pb.collection('gamestate').update(gamestate_id, {state: "waiting"});
+        await apiRequest('/gamestate', {method: 'PATCH', body: JSON.stringify({state: "waiting"})});
     } catch (e) {
         console.error(e)
     }
@@ -172,11 +150,14 @@ export async function startNextRound() {
     console.log("Starting next round...")
 
     try {
-        pb.collection('gamestate').update(gamestate_id, {
-            state: "playing",
-            round: (await getGamestateRecord()).round + 1,
-            jana_locked: false,
-            tobias_locked: false
+        await apiRequest('/gamestate', {
+            method: 'PATCH',
+            body: JSON.stringify({
+                state: "playing",
+                round: (await getGamestateRecord()).round + 1,
+                jana_locked: false,
+                tobias_locked: false
+            })
         });
     } catch (e) {
         console.error(e)
@@ -189,22 +170,7 @@ export async function resetGameState() {
     console.warn("MEHRZWECKEIER");
 
     try {
-        await pb.collection('gamestate').update(gamestate_id, {
-            state: "waiting",
-            round: 1,
-            jana_locked: false,
-            tobias_locked: false
-        });
-
-        const records = await pb.collection('placed_points').getFullList();
-
-        console.log(records);
-
-        for (const record of records) {
-            console.log(record);
-            await pb.collection('placed_points').delete(record.id);
-        }
-
+        await apiRequest('/reset', {method: 'POST'});
     } catch (e) {
         console.error(e);
     }
@@ -216,8 +182,9 @@ export async function lockInSolution() {
     const dbKey = dbKeyForRole(role);
     if (!dbKey) return;
 
-    pb.collection("gamestate").update(gamestate_id, {
-        [`${dbKey}_locked`]: true
+    await apiRequest('/gamestate', {
+        method: 'PATCH',
+        body: JSON.stringify({[`${dbKey}_locked`]: true})
     });
     console.log(`Pushed ${displayNames[role]} lockIn`)
 }

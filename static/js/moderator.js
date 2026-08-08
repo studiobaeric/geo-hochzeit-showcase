@@ -1,4 +1,4 @@
-import pb, {
+import {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
     initSubscriptions, dbKeyForRole, roleForDbKey
 } from './multiplayer.js';
