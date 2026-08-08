@@ -1,6 +1,6 @@
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {loadNextRound, updateView} from "./game.js";
-import {displayNames} from './config.js';
+import {displayNames} from '../config/players.js';
 
 const API_BASE = '/api';
 let gamestateRecord = null;

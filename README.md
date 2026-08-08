@@ -49,6 +49,16 @@ bash tools/fetch_fonts_linux.sh      # Glyph-Fonts fürs Beschriften (~768 Datei
 Alles andere (Leaflet, MapLibre, PMTiles-Lib, Sprite, Style, Marker-Icons)
 liegt bereits eingecheckt in `static/`.
 
+## Spiel konfigurieren (Namen & Fotos)
+
+Für eine neue Hochzeit anpassen:
+
+- **Spielernamen & Profilfotos:** [`static/config/players.js`](static/config/players.js)
+- **Rundenfotos & Orte:** [`static/config/photos.json`](static/config/photos.json)
+- **Bilddateien ablegen:** [`static/photos/`](static/photos/README.md)
+
+Details siehe [`static/config/README.md`](static/config/README.md).
+
 ## App starten
 
 Spielstand und Live-Sync laufen direkt in Flask (siehe `game_state.py`) -

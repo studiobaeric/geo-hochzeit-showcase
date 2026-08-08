@@ -1,10 +1,18 @@
 // Spielzustand
 import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation} from "./multiplayer.js";
+import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./basemap.js";
+import {PhotoZoom} from "./photo.js";
 
 let guessMarker = null;
 let isLocked = false;
 let currentPhoto = null;
 let map = null;
+// game.js is imported (for loadNextRound/updateView) from every role's page via
+// multiplayer.js, but #photoContainer only exists on the player's photo view -
+// guard the PhotoZoom setup so it's a no-op on the moderator page.
+const photoZoom = document.getElementById('photoContainer')
+    ? new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton')
+    : null;
 
 // Lade Foto für Runde
 export async function loadNextRound(round) {
@@ -35,12 +43,13 @@ function resetButtons() {
     document.getElementById('lockButton').disabled = true;
     document.getElementById('lockButton').textContent = 'Einlocken';
     document.getElementById('backToPhotoButton').style.display = 'inline-block';
+    photoZoom?.reset();
 }
 
 async function loadPhoto(round) {
     console.log("Loading Photo: " + round);
     try {
-        const response = await fetch('/static/data/photos.json');
+        const response = await fetch('/static/config/photos.json');
         let photos = await response.json();
         currentPhoto = photos[round - 1];
         document.getElementById('photoImage').src = `/static/photos/${currentPhoto.filename}`;
@@ -108,25 +117,14 @@ async function initGame() {
 
     // Vektor-Basemap (MapLibre GL) aus lokaler PMTiles-Datei - komplett offline.
     // PMTiles wird per HTTP-Range-Request gelesen, die Datei landet nie komplett im RAM.
-    const pmtilesProtocol = new pmtiles.Protocol();
-    maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
+    ensurePmtilesProtocol();
 
-    // MapLibre v5 verlangt absolute URLs fuer sprite/glyphs/Source. Wir setzen sie
-    // zur Laufzeit aus location.origin zusammen, damit die App auf jedem Host/Port
-    // (und damit komplett offline) funktioniert, ohne hartkodierte Adresse.
-    fetch('/static/data/basemap-style.json')
-        .then((response) => response.json())
-        .then((style) => {
-            const origin = window.location.origin;
-            style.sprite = origin + style.sprite;
-            style.glyphs = origin + style.glyphs;
-            style.sources.protomaps.url = 'pmtiles://' + origin + '/static/data/basemap.pmtiles';
-
-            L.maplibreGL({
-                style: style,
-                interactive: true,
-                attribution: 'Map data &copy; OpenStreetMap contributors'
-            }).addTo(map);
+    // MapLibre v5 verlangt absolute URLs fuer sprite/glyphs/Source; createBaseMapLayer()
+    // setzt sie zur Laufzeit aus location.origin zusammen, damit die App auf jedem
+    // Host/Port (und damit komplett offline) funktioniert, ohne hartkodierte Adresse.
+    createBaseMapLayer({interactive: true})
+        .then((baseMapLayer) => {
+            baseMapLayer.addTo(map);
             map.getContainer().style.pointerEvents = 'auto';
             setTimeout(() => {
                 const canvas = document.querySelector('.maplibregl-canvas');
@@ -147,14 +145,7 @@ async function initGame() {
         // Wenn noch kein Marker gesetzt, erstelle einen
         if (!guessMarker) {
             guessMarker = L.marker([lat, lng], {
-                icon: L.icon({
-                    iconUrl: '/static/img/marker-icon-2x-blue.png',
-                    shadowUrl: '/static/img/marker-shadow.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41],
-                    popupAnchor: [1, -34],
-                    shadowSize: [41, 41]
-                })
+                icon: createMarkerIcon('/static/img/marker-icon-2x-blue.png')
             }).addTo(map);
             guessMarker.bindPopup('Dein Tipp');
         } else {
