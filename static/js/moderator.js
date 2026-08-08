@@ -3,6 +3,7 @@ import pb, {
     initSubscriptions, dbKeyForRole, roleForDbKey
 } from './multiplayer.js';
 import { displayNames, photoFilenames } from './config.js';
+import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
@@ -44,7 +45,6 @@ let leftPlayerMap = null;
 let rightPlayerMap = null;
 let leftPlayerMarker = null;
 let rightPlayerMarker = null;
-let isPmtilesProtocolRegistered = false;
 
 let round = 0;
 let playerInputLocked = false;
@@ -109,14 +109,6 @@ function getEndScore(){
 
 function saveResultCollection() {
     sessionStorage.setItem('resultCollection', JSON.stringify(resultCollection));
-}
-
-function ensurePmtilesProtocol() {
-    if (isPmtilesProtocolRegistered) return;
-
-    const pmtilesProtocol = new pmtiles.Protocol();
-    maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
-    isPmtilesProtocolRegistered = true;
 }
 
 // aufrufen mit neuer nummer für neues photo
@@ -186,14 +178,6 @@ function isCurrentPhotoRecord(record) {
     return Number(record?.round_number) === Number(currentPhoto.id);
 }
 
-function formatDistance(distanceMeters) {
-    if (distanceMeters < 1000) {
-        return `${Math.round(distanceMeters)} m`;
-    }
-
-    return `${(distanceMeters / 1000).toFixed(1)} km`;
-}
-
 function updateResolutionDistanceDisplay(role, distanceMeters) {
     const distanceElement = resolutionDistanceElements[role];
     if (!distanceElement) return;
@@ -230,14 +214,7 @@ function syncResolutionPlayerMarkers() {
         }
 
         const marker = L.marker(latLng, {
-            icon: L.icon({
-                iconUrl: playerStyle.iconUrl,
-                shadowUrl: '/static/img/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41]
-            })
+            icon: createMarkerIcon(playerStyle.iconUrl)
         }).addTo(resolutionMap);
 
         const displayName = displayNames[role] ?? role;
@@ -288,14 +265,7 @@ export async function updateMapPosition(record) {
         target.marker.setLatLng(latLng);
     } else {
         const marker = L.marker(latLng, {
-            icon: L.icon({
-                iconUrl: playerStyles[role].iconUrl,
-                shadowUrl: '/static/img/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41]
-            })
+            icon: createMarkerIcon(playerStyles[role].iconUrl)
         }).addTo(target.map);
 
         marker.bindPopup(`${target.label}s Tipp`);
@@ -303,22 +273,6 @@ export async function updateMapPosition(record) {
     }
 
     target.map.setView(latLng, Math.max(target.map.getZoom(), 8));
-}
-
-
-async function createBaseMapLayer() {
-    const response = await fetch('/static/data/basemap-style.json');
-    const style = await response.json();
-    const origin = window.location.origin;
-
-    style.sprite = origin + style.sprite;
-    style.glyphs = origin + style.glyphs;
-    style.sources.protomaps.url = `pmtiles://${origin}/static/data/basemap.pmtiles`;
-
-    return L.maplibreGL({
-        style,
-        attribution: 'Map data &copy; OpenStreetMap contributors'
-    });
 }
 
 function createPlayerMap(elementId) {
@@ -367,14 +321,7 @@ async function initResolutionMap() {
     baseMapLayer.addTo(resolutionMap);
 
     locationMarker = L.marker([lat, lng], {
-        icon: L.icon({
-            iconUrl: '/static/img/marker-icon-2x-green.png',
-            shadowUrl: '/static/img/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        })
+        icon: createMarkerIcon('/static/img/marker-icon-2x-green.png')
     }).addTo(resolutionMap);
     locationMarker.bindPopup(currentPhoto.description || 'Bildposition').openPopup();
 }
