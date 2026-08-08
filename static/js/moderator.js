@@ -2,7 +2,7 @@ import pb, {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
     initSubscriptions, dbKeyForRole, roleForDbKey
 } from './multiplayer.js';
-import { displayNames, photoFilenames } from './config.js';
+import { displayNames, photoFilenames } from '../config/players.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 
 
@@ -568,7 +568,7 @@ function initEventListeners() {
 
 if (moderatorApp) {
 
-    const response = await fetch('/static/data/photos.json');
+    const response = await fetch('/static/config/photos.json');
     photos = await response.json();
 
     if (sessionStorage.getItem("name") === null) {

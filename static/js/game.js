@@ -41,7 +41,7 @@ function resetButtons() {
 async function loadPhoto(round) {
     console.log("Loading Photo: " + round);
     try {
-        const response = await fetch('/static/data/photos.json');
+        const response = await fetch('/static/config/photos.json');
         let photos = await response.json();
         currentPhoto = photos[round - 1];
         document.getElementById('photoImage').src = `/static/photos/${currentPhoto.filename}`;

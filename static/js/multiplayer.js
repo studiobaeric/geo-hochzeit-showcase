@@ -2,7 +2,7 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 import {loadNextRound, updateView} from "./game.js";
-import {displayNames} from './config.js';
+import {displayNames} from '../config/players.js';
 
 const host = window.location.hostname;
 const pb = new PocketBase(`http://${host}:8090/`);

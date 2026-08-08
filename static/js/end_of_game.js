@@ -1,4 +1,4 @@
-import { displayNames } from './config.js';
+import { displayNames } from '../config/players.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 
 const endGameMapElement = document.getElementById('endGameMap');
