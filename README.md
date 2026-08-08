@@ -69,6 +69,15 @@ source .venv/bin/activate        # falls noch nicht aktiv
 python app.py                    # http://localhost:8080
 ```
 
+## Tests
+
+Backend-Tests (Flask-Routen + `/api/*`) mit pytest:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 ## Offline-Karte (PMTiles) bauen
 
 Die Kartendaten (`static/data/basemap.pmtiles`) sind zu groß für Git und
