@@ -1,11 +1,13 @@
 // Spielzustand
 import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation} from "./multiplayer.js";
 import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./basemap.js";
+import {PhotoZoom} from "./photo.js";
 
 let guessMarker = null;
 let isLocked = false;
 let currentPhoto = null;
 let map = null;
+const photoZoom = new PhotoZoom('photoImage', 'photoContainer', 'resetZoomButton');
 
 // Lade Foto für Runde
 export async function loadNextRound(round) {
@@ -36,6 +38,7 @@ function resetButtons() {
     document.getElementById('lockButton').disabled = true;
     document.getElementById('lockButton').textContent = 'Einlocken';
     document.getElementById('backToPhotoButton').style.display = 'inline-block';
+    photoZoom.reset();
 }
 
 async function loadPhoto(round) {

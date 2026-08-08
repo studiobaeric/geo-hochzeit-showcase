@@ -9,11 +9,17 @@ static/tiles/
 static/fonts/
 
 # Node-Build-Tooling + heruntergeladene pmtiles-CLI
+node_modules/
 tools/node_modules/
 tools/bin/
 
 # Python-Umgebung
 .venv/
+__pycache__/
+*.pyc
+
+# IDE-Projektdateien (JetBrains)
+.idea/
 
 /server.log
 
