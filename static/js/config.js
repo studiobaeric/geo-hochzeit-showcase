@@ -1,8 +1,8 @@
-export const NAME_1 = "Jana";
-export const NAME_2 = "Tobias";
+export const NAME_1 = "player1";
+export const NAME_2 = "player2";
 
-export const PHOTO_1 = "jana.jpeg";
-export const PHOTO_2 = "tobias.jpeg";
+export const PHOTO_1 = "picture_of_player1.jpg";
+export const PHOTO_2 = "picture_of_player2.jpg";
 
 export const displayNames = {
     player1: NAME_1,
