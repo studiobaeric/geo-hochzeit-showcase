@@ -1,5 +1,7 @@
 # Hochzeits-Geoguesser
 
+[![Tests](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml/badge.svg)](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml)
+
 Errate die Orte von Hochzeitsfotos auf einer Karte. Die Karte ist eine
 **komplett offline** gerenderte OpenStreetMap-Vektorkarte (MapLibre GL +
 PMTiles) – im Spielbetrieb wird **kein** Internet benötigt.
