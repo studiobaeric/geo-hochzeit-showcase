@@ -13,12 +13,12 @@
 <main id="moderatorApp" class="moderator-app">
     <div class="moderator-top">
         <section class="player-stage player-stage-left" aria-label="Spieler links">
-                <div class="player-score-badge player-score-badge-jana">
+                <div class="player-score-badge player-score-badge-player1">
                     <span class="player-score-marker" aria-hidden="true"></span>
-                    <span class="player-score-name">Jana</span>
-                    <strong id="janaCurrentPoints" class="player-score-points">0 Punkte</strong>
+                    <span id="player1ScoreName" class="player-score-name">Jana</span>
+                    <strong id="player1CurrentPoints" class="player-score-points">0 Punkte</strong>
                 </div>
-            <img src="../static/photos/jana.jpeg" alt="Bild_Jana">
+            <img id="player1Photo" alt="Bild_Jana">
         </section>
 
         <section class="current-photo-stage" aria-label="Aktuelles Foto">
@@ -27,12 +27,12 @@
         </section>
 
         <section class="player-stage player-stage-right" aria-label="Spieler rechts">
-                <div class="player-score-badge player-score-badge-tobias">
+                <div class="player-score-badge player-score-badge-player2">
                     <span class="player-score-marker" aria-hidden="true"></span>
-                    <span class="player-score-name">Tobias</span>
-                    <strong id="tobiasCurrentPoints" class="player-score-points">0 Punkte</strong>
+                    <span id="player2ScoreName" class="player-score-name">Tobias</span>
+                    <strong id="player2CurrentPoints" class="player-score-points">0 Punkte</strong>
                 </div>
-            <img src="../static/photos/tobias.jpeg" alt="Bild_Tobias">
+            <img id="player2Photo" alt="Bild_Tobias">
         </section>
     </div>
 
@@ -59,13 +59,13 @@
 
 <section id="resolutionView" class="resolution-view" aria-label="Auflösung">
     <div id="resolutionMap" class="resolution-map"></div>
-        <div class="resolution-distance resolution-distance-left resolution-distance-jana">
+        <div class="resolution-distance resolution-distance-left resolution-distance-player1">
             <span class="resolution-distance-marker" aria-hidden="true"></span>
-            <strong id="janaResolutionDistance">Jana: -</strong>
+            <strong id="player1ResolutionDistance">Jana: -</strong>
         </div>
-        <div class="resolution-distance resolution-distance-right resolution-distance-tobias">
+        <div class="resolution-distance resolution-distance-right resolution-distance-player2">
             <span class="resolution-distance-marker" aria-hidden="true"></span>
-            <strong id="tobiasResolutionDistance">Tobias: -</strong>
+            <strong id="player2ResolutionDistance">Tobias: -</strong>
         </div>
     <button type="button" id="continueButton" class="continue-button">Weiter</button>
 </section>
@@ -75,12 +75,12 @@
         <h2>Rundenergebnis</h2>
 
         <div class="result-row">
-            <span class="result-player-name">Jana</span>
+            <span id="resultRowNamePlayer1" class="result-player-name">Jana</span>
             <strong class="result-player-points">0 Punkte</strong>
         </div>
 
         <div class="result-row">
-            <span class="result-player-name">Tobias</span>
+            <span id="resultRowNamePlayer2" class="result-player-name">Tobias</span>
             <strong class="result-player-points">0 Punkte</strong>
         </div>
 

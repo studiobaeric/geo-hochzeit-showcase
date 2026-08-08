@@ -1,16 +1,23 @@
+import { displayNames } from './config.js';
+
 const endGameMapElement = document.getElementById('endGameMap');
 const roundListElement = document.getElementById('roundList');
-const janaTotalPoints = document.getElementById('janaTotalPoints');
-const tobiasTotalPoints = document.getElementById('tobiasTotalPoints');
+const player1TotalPoints = document.getElementById('player1TotalPoints');
+const player2TotalPoints = document.getElementById('player2TotalPoints');
+const player1PlayerName = document.getElementById('player1PlayerName');
+const player2PlayerName = document.getElementById('player2PlayerName');
+
+if (player1PlayerName) player1PlayerName.textContent = displayNames.player1;
+if (player2PlayerName) player2PlayerName.textContent = displayNames.player2;
 
 const playerStyles = {
-    jana: {
-        label: 'Jana',
+    player1: {
+        label: displayNames.player1,
         iconUrl: '/static/img/marker-icon-2x-blue.png',
         lineColor: '#2563eb'
     },
-    tobias: {
-        label: 'Tobias',
+    player2: {
+        label: displayNames.player2,
         iconUrl: '/static/img/marker-icon-2x-red.png',
         lineColor: '#dc2626'
     }
@@ -127,7 +134,7 @@ function bindPermanentMarkerLabel(marker, label) {
 }
 
 function createPlayerIcon(playerName) {
-    const style = playerStyles[playerName] ?? playerStyles.jana;
+    const style = playerStyles[playerName] ?? playerStyles.player1;
 
     return L.icon({
         iconUrl: style.iconUrl,
@@ -167,7 +174,7 @@ function renderRoundMap(roundResult) {
         const playerLatLng = getPlayerLatLng(playerResult);
         if (!playerLatLng) return;
 
-        const style = playerStyles[playerName] ?? playerStyles.jana;
+        const style = playerStyles[playerName] ?? playerStyles.player1;
         const label = style.label;
 
         visiblePositions.push(playerLatLng);
@@ -201,8 +208,8 @@ function getSortedResults(resultCollection) {
 
 function updateTotals(resultCollection) {
     const totals = {
-        jana: 0,
-        tobias: 0
+        player1: 0,
+        player2: 0
     };
 
     Object.values(resultCollection).forEach((roundResult) => {
@@ -211,8 +218,8 @@ function updateTotals(resultCollection) {
         });
     });
 
-    janaTotalPoints.textContent = formatPoints(totals.jana);
-    tobiasTotalPoints.textContent = formatPoints(totals.tobias);
+    player1TotalPoints.textContent = formatPoints(totals.player1);
+    player2TotalPoints.textContent = formatPoints(totals.player2);
 }
 
 function renderRoundList(resultCollection) {
@@ -234,8 +241,8 @@ function renderRoundList(resultCollection) {
                 <span>Runde ${roundId}</span>
                 <span>${roundResult.photo?.description || ''}</span>
             </div>
-            ${renderPlayerRow('jana', roundResult.players?.jana)}
-            ${renderPlayerRow('tobias', roundResult.players?.tobias)}
+            ${renderPlayerRow('player1', roundResult.players?.player1)}
+            ${renderPlayerRow('player2', roundResult.players?.player2)}
         `;
 
         roundButton.addEventListener('click', () => {
@@ -256,7 +263,7 @@ function renderRoundList(resultCollection) {
 }
 
 function renderPlayerRow(playerName, playerResult) {
-    const style = playerStyles[playerName] ?? playerStyles.jana;
+    const style = playerStyles[playerName] ?? playerStyles.player1;
 
     return `
         <div class="round-player">
