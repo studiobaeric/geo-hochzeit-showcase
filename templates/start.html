@@ -154,13 +154,17 @@
     </div>
 
     <div class="role-buttons" aria-label="Rolle auswählen">
-        <button class="start-button" data-name="Jana">Jana</button>
-        <button class="start-button" data-name="Tobias">Tobias</button>
+        <button class="start-button" id="player1Button" data-name="player1">Jana</button>
+        <button class="start-button" id="player2Button" data-name="player2">Tobias</button>
         <button class="start-button moderator" data-name="Moderator">Moderator</button>
     </div>
 </div>
 
 <script type="module">
+    import { NAME_1, NAME_2 } from "{{ url_for('static', filename='js/config.js') }}";
+
+    document.getElementById('player1Button').textContent = NAME_1;
+    document.getElementById('player2Button').textContent = NAME_2;
 
     async function startGame(name) {
         sessionStorage.setItem('name', name);

@@ -127,7 +127,7 @@ body {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.28);
 }
 
-.player-score-badge-tobias .player-score-marker {
+.player-score-badge-player2 .player-score-marker {
     background: #dc2626;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.28);
 }
@@ -342,7 +342,7 @@ body {
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.22);
 }
 
-.resolution-distance-tobias .resolution-distance-marker {
+.resolution-distance-player2 .resolution-distance-marker {
     background: #dc2626;
     box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.22);
 }

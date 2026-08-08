@@ -2,11 +2,27 @@ import PocketBase from "../vendor/pocketbase/pocketbase.es.mjs";
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {ClientResponseError} from "../vendor/pocketbase/pocketbase.es.mjs";
 import {loadNextRound, updateView} from "./game.js";
+import {displayNames} from './config.js';
 
 const host = window.location.hostname;
 const pb = new PocketBase(`http://${host}:8090/`);
 const gamestate_id = "000000000000000";
 let gamestateRecord = null;
+
+// Maps the app-wide role keys (player1/player2) to the fixed field/value
+// names the PocketBase schema currently uses. This mapping is the only
+// place that still hardcodes "jana"/"tobias" — it will be updated when the
+// database schema itself changes.
+const ROLE_TO_DB_KEY = {player1: 'jana', player2: 'tobias'};
+const DB_KEY_TO_ROLE = {jana: 'player1', tobias: 'player2'};
+
+export function dbKeyForRole(role) {
+    return ROLE_TO_DB_KEY[role];
+}
+
+export function roleForDbKey(dbKey) {
+    return DB_KEY_TO_ROLE[dbKey];
+}
 
 export default pb;
 
@@ -34,7 +50,7 @@ async function initGamestateSubscription() {
             const name = sessionStorage.getItem("name");
             console.log("Registered as: " + name);
 
-            if (name === "Jana" || name === "Tobias") {
+            if (name === "player1" || name === "player2") {
                 console.log(record.state);
                 if (gamestateRecord.state === record.state && gamestateRecord.round === record.round) {
                     gamestateRecord = e.record;
@@ -92,7 +108,7 @@ export async function getGamestateRecord() {
 
 export async function pushLocation(latlng) {
     const roundnumber = gamestateRecord.round;
-    const player = sessionStorage.getItem("name").toLowerCase();
+    const player = dbKeyForRole(sessionStorage.getItem("name"));
     const data = {
         round_number: roundnumber,
         placed_by: player,
@@ -196,16 +212,12 @@ export async function resetGameState() {
 
 export async function lockInSolution() {
     console.log("Locking in...")
-    if (sessionStorage.getItem("name") === "Jana") {
-        pb.collection("gamestate").update(gamestate_id, {
-            jana_locked: true
-        });
-        console.log("Pushed Jana lockIn")
+    const role = sessionStorage.getItem("name");
+    const dbKey = dbKeyForRole(role);
+    if (!dbKey) return;
 
-    } else if (sessionStorage.getItem("name") === "Tobias") {
-        pb.collection("gamestate").update(gamestate_id, {
-            tobias_locked: true
-        });
-        console.log("Pushed Tobias lockIn")
-    }
+    pb.collection("gamestate").update(gamestate_id, {
+        [`${dbKey}_locked`]: true
+    });
+    console.log(`Pushed ${displayNames[role]} lockIn`)
 }

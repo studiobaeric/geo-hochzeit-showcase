@@ -1,7 +1,8 @@
 import pb, {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
-    initSubscriptions
+    initSubscriptions, dbKeyForRole, roleForDbKey
 } from './multiplayer.js';
+import { displayNames, photoFilenames } from './config.js';
 
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
@@ -20,16 +21,16 @@ const resultContinueButton = document.getElementById('resultContinueButton');
 
 const roundResultView = document.getElementById('roundResultView');
 const playerPointElements = {
-    jana: document.getElementById('janaCurrentPoints'),
-    tobias: document.getElementById('tobiasCurrentPoints')
+    player1: document.getElementById('player1CurrentPoints'),
+    player2: document.getElementById('player2CurrentPoints')
 };
 const resolutionDistanceElements = {
-    jana: document.getElementById('janaResolutionDistance'),
-    tobias: document.getElementById('tobiasResolutionDistance')
+    player1: document.getElementById('player1ResolutionDistance'),
+    player2: document.getElementById('player2ResolutionDistance')
 };
 const playerMapElements = {
-    jana: document.getElementById('leftPlayerMap'),
-    tobias: document.getElementById('rightPlayerMap')
+    player1: document.getElementById('leftPlayerMap'),
+    player2: document.getElementById('rightPlayerMap')
 };
 
 let currentPhoto = null;
@@ -49,19 +50,50 @@ let round = 0;
 let playerInputLocked = false;
 let photos = {};
 
+function applyDisplayNames() {
+    const player1ScoreName = document.getElementById('player1ScoreName');
+    if (player1ScoreName) player1ScoreName.textContent = displayNames.player1;
+
+    const player2ScoreName = document.getElementById('player2ScoreName');
+    if (player2ScoreName) player2ScoreName.textContent = displayNames.player2;
+
+    const player1Photo = document.getElementById('player1Photo');
+    if (player1Photo) {
+        player1Photo.alt = `Bild_${displayNames.player1}`;
+        player1Photo.src = `/static/photos/${photoFilenames.player1}`;
+    }
+
+    const player2Photo = document.getElementById('player2Photo');
+    if (player2Photo) {
+        player2Photo.alt = `Bild_${displayNames.player2}`;
+        player2Photo.src = `/static/photos/${photoFilenames.player2}`;
+    }
+
+    if (resolutionDistanceElements.player1) resolutionDistanceElements.player1.textContent = `${displayNames.player1}: -`;
+    if (resolutionDistanceElements.player2) resolutionDistanceElements.player2.textContent = `${displayNames.player2}: -`;
+
+    const resultRowNamePlayer1 = document.getElementById('resultRowNamePlayer1');
+    if (resultRowNamePlayer1) resultRowNamePlayer1.textContent = displayNames.player1;
+
+    const resultRowNamePlayer2 = document.getElementById('resultRowNamePlayer2');
+    if (resultRowNamePlayer2) resultRowNamePlayer2.textContent = displayNames.player2;
+}
+
+applyDisplayNames();
+
 let pointByName = {
-    jana: 0,
-    tobias: 0
+    player1: 0,
+    player2: 0
 };
 
 let resultCollection = {};
 
 const playerStyles = {
-        jana: {
+        player1: {
             iconUrl: '/static/img/marker-icon-2x-blue.png',
             lineColor: '#2563eb'
         },
-        tobias: {
+        player2: {
             iconUrl: '/static/img/marker-icon-2x-red.png',
             lineColor: '#dc2626'
         }
@@ -116,35 +148,36 @@ function getRecordLatLng(record) {
 }
 
 function getPlayerTarget(record) {
-    const playerName = String(record?.placed_by || '').trim().toLowerCase();
+    const role = getPlayerRole(record);
 
-    if (playerName === 'jana') {
+    if (role === 'player1') {
         return {
             map: leftPlayerMap,
             marker: leftPlayerMarker,
             setMarker: (marker) => {
                 leftPlayerMarker = marker;
             },
-            label: 'Jana'
+            label: displayNames.player1
         };
     }
 
-    if (playerName === 'tobias') {
+    if (role === 'player2') {
         return {
             map: rightPlayerMap,
             marker: rightPlayerMarker,
             setMarker: (marker) => {
                 rightPlayerMarker = marker;
             },
-            label: 'Tobias'
+            label: displayNames.player2
         };
     }
 
     return null;
 }
 
-function getPlayerName(record) {
-    return String(record?.placed_by || '').trim().toLowerCase();
+function getPlayerRole(record) {
+    const dbKey = String(record?.placed_by || '').trim().toLowerCase();
+    return roleForDbKey(dbKey);
 }
 
 function isCurrentPhotoRecord(record) {
@@ -161,11 +194,11 @@ function formatDistance(distanceMeters) {
     return `${(distanceMeters / 1000).toFixed(1)} km`;
 }
 
-function updateResolutionDistanceDisplay(playerName, distanceMeters) {
-    const distanceElement = resolutionDistanceElements[playerName];
+function updateResolutionDistanceDisplay(role, distanceMeters) {
+    const distanceElement = resolutionDistanceElements[role];
     if (!distanceElement) return;
 
-    const displayName = playerName.charAt(0).toUpperCase() + playerName.slice(1);
+    const displayName = displayNames[role] ?? role;
     distanceElement.textContent = `${displayName}: ${formatDistance(distanceMeters)}`;
 }
 
@@ -178,20 +211,20 @@ function syncResolutionPlayerMarkers() {
     const visiblePositions = photoLatLng ? [photoLatLng] : [];
 
 
-    Object.entries(latestPlayerRecords).forEach(([playerName, record]) => {
+    Object.entries(latestPlayerRecords).forEach(([role, record]) => {
         const latLng = getRecordLatLng(record);
-        if (!latLng || !playerName) return;
+        if (!latLng || !role) return;
 
-        const playerStyle = playerStyles[playerName] ?? playerStyles.jana;
+        const playerStyle = playerStyles[role] ?? playerStyles.player1;
         visiblePositions.push(latLng);
 
-        if (resolutionPlayerMarkers[playerName]) {
-            resolutionPlayerMarkers[playerName].setLatLng(latLng);
+        if (resolutionPlayerMarkers[role]) {
+            resolutionPlayerMarkers[role].setLatLng(latLng);
             if (photoLatLng) {
                 const distanceMeters = L.latLng(latLng).distanceTo(L.latLng(photoLatLng));
 
-                resolutionPlayerMarkers[playerName].line?.setLatLngs([latLng, photoLatLng]);
-                updateResolutionDistanceDisplay(playerName, distanceMeters);
+                resolutionPlayerMarkers[role].line?.setLatLngs([latLng, photoLatLng]);
+                updateResolutionDistanceDisplay(role, distanceMeters);
             }
             return;
         }
@@ -207,7 +240,7 @@ function syncResolutionPlayerMarkers() {
             })
         }).addTo(resolutionMap);
 
-        const displayName = playerName.charAt(0).toUpperCase() + playerName.slice(1);
+        const displayName = displayNames[role] ?? role;
         marker.bindPopup(displayName);
         marker.bindTooltip(displayName, {
             permanent: true,
@@ -226,10 +259,10 @@ function syncResolutionPlayerMarkers() {
                 dashArray: '8 8'
             }).addTo(resolutionMap);
 
-            updateResolutionDistanceDisplay(playerName, distanceMeters);
+            updateResolutionDistanceDisplay(role, distanceMeters);
         }
 
-        resolutionPlayerMarkers[playerName] = marker;
+        resolutionPlayerMarkers[role] = marker;
     });
 
     if (visiblePositions.length > 1) {
@@ -238,8 +271,8 @@ function syncResolutionPlayerMarkers() {
 }
 
 export async function updateMapPosition(record) {
-    const playerName = getPlayerName(record);
-    latestPlayerRecords[playerName] = record;
+    const role = getPlayerRole(record);
+    latestPlayerRecords[role] = record;
 
 
     if (!leftPlayerMap || !rightPlayerMap) {
@@ -256,7 +289,7 @@ export async function updateMapPosition(record) {
     } else {
         const marker = L.marker(latLng, {
             icon: L.icon({
-                iconUrl: playerName === "jana"? playerStyles["jana"].iconUrl : playerStyles["tobias"].iconUrl,
+                iconUrl: playerStyles[role].iconUrl,
                 shadowUrl: '/static/img/marker-shadow.png',
                 iconSize: [25, 41],
                 iconAnchor: [12, 41],
@@ -416,8 +449,8 @@ function calculatePoints() {
     let roundPoints = {};
 
 
-    ["jana", "tobias"].forEach((name) => {
-        const playerLatLng = getRecordLatLng(latestPlayerRecords[name]);
+    ["player1", "player2"].forEach((role) => {
+        const playerLatLng = getRecordLatLng(latestPlayerRecords[role]);
         let points = 0;
         let distanceMeters = null;
 
@@ -448,27 +481,27 @@ function calculatePoints() {
             }
         }
 
-        roundPoints[name] = {
+        roundPoints[role] = {
             points: points,
             distance: distanceMeters
         }
 
-        pointByName[name] += points;
+        pointByName[role] += points;
     });
 
     resultCollection[currentPhoto.id] = {
         photo: currentPhoto,
         players: {
-            jana: {
-                markerLocation: getRecordLatLng(latestPlayerRecords.jana),
-                points: roundPoints.jana.points,
-                distance: roundPoints.jana.distance
+            player1: {
+                markerLocation: getRecordLatLng(latestPlayerRecords.player1),
+                points: roundPoints.player1.points,
+                distance: roundPoints.player1.distance
 
             },
-            tobias:{
-                markerLocation: getRecordLatLng(latestPlayerRecords.tobias),
-                points: roundPoints.tobias.points,
-                distance: roundPoints.tobias.distance
+            player2:{
+                markerLocation: getRecordLatLng(latestPlayerRecords.player2),
+                points: roundPoints.player2.points,
+                distance: roundPoints.player2.distance
             }
         }
     }
@@ -486,8 +519,8 @@ function updateCurrentPointDisplay() {
 
 function showRoundResult() {
     const sortedResults = Object.entries(pointByName)
-        .map(([name, points]) => ({
-            name: name.charAt(0).toUpperCase() + name.slice(1),
+        .map(([role, points]) => ({
+            name: displayNames[role] ?? role,
             points
         }))
         .sort((a, b) => b.points - a.points);
@@ -514,8 +547,10 @@ export async function onGamestateUpdate(record) {
     console.log("Round: ", round)
     roundIndicator.textContent = round;
 
-    playerMapElements.jana?.classList.toggle('is-locked-in', Boolean(record.jana_locked));
-    playerMapElements.tobias?.classList.toggle('is-locked-in', Boolean(record.tobias_locked));
+    ['player1', 'player2'].forEach((role) => {
+        const dbKey = dbKeyForRole(role);
+        playerMapElements[role]?.classList.toggle('is-locked-in', Boolean(record[`${dbKey}_locked`]));
+    });
 
     if (!playerInputLocked) {
         lockPlayerInputButton.textContent = "Input Verbieten";
@@ -557,8 +592,8 @@ function initEventListeners() {
         latestPlayerRecords.clear;
 
         pointByName = {
-            jana: 0,
-            tobias: 0
+            player1: 0,
+            player2: 0
         };
 
         updateCurrentPointDisplay()
