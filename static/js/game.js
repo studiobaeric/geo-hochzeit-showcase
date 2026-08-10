@@ -7,6 +7,7 @@ let guessMarker = null;
 let isLocked = false;
 let currentPhoto = null;
 let map = null;
+let allPhotos = null;
 // game.js is imported (for loadNextRound/updateView) from every role's page via
 // multiplayer.js, but #photoContainer only exists on the player's photo view -
 // guard the PhotoZoom setup so it's a no-op on the moderator page.
@@ -49,9 +50,18 @@ function resetButtons() {
 async function loadPhoto(round) {
     console.log("Loading Photo: " + round);
     try {
-        const response = await fetch('/static/config/photos.json');
-        let photos = await response.json();
-        currentPhoto = photos[round - 1];
+        if (!allPhotos) {
+            const response = await fetch('/static/config/photos.json');
+            if (!response.ok) {
+                throw new Error(`Failed to load photos.json: ${response.status}`);
+            }
+            allPhotos = await response.json();
+        }
+
+        currentPhoto = allPhotos[round - 1];
+        if (!currentPhoto) {
+            throw new Error(`No photo configured for round ${round}`);
+        }
         document.getElementById('photoImage').src = `/static/photos/${currentPhoto.filename}`;
     } catch (error) {
         console.error('Fehler beim Laden der Fotos:\n', error);
@@ -59,7 +69,10 @@ async function loadPhoto(round) {
 }
 
 function updateRoundDisplay(round) {
-    document.getElementById('roundInfo').textContent = `Runde ${round}`;
+    const totalRounds = allPhotos?.length;
+    document.getElementById('roundInfo').textContent = totalRounds
+        ? `Runde ${round} / ${totalRounds}`
+        : `Runde ${round}`;
 }
 
 // View-Wechsel (Wait <-> Photo <-> Map)

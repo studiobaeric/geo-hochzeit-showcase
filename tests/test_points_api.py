@@ -51,3 +51,37 @@ def test_invalid_payloads_are_rejected(client, bad_payload):
     response = client.post("/api/points", json=bad_payload)
 
     assert response.status_code == 400
+
+
+def test_get_points_returns_placed_guesses_for_round(client):
+    client.post("/api/points", json=VALID_PAYLOAD)
+    other = dict(VALID_PAYLOAD, placed_by="tobias")
+    client.post("/api/points", json=other)
+
+    response = client.get("/api/points/1")
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert len(data) == 2
+    placed_by = {record["placed_by"] for record in data}
+    assert placed_by == {"jana", "tobias"}
+
+
+def test_get_points_only_returns_requested_round(client):
+    client.post("/api/points", json=VALID_PAYLOAD)
+    other_round = dict(VALID_PAYLOAD, round_number=2, placed_by="tobias")
+    client.post("/api/points", json=other_round)
+
+    response = client.get("/api/points/2")
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert len(data) == 1
+    assert data[0]["placed_by"] == "tobias"
+
+
+def test_get_points_for_round_with_no_guesses_is_empty(client):
+    response = client.get("/api/points/9")
+
+    assert response.status_code == 200
+    assert response.get_json() == []
