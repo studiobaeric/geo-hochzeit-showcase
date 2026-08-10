@@ -1,6 +1,6 @@
 import {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
-    initSubscriptions, dbKeyForRole, roleForDbKey
+    initSubscriptions, dbKeyForRole, roleForDbKey, getPlacedPoints
 } from './multiplayer.js';
 import { displayNames, photoFilenames } from '../config/players.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
@@ -49,6 +49,45 @@ let rightPlayerMarker = null;
 let round = 0;
 let playerInputLocked = false;
 let photos = {};
+
+// latestPlayerRecords/resolutionPlayerMarkers are plain objects, not Maps -
+// they must be reassigned/removed explicitly, a bare `.clear` call is a
+// silent no-op and leaves stale guesses from the previous round/game around.
+function clearRoundRecords() {
+    latestPlayerRecords = {};
+    Object.values(resolutionPlayerMarkers).forEach((marker) => {
+        marker.line?.remove();
+        marker.remove();
+    });
+    resolutionPlayerMarkers = {};
+}
+
+function restoreScoreState() {
+    try {
+        resultCollection = JSON.parse(sessionStorage.getItem('resultCollection') || '{}');
+    } catch (error) {
+        console.error('Could not restore result collection:', error);
+        resultCollection = {};
+    }
+
+    pointByName = {player1: 0, player2: 0};
+    Object.values(resultCollection).forEach((roundResult) => {
+        Object.entries(roundResult.players || {}).forEach(([playerName, playerResult]) => {
+            pointByName[playerName] = (pointByName[playerName] || 0) + Number(playerResult.points || 0);
+        });
+    });
+}
+
+async function hydratePlacedPoints() {
+    try {
+        const records = await getPlacedPoints(round);
+        for (const record of records) {
+            await updateMapPosition(record);
+        }
+    } catch (error) {
+        console.error('Could not restore placed points for current round:', error);
+    }
+}
 
 function applyDisplayNames() {
     const player1ScoreName = document.getElementById('player1ScoreName');
@@ -249,6 +288,12 @@ function syncResolutionPlayerMarkers() {
 
 export async function updateMapPosition(record) {
     const role = getPlayerRole(record);
+
+    // Ignore guesses that belong to a round we've already moved past (e.g. a
+    // late-arriving event, or leftover data from before a game reset) - they
+    // must never silently count towards the current round's score.
+    if (!role || !isCurrentPhotoRecord(record)) return;
+
     latestPlayerRecords[role] = record;
 
 
@@ -360,7 +405,7 @@ async function showModPageNextRound() {
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
 
-    latestPlayerRecords.clear;
+    clearRoundRecords();
 
     leftPlayerMarker?.remove();
     rightPlayerMarker?.remove();
@@ -527,37 +572,54 @@ function initEventListeners() {
     });
 
     continueButton?.addEventListener('click', async () => {
-        await lockPlayerInput();
-        calculatePoints();
-        showRoundResult();
-        continueButton.classList.remove('is-active');
+        // Guard against a double-click firing this twice - calculatePoints()
+        // adds to pointByName, so a repeat call would double-count the round.
+        if (continueButton.disabled) return;
+        continueButton.disabled = true;
+        try {
+            await lockPlayerInput();
+            calculatePoints();
+            showRoundResult();
+            continueButton.classList.remove('is-active');
+        } finally {
+            continueButton.disabled = false;
+        }
     });
 
 
     resetGameButton?.addEventListener('click', async () => {
         await resetGameState();
-        latestPlayerRecords.clear;
+        clearRoundRecords();
 
         pointByName = {
             player1: 0,
             player2: 0
         };
+        resultCollection = {};
+        saveResultCollection();
 
         updateCurrentPointDisplay()
-        
+
     });
 
     resultContinueButton?.addEventListener('click', async () => {
-        roundResultView.classList.remove('is-active');
-        updateCurrentPointDisplay();
+        // Guard against a double-click firing this twice - it would advance
+        // the round (or jump to end_of_game) more than once.
+        if (resultContinueButton.disabled) return;
+        resultContinueButton.disabled = true;
+        try {
+            roundResultView.classList.remove('is-active');
+            updateCurrentPointDisplay();
 
-        const currentRound = (await getGamestateRecord()).round;
+            const currentRound = (await getGamestateRecord()).round;
 
-        if (currentRound >= photos.length)
-            window.location.href = "/end_of_game";
-        else
-            await showModPageNextRound();
-
+            if (currentRound >= photos.length)
+                window.location.href = "/end_of_game";
+            else
+                await showModPageNextRound();
+        } finally {
+            resultContinueButton.disabled = false;
+        }
     });
 
     window.addEventListener('resize', () => {
@@ -569,15 +631,28 @@ function initEventListeners() {
 if (moderatorApp) {
 
     const response = await fetch('/static/config/photos.json');
-    photos = await response.json();
+    if (!response.ok) {
+        console.error(`Failed to load photos.json: ${response.status}`);
+        photos = [];
+    } else {
+        photos = await response.json();
+    }
 
     if (sessionStorage.getItem("name") === null) {
         sessionStorage.setItem("name", "Moderator");
     }
 
+    // Restore points/round history from this browser's own sessionStorage so
+    // a moderator page refresh mid-game doesn't wipe the scoreboard back to 0.
+    restoreScoreState();
+
     await initSubscriptions();
 
     await onGamestateUpdate(await getGamestateRecord());
+
+    // Recover markers/points for guesses already placed in the current round
+    // (e.g. the moderator reloaded the page after players had already guessed).
+    await hydratePlacedPoints();
 
     updateCurrentPointDisplay();
 

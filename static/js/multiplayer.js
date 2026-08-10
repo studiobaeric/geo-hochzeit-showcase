@@ -100,6 +100,10 @@ export async function getGamestateRecord() {
     return gamestateRecord;
 }
 
+export async function getPlacedPoints(roundNumber) {
+    return apiRequest(`/points/${roundNumber}`);
+}
+
 export async function pushLocation(latlng) {
     const roundnumber = gamestateRecord.round;
     const player = dbKeyForRole(sessionStorage.getItem("name"));

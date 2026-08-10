@@ -1,5 +1,7 @@
 """Tests for the /api/gamestate endpoints (read + patch)."""
 
+import pytest
+
 
 def test_get_gamestate_has_default_shape(client):
     response = client.get("/api/gamestate")
@@ -49,3 +51,27 @@ def test_patch_with_empty_body_does_not_error(client):
     response = client.patch("/api/gamestate", json={})
 
     assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "bad_payload",
+    [
+        {"round": "three"},
+        {"round": 0},
+        {"round": -1},
+        {"round": True},
+        {"state": "not-a-real-state"},
+        {"jana_locked": "yes"},
+        {"tobias_locked": 1},
+    ],
+)
+def test_patch_rejects_invalid_field_values(client, bad_payload):
+    response = client.patch("/api/gamestate", json=bad_payload)
+
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+    # Rejected updates must not partially apply.
+    unchanged = client.get("/api/gamestate").get_json()
+    assert unchanged["round"] == 1
+    assert unchanged["state"] == "waiting"

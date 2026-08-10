@@ -30,6 +30,7 @@ _gamestate = {
 _placed_points = {}
 
 _GAMESTATE_FIELDS = {"state", "round", "jana_locked", "tobias_locked"}
+_VALID_STATES = {"waiting", "playing"}
 
 
 def _broadcast(event, record):
@@ -46,9 +47,30 @@ def get_gamestate():
         return jsonify(_gamestate)
 
 
+def _validate_gamestate_updates(updates):
+    if "round" in updates:
+        round_value = updates["round"]
+        if isinstance(round_value, bool) or not isinstance(round_value, int) or round_value < 1:
+            return "round must be a positive integer"
+
+    if "state" in updates and updates["state"] not in _VALID_STATES:
+        return f"state must be one of: {', '.join(sorted(_VALID_STATES))}"
+
+    for lock_field in ("jana_locked", "tobias_locked"):
+        if lock_field in updates and not isinstance(updates[lock_field], bool):
+            return f"{lock_field} must be a boolean"
+
+    return None
+
+
 @bp.route("/gamestate", methods=["PATCH"])
 def patch_gamestate():
     updates = request.get_json(force=True) or {}
+
+    error = _validate_gamestate_updates(updates)
+    if error:
+        return jsonify({"error": error}), 400
+
     with _lock:
         for key, value in updates.items():
             if key in _GAMESTATE_FIELDS:
@@ -78,6 +100,17 @@ def post_point():
 
     _broadcast("placed_point", record)
     return jsonify(record), 201
+
+
+@bp.route("/points/<int:round_number>", methods=["GET"])
+def get_points(round_number):
+    with _lock:
+        records = [
+            record
+            for (recorded_round, _), record in _placed_points.items()
+            if recorded_round == round_number
+        ]
+    return jsonify(records)
 
 
 @bp.route("/reset", methods=["POST"])
