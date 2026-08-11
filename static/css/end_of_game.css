@@ -72,6 +72,31 @@ body {
     gap: 10px;
 }
 
+.reset-button {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    margin: 0 0 16px;
+    border: none;
+    border-radius: 8px;
+    background: #2f80ed;
+    color: #fff;
+    font-size: clamp(13px, 1.2vw, 16px);
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+}
+
+.reset-button:hover {
+    background: #1c6dd0;
+}
+
+.reset-button:disabled {
+    background: #666;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 
 
 .player-line {

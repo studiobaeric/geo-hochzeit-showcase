@@ -1,5 +1,6 @@
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
+import { getRoundResults, resetGameState } from './multiplayer.js';
 
 const endGameMapElement = document.getElementById('endGameMap');
 const roundListElement = document.getElementById('roundList');
@@ -7,6 +8,7 @@ const player1TotalPoints = document.getElementById('player1TotalPoints');
 const player2TotalPoints = document.getElementById('player2TotalPoints');
 const player1PlayerName = document.getElementById('player1PlayerName');
 const player2PlayerName = document.getElementById('player2PlayerName');
+const resetGameButton = document.getElementById('resetGameButton');
 
 // Populated by applyDisplayNames() once loadDisplayNames() has resolved -
 // every function below is only ever called after that has happened.
@@ -36,13 +38,42 @@ let endGameMap = null;
 let baseMapLayer = null;
 let activeLayers = [];
 
-function getResultCollection() {
+// Round results (points/distance/markerLocation) are persisted server-side
+// (see game_state.py's `/api/round_result`), so the endscreen can be rebuilt
+// from there even after a page reload or a server restart mid-game. The
+// per-round photo (location/description) is static config data, so it's
+// looked up from photos.json by round number rather than being duplicated
+// into the persisted game state.
+async function loadResultCollection() {
+    let roundResults = [];
+    let photos = [];
+
     try {
-        return JSON.parse(sessionStorage.getItem('resultCollection') || '{}');
+        roundResults = await getRoundResults();
     } catch (error) {
-        console.error('Could not parse resultCollection:', error);
-        return {};
+        console.error('Could not load round results from server:', error);
     }
+
+    try {
+        const response = await fetch('/static/config/photos.json');
+        if (response.ok) {
+            photos = await response.json();
+        }
+    } catch (error) {
+        console.error('Could not load photos.json:', error);
+    }
+
+    const photoById = new Map(photos.map((photo) => [photo.id, photo]));
+
+    const resultCollection = {};
+    roundResults.forEach((roundResult) => {
+        resultCollection[roundResult.round_number] = {
+            photo: photoById.get(roundResult.round_number) ?? null,
+            players: roundResult.players
+        };
+    });
+
+    return resultCollection;
 }
 
 function getPhotoLatLng(roundResult) {
@@ -236,7 +267,7 @@ async function initEndOfGamePage() {
     await loadDisplayNames();
     applyDisplayNames();
 
-    const resultCollection = getResultCollection();
+    const resultCollection = await loadResultCollection();
 
     await initMap();
     updateTotals(resultCollection);
@@ -246,6 +277,17 @@ async function initEndOfGamePage() {
         endGameMap.invalidateSize(true);
     }, 100);
 }
+
+resetGameButton?.addEventListener('click', async () => {
+    if (resetGameButton.disabled) return;
+    resetGameButton.disabled = true;
+    try {
+        await resetGameState();
+        window.location.href = '/';
+    } finally {
+        resetGameButton.disabled = false;
+    }
+});
 
 if (endGameMapElement && roundListElement) {
     initEndOfGamePage().catch((error) => {

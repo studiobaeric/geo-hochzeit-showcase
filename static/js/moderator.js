@@ -1,6 +1,6 @@
 import {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
-    initSubscriptions, dbKeyForRole, roleForDbKey, getPlacedPoints
+    initSubscriptions, getPlacedPoints, getRoundResults, postRoundResult
 } from './multiplayer.js';
 import { photoFilenames } from '../config/players.js';
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
@@ -63,20 +63,25 @@ function clearRoundRecords() {
     resolutionPlayerMarkers = {};
 }
 
-function restoreScoreState() {
-    try {
-        resultCollection = JSON.parse(sessionStorage.getItem('resultCollection') || '{}');
-    } catch (error) {
-        console.error('Could not restore result collection:', error);
-        resultCollection = {};
-    }
-
+// The server-persisted round results are the source of truth for the score
+// (see game_state.py's `/api/round_result`), so a moderator page refresh -
+// or the whole process restarting - can rebuild pointByName from there
+// instead of relying on this browser's sessionStorage.
+async function restoreScoreState() {
+    resultCollection = {};
     pointByName = {player1: 0, player2: 0};
-    Object.values(resultCollection).forEach((roundResult) => {
-        Object.entries(roundResult.players || {}).forEach(([playerName, playerResult]) => {
-            pointByName[playerName] = (pointByName[playerName] || 0) + Number(playerResult.points || 0);
+
+    try {
+        const roundResults = await getRoundResults();
+        roundResults.forEach((roundResult) => {
+            resultCollection[roundResult.round_number] = roundResult;
+            Object.entries(roundResult.players || {}).forEach(([playerName, playerResult]) => {
+                pointByName[playerName] = (pointByName[playerName] || 0) + Number(playerResult.points || 0);
+            });
         });
-    });
+    } catch (error) {
+        console.error('Could not restore round results from server:', error);
+    }
 }
 
 async function hydratePlacedPoints() {
@@ -150,10 +155,6 @@ function getEndScore(){
     return pointByName;
 }
 
-function saveResultCollection() {
-    sessionStorage.setItem('resultCollection', JSON.stringify(resultCollection));
-}
-
 // aufrufen mit neuer nummer für neues photo
 async function loadCurrentPhoto(photo=round) {
     if (!currentPhotoImage || !currentPhotoFallback) return;
@@ -211,8 +212,8 @@ function getPlayerTarget(record) {
 }
 
 function getPlayerRole(record) {
-    const dbKey = String(record?.placed_by || '').trim().toLowerCase();
-    return roleForDbKey(dbKey);
+    const role = String(record?.placed_by || '').trim();
+    return role === 'player1' || role === 'player2' ? role : undefined;
 }
 
 function isCurrentPhotoRecord(record) {
@@ -427,7 +428,7 @@ function distanceCalculator(playerLatLng, targetLatLng){
 /***
  * pointByName
  */
-function calculatePoints() {
+async function calculatePoints() {
     if (!currentPhoto?.location) {
         return [];
     }
@@ -485,23 +486,31 @@ function calculatePoints() {
         pointByName[role] += points;
     });
 
+    const players = {
+        player1: {
+            markerLocation: getRecordLatLng(latestPlayerRecords.player1),
+            points: roundPoints.player1.points,
+            distance: roundPoints.player1.distance
+        },
+        player2: {
+            markerLocation: getRecordLatLng(latestPlayerRecords.player2),
+            points: roundPoints.player2.points,
+            distance: roundPoints.player2.distance
+        }
+    };
+
     resultCollection[currentPhoto.id] = {
         photo: currentPhoto,
-        players: {
-            player1: {
-                markerLocation: getRecordLatLng(latestPlayerRecords.player1),
-                points: roundPoints.player1.points,
-                distance: roundPoints.player1.distance
+        players
+    };
 
-            },
-            player2:{
-                markerLocation: getRecordLatLng(latestPlayerRecords.player2),
-                points: roundPoints.player2.points,
-                distance: roundPoints.player2.distance
-            }
-        }
+    // Persist to the server so the round result survives a restart and is
+    // available to the end-of-game screen even after a page reload.
+    try {
+        await postRoundResult(currentPhoto.id, players);
+    } catch (error) {
+        console.error('Could not persist round result to server:', error);
     }
-    saveResultCollection();
 }
 
 function updateCurrentPointDisplay() {
@@ -544,8 +553,7 @@ export async function onGamestateUpdate(record) {
     roundIndicator.textContent = round;
 
     ['player1', 'player2'].forEach((role) => {
-        const dbKey = dbKeyForRole(role);
-        playerMapElements[role]?.classList.toggle('is-locked-in', Boolean(record[`${dbKey}_locked`]));
+        playerMapElements[role]?.classList.toggle('is-locked-in', Boolean(record[`${role}_locked`]));
     });
 
     if (!playerInputLocked) {
@@ -582,7 +590,7 @@ function initEventListeners() {
         continueButton.disabled = true;
         try {
             await lockPlayerInput();
-            calculatePoints();
+            await calculatePoints();
             showRoundResult();
             continueButton.classList.remove('is-active');
         } finally {
@@ -600,7 +608,6 @@ function initEventListeners() {
             player2: 0
         };
         resultCollection = {};
-        saveResultCollection();
 
         updateCurrentPointDisplay()
 
@@ -646,9 +653,10 @@ if (moderatorApp) {
         sessionStorage.setItem("name", "Moderator");
     }
 
-    // Restore points/round history from this browser's own sessionStorage so
-    // a moderator page refresh mid-game doesn't wipe the scoreboard back to 0.
-    restoreScoreState();
+    // Restore points/round history from the server so a moderator page
+    // refresh (or a restart of the server process) doesn't wipe the
+    // scoreboard back to 0.
+    await restoreScoreState();
 
     await initSubscriptions();
 
