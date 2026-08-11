@@ -36,6 +36,16 @@ _DEFAULT_GAMESTATE = {
     "player2_locked": False,
 }
 
+# Display names shown in the UI, editable at runtime via the config menu
+# (/config -> PATCH /api/player-config). The "player1"/"player2" role keys
+# themselves stay fixed - only the human-readable labels change.
+_DEFAULT_PLAYER_CONFIG = {
+    "player1_name": "player1",
+    "player2_name": "player2",
+}
+
+_MAX_PLAYER_NAME_LENGTH = 40
+
 # Where the game state is mirrored to disk. Overridable via env var (and, in
 # tests, by assigning `game_state.STATE_FILE` directly) so test runs and
 # alternate deployments don't fight over one shared file.
@@ -45,6 +55,7 @@ STATE_FILE = os.environ.get(
 )
 
 _gamestate = dict(_DEFAULT_GAMESTATE)
+_player_config = dict(_DEFAULT_PLAYER_CONFIG)
 
 # keyed by (round_number, placed_by)
 _placed_points = {}
@@ -112,6 +123,7 @@ def _persist_locked():
         "gamestate": _gamestate,
         "placed_points": _serialize_placed_points(_placed_points),
         "round_results": _serialize_round_results(_round_results),
+        "player_config": _player_config,
     }
 
     directory = os.path.dirname(STATE_FILE) or "."
@@ -139,7 +151,7 @@ def load_state_from_disk():
     contents is treated the same as "nothing to load" and leaves the
     current in-memory defaults untouched.
     """
-    global _gamestate, _placed_points, _round_results
+    global _gamestate, _placed_points, _round_results, _player_config
 
     if not STATE_FILE or not os.path.isfile(STATE_FILE):
         return
@@ -175,6 +187,19 @@ def load_state_from_disk():
     loaded_round_results = payload.get("round_results")
     if isinstance(loaded_round_results, list):
         _round_results = _deserialize_round_results(loaded_round_results)
+
+    loaded_player_config = payload.get("player_config")
+    if isinstance(loaded_player_config, dict):
+        known_config = {k: v for k, v in loaded_player_config.items() if k in _DEFAULT_PLAYER_CONFIG}
+        error = _validate_player_config_updates(known_config)
+        if error is None and _DEFAULT_PLAYER_CONFIG.keys() == known_config.keys():
+            _player_config = dict(known_config)
+        else:
+            logger.warning(
+                "Ignoring corrupted persisted player_config in %s: %s",
+                STATE_FILE,
+                error or "missing fields",
+            )
 
 
 @bp.route("/gamestate", methods=["GET"])
@@ -248,6 +273,42 @@ def patch_gamestate():
         record = dict(_gamestate)
         _persist_locked()
     _broadcast("gamestate", record)
+    return jsonify(record)
+
+
+def _validate_player_config_updates(updates):
+    for field in ("player1_name", "player2_name"):
+        if field in updates:
+            value = updates[field]
+            if not isinstance(value, str) or not value.strip():
+                return f"{field} must be a non-empty string"
+            if len(value.strip()) > _MAX_PLAYER_NAME_LENGTH:
+                return f"{field} must be at most {_MAX_PLAYER_NAME_LENGTH} characters"
+
+    return None
+
+
+@bp.route("/player-config", methods=["GET"])
+def get_player_config():
+    with _lock:
+        return jsonify(_player_config)
+
+
+@bp.route("/player-config", methods=["PATCH"])
+def patch_player_config():
+    updates = request.get_json(force=True) or {}
+
+    error = _validate_player_config_updates(updates)
+    if error:
+        return jsonify({"error": error}), 400
+
+    with _lock:
+        for key, value in updates.items():
+            if key in _DEFAULT_PLAYER_CONFIG:
+                _player_config[key] = value.strip()
+        record = dict(_player_config)
+        _persist_locked()
+    _broadcast("player_config", record)
     return jsonify(record)
 
 
@@ -337,7 +398,9 @@ def events():
         try:
             with _lock:
                 snapshot = dict(_gamestate)
+                config_snapshot = dict(_player_config)
             yield f"event: gamestate\ndata: {json.dumps(snapshot)}\n\n"
+            yield f"event: player_config\ndata: {json.dumps(config_snapshot)}\n\n"
             while True:
                 try:
                     yield subscriber.get(timeout=15)

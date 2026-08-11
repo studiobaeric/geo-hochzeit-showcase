@@ -1,4 +1,4 @@
-import { displayNames } from '../config/players.js';
+import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { getRoundResults, resetGameState } from './multiplayer.js';
 
@@ -10,21 +10,29 @@ const player1PlayerName = document.getElementById('player1PlayerName');
 const player2PlayerName = document.getElementById('player2PlayerName');
 const resetGameButton = document.getElementById('resetGameButton');
 
-if (player1PlayerName) player1PlayerName.textContent = displayNames.player1;
-if (player2PlayerName) player2PlayerName.textContent = displayNames.player2;
+// Populated by applyDisplayNames() once loadDisplayNames() has resolved -
+// every function below is only ever called after that has happened.
+let playerStyles = null;
 
-const playerStyles = {
-    player1: {
-        label: displayNames.player1,
-        iconUrl: '/static/img/marker-icon-2x-blue.png',
-        lineColor: '#2563eb'
-    },
-    player2: {
-        label: displayNames.player2,
-        iconUrl: '/static/img/marker-icon-2x-red.png',
-        lineColor: '#dc2626'
-    }
-};
+function applyDisplayNames() {
+    const names = getDisplayNames();
+
+    if (player1PlayerName) player1PlayerName.textContent = names.player1;
+    if (player2PlayerName) player2PlayerName.textContent = names.player2;
+
+    playerStyles = {
+        player1: {
+            label: names.player1,
+            iconUrl: '/static/img/marker-icon-2x-blue.png',
+            lineColor: '#2563eb'
+        },
+        player2: {
+            label: names.player2,
+            iconUrl: '/static/img/marker-icon-2x-red.png',
+            lineColor: '#dc2626'
+        }
+    };
+}
 
 let endGameMap = null;
 let baseMapLayer = null;
@@ -256,6 +264,9 @@ function renderPlayerRow(playerName, playerResult) {
 }
 
 async function initEndOfGamePage() {
+    await loadDisplayNames();
+    applyDisplayNames();
+
     const resultCollection = await loadResultCollection();
 
     await initMap();

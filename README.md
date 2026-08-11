@@ -61,6 +61,17 @@ Für eine neue Hochzeit anpassen:
 
 Details siehe [`static/config/README.md`](static/config/README.md).
 
+### Nutzernamen zur Laufzeit ändern
+
+Auf der Startseite führt der ⚙️-Button oben rechts zum Konfigurationsmenü
+(`/config`). Dort lassen sich die Nutzernamen der beiden Spieler direkt im
+Browser ändern, ohne `players.js` zu bearbeiten oder den Server neu zu
+starten - praktisch, wenn kurzfristig noch jemand anderes mitspielt. Die
+Namen werden serverseitig gespeichert (`GET`/`PATCH /api/player-config`) und
+gelten dadurch sofort für alle Geräte, die die Seite (neu) laden. Das
+Konfigurationsmenü ist als Ausgangspunkt für künftige weitere
+Einstellungen angelegt.
+
 ## App starten
 
 Spielstand und Live-Sync laufen direkt in Flask (siehe `game_state.py`) -

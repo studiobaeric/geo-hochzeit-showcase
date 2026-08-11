@@ -1,6 +1,6 @@
 import {onGamestateUpdate, updateMapPosition} from './moderator.js';
 import {loadNextRound, updateView} from "./game.js";
-import {displayNames} from '../config/players.js';
+import {getDisplayNames} from './player-names.js';
 
 const API_BASE = '/api';
 let gamestateRecord = null;
@@ -186,5 +186,5 @@ export async function lockInSolution() {
         method: 'PATCH',
         body: JSON.stringify({[`${role}_locked`]: true})
     });
-    console.log(`Pushed ${displayNames[role]} lockIn`)
+    console.log(`Pushed ${getDisplayNames()[role]} lockIn`)
 }
