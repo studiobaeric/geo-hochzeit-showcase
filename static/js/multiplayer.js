@@ -6,20 +6,6 @@ const API_BASE = '/api';
 let gamestateRecord = null;
 let eventSource = null;
 
-// Maps the app-wide role keys (player1/player2) to the fixed field/value
-// names the backend still uses. This mapping is the only place that still
-// hardcodes "jana"/"tobias".
-const ROLE_TO_DB_KEY = {player1: 'jana', player2: 'tobias'};
-const DB_KEY_TO_ROLE = {jana: 'player1', tobias: 'player2'};
-
-export function dbKeyForRole(role) {
-    return ROLE_TO_DB_KEY[role];
-}
-
-export function roleForDbKey(dbKey) {
-    return DB_KEY_TO_ROLE[dbKey];
-}
-
 async function apiRequest(path, options = {}) {
     const response = await fetch(`${API_BASE}${path}`, {
         headers: {'Content-Type': 'application/json'},
@@ -104,9 +90,20 @@ export async function getPlacedPoints(roundNumber) {
     return apiRequest(`/points/${roundNumber}`);
 }
 
+export async function getRoundResults() {
+    return apiRequest('/round_results');
+}
+
+export async function postRoundResult(roundNumber, players) {
+    return apiRequest('/round_result', {
+        method: 'POST',
+        body: JSON.stringify({round_number: roundNumber, players})
+    });
+}
+
 export async function pushLocation(latlng) {
     const roundnumber = gamestateRecord.round;
-    const player = dbKeyForRole(sessionStorage.getItem("name"));
+    const player = sessionStorage.getItem("name");
     const data = {
         round_number: roundnumber,
         placed_by: player,
@@ -159,8 +156,8 @@ export async function startNextRound() {
             body: JSON.stringify({
                 state: "playing",
                 round: (await getGamestateRecord()).round + 1,
-                jana_locked: false,
-                tobias_locked: false
+                player1_locked: false,
+                player2_locked: false
             })
         });
     } catch (e) {
@@ -183,12 +180,11 @@ export async function resetGameState() {
 export async function lockInSolution() {
     console.log("Locking in...")
     const role = sessionStorage.getItem("name");
-    const dbKey = dbKeyForRole(role);
-    if (!dbKey) return;
+    if (role !== 'player1' && role !== 'player2') return;
 
     await apiRequest('/gamestate', {
         method: 'PATCH',
-        body: JSON.stringify({[`${dbKey}_locked`]: true})
+        body: JSON.stringify({[`${role}_locked`]: true})
     });
     console.log(`Pushed ${displayNames[role]} lockIn`)
 }

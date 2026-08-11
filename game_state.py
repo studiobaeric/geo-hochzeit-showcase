@@ -32,8 +32,8 @@ _subscribers = []
 _DEFAULT_GAMESTATE = {
     "state": "waiting",
     "round": 1,
-    "jana_locked": False,
-    "tobias_locked": False,
+    "player1_locked": False,
+    "player2_locked": False,
 }
 
 # Where the game state is mirrored to disk. Overridable via env var (and, in
@@ -49,8 +49,12 @@ _gamestate = dict(_DEFAULT_GAMESTATE)
 # keyed by (round_number, placed_by)
 _placed_points = {}
 
-_GAMESTATE_FIELDS = {"state", "round", "jana_locked", "tobias_locked"}
+# keyed by round_number
+_round_results = {}
+
+_GAMESTATE_FIELDS = {"state", "round", "player1_locked", "player2_locked"}
 _VALID_STATES = {"waiting", "playing"}
+_PLAYER_ROLES = {"player1", "player2"}
 
 
 def _broadcast(event, record):
@@ -76,6 +80,24 @@ def _deserialize_placed_points(records):
     return result
 
 
+def _serialize_round_results(round_results):
+    return sorted(round_results.values(), key=lambda record: record["round_number"])
+
+
+def _deserialize_round_results(records):
+    result = {}
+    for record in records:
+        try:
+            round_number = record["round_number"]
+            players = record["players"]
+        except (KeyError, TypeError):
+            continue
+        if not isinstance(round_number, int) or not isinstance(players, dict):
+            continue
+        result[round_number] = {"round_number": round_number, "players": players}
+    return result
+
+
 def _persist_locked():
     """Write the current state to STATE_FILE. Caller must hold `_lock`.
 
@@ -89,6 +111,7 @@ def _persist_locked():
     payload = {
         "gamestate": _gamestate,
         "placed_points": _serialize_placed_points(_placed_points),
+        "round_results": _serialize_round_results(_round_results),
     }
 
     directory = os.path.dirname(STATE_FILE) or "."
@@ -116,7 +139,7 @@ def load_state_from_disk():
     contents is treated the same as "nothing to load" and leaves the
     current in-memory defaults untouched.
     """
-    global _gamestate, _placed_points
+    global _gamestate, _placed_points, _round_results
 
     if not STATE_FILE or not os.path.isfile(STATE_FILE):
         return
@@ -149,6 +172,10 @@ def load_state_from_disk():
     if isinstance(loaded_points, list):
         _placed_points = _deserialize_placed_points(loaded_points)
 
+    loaded_round_results = payload.get("round_results")
+    if isinstance(loaded_round_results, list):
+        _round_results = _deserialize_round_results(loaded_round_results)
+
 
 @bp.route("/gamestate", methods=["GET"])
 def get_gamestate():
@@ -165,9 +192,43 @@ def _validate_gamestate_updates(updates):
     if "state" in updates and updates["state"] not in _VALID_STATES:
         return f"state must be one of: {', '.join(sorted(_VALID_STATES))}"
 
-    for lock_field in ("jana_locked", "tobias_locked"):
+    for lock_field in ("player1_locked", "player2_locked"):
         if lock_field in updates and not isinstance(updates[lock_field], bool):
             return f"{lock_field} must be a boolean"
+
+    return None
+
+
+def _validate_round_result(data):
+    round_number = data.get("round_number")
+    if isinstance(round_number, bool) or not isinstance(round_number, int) or round_number < 1:
+        return "round_number must be a positive integer"
+
+    players = data.get("players")
+    if not isinstance(players, dict) or set(players.keys()) != _PLAYER_ROLES:
+        return f"players must contain exactly: {', '.join(sorted(_PLAYER_ROLES))}"
+
+    for role, result in players.items():
+        if not isinstance(result, dict):
+            return f"players.{role} must be an object"
+
+        points = result.get("points")
+        if isinstance(points, bool) or not isinstance(points, (int, float)) or points < 0:
+            return f"players.{role}.points must be a non-negative number"
+
+        distance = result.get("distance")
+        if distance is not None and (
+            isinstance(distance, bool) or not isinstance(distance, (int, float)) or distance < 0
+        ):
+            return f"players.{role}.distance must be a non-negative number or null"
+
+        marker_location = result.get("markerLocation")
+        if marker_location is not None and (
+            not isinstance(marker_location, list)
+            or len(marker_location) != 2
+            or any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in marker_location)
+        ):
+            return f"players.{role}.markerLocation must be [lat, lng] or null"
 
     return None
 
@@ -197,7 +258,7 @@ def post_point():
     placed_by = data.get("placed_by")
     coordinates = data.get("coordinates")
 
-    if round_number is None or placed_by not in ("jana", "tobias") or not coordinates:
+    if round_number is None or placed_by not in _PLAYER_ROLES or not coordinates:
         return jsonify({"error": "invalid payload"}), 400
 
     record = {
@@ -224,6 +285,29 @@ def get_points(round_number):
     return jsonify(records)
 
 
+@bp.route("/round_result", methods=["POST"])
+def post_round_result():
+    data = request.get_json(force=True) or {}
+
+    error = _validate_round_result(data)
+    if error:
+        return jsonify({"error": error}), 400
+
+    record = {"round_number": data["round_number"], "players": data["players"]}
+    with _lock:
+        _round_results[record["round_number"]] = record
+        _persist_locked()
+
+    return jsonify(record), 201
+
+
+@bp.route("/round_results", methods=["GET"])
+def get_round_results():
+    with _lock:
+        records = _serialize_round_results(_round_results)
+    return jsonify(records)
+
+
 @bp.route("/reset", methods=["POST"])
 def reset():
     with _lock:
@@ -231,11 +315,12 @@ def reset():
             {
                 "state": "waiting",
                 "round": 1,
-                "jana_locked": False,
-                "tobias_locked": False,
+                "player1_locked": False,
+                "player2_locked": False,
             }
         )
         _placed_points.clear()
+        _round_results.clear()
         record = dict(_gamestate)
         _persist_locked()
     _broadcast("gamestate", record)

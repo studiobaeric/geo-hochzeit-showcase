@@ -47,11 +47,12 @@ def reset_game_state(isolate_state_file):
             {
                 "state": "waiting",
                 "round": 1,
-                "jana_locked": False,
-                "tobias_locked": False,
+                "player1_locked": False,
+                "player2_locked": False,
             }
         )
         game_state._placed_points.clear()
+        game_state._round_results.clear()
         game_state._subscribers.clear()
     yield
     with game_state._lock:
@@ -59,9 +60,10 @@ def reset_game_state(isolate_state_file):
             {
                 "state": "waiting",
                 "round": 1,
-                "jana_locked": False,
-                "tobias_locked": False,
+                "player1_locked": False,
+                "player2_locked": False,
             }
         )
         game_state._placed_points.clear()
+        game_state._round_results.clear()
         game_state._subscribers.clear()
