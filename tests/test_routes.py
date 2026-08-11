@@ -9,7 +9,7 @@ import pytest
 
 @pytest.mark.parametrize(
     "path",
-    ["/", "/game", "/moderator", "/results", "/end_of_game"],
+    ["/", "/config", "/game", "/moderator", "/results", "/end_of_game"],
 )
 def test_page_renders(client, path):
     response = client.get(path)

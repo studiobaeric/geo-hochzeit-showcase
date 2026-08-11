@@ -2,7 +2,8 @@ import {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
     initSubscriptions, dbKeyForRole, roleForDbKey, getPlacedPoints
 } from './multiplayer.js';
-import { displayNames, photoFilenames } from '../config/players.js';
+import { photoFilenames } from '../config/players.js';
+import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 
 
@@ -90,34 +91,37 @@ async function hydratePlacedPoints() {
 }
 
 function applyDisplayNames() {
+    const names = getDisplayNames();
+
     const player1ScoreName = document.getElementById('player1ScoreName');
-    if (player1ScoreName) player1ScoreName.textContent = displayNames.player1;
+    if (player1ScoreName) player1ScoreName.textContent = names.player1;
 
     const player2ScoreName = document.getElementById('player2ScoreName');
-    if (player2ScoreName) player2ScoreName.textContent = displayNames.player2;
+    if (player2ScoreName) player2ScoreName.textContent = names.player2;
 
     const player1Photo = document.getElementById('player1Photo');
     if (player1Photo) {
-        player1Photo.alt = `Bild_${displayNames.player1}`;
+        player1Photo.alt = `Bild_${names.player1}`;
         player1Photo.src = `/static/photos/${photoFilenames.player1}`;
     }
 
     const player2Photo = document.getElementById('player2Photo');
     if (player2Photo) {
-        player2Photo.alt = `Bild_${displayNames.player2}`;
+        player2Photo.alt = `Bild_${names.player2}`;
         player2Photo.src = `/static/photos/${photoFilenames.player2}`;
     }
 
-    if (resolutionDistanceElements.player1) resolutionDistanceElements.player1.textContent = `${displayNames.player1}: -`;
-    if (resolutionDistanceElements.player2) resolutionDistanceElements.player2.textContent = `${displayNames.player2}: -`;
+    if (resolutionDistanceElements.player1) resolutionDistanceElements.player1.textContent = `${names.player1}: -`;
+    if (resolutionDistanceElements.player2) resolutionDistanceElements.player2.textContent = `${names.player2}: -`;
 
     const resultRowNamePlayer1 = document.getElementById('resultRowNamePlayer1');
-    if (resultRowNamePlayer1) resultRowNamePlayer1.textContent = displayNames.player1;
+    if (resultRowNamePlayer1) resultRowNamePlayer1.textContent = names.player1;
 
     const resultRowNamePlayer2 = document.getElementById('resultRowNamePlayer2');
-    if (resultRowNamePlayer2) resultRowNamePlayer2.textContent = displayNames.player2;
+    if (resultRowNamePlayer2) resultRowNamePlayer2.textContent = names.player2;
 }
 
+await loadDisplayNames();
 applyDisplayNames();
 
 let pointByName = {
@@ -188,7 +192,7 @@ function getPlayerTarget(record) {
             setMarker: (marker) => {
                 leftPlayerMarker = marker;
             },
-            label: displayNames.player1
+            label: getDisplayNames().player1
         };
     }
 
@@ -199,7 +203,7 @@ function getPlayerTarget(record) {
             setMarker: (marker) => {
                 rightPlayerMarker = marker;
             },
-            label: displayNames.player2
+            label: getDisplayNames().player2
         };
     }
 
@@ -221,7 +225,7 @@ function updateResolutionDistanceDisplay(role, distanceMeters) {
     const distanceElement = resolutionDistanceElements[role];
     if (!distanceElement) return;
 
-    const displayName = displayNames[role] ?? role;
+    const displayName = getDisplayNames()[role] ?? role;
     distanceElement.textContent = `${displayName}: ${formatDistance(distanceMeters)}`;
 }
 
@@ -256,7 +260,7 @@ function syncResolutionPlayerMarkers() {
             icon: createMarkerIcon(playerStyle.iconUrl)
         }).addTo(resolutionMap);
 
-        const displayName = displayNames[role] ?? role;
+        const displayName = getDisplayNames()[role] ?? role;
         marker.bindPopup(displayName);
         marker.bindTooltip(displayName, {
             permanent: true,
@@ -512,7 +516,7 @@ function updateCurrentPointDisplay() {
 function showRoundResult() {
     const sortedResults = Object.entries(pointByName)
         .map(([role, points]) => ({
-            name: displayNames[role] ?? role,
+            name: getDisplayNames()[role] ?? role,
             points
         }))
         .sort((a, b) => b.points - a.points);

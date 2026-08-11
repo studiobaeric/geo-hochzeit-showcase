@@ -24,6 +24,11 @@ def start():
     return render_template('start.html')
 
 
+@app.route('/config')
+def config():
+    return render_template('config.html')
+
+
 @app.route('/game')
 def game():
     return render_template('game.html')

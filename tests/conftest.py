@@ -52,6 +52,8 @@ def reset_game_state(isolate_state_file):
             }
         )
         game_state._placed_points.clear()
+        game_state._player_config.clear()
+        game_state._player_config.update(game_state._DEFAULT_PLAYER_CONFIG)
         game_state._subscribers.clear()
     yield
     with game_state._lock:
@@ -64,4 +66,6 @@ def reset_game_state(isolate_state_file):
             }
         )
         game_state._placed_points.clear()
+        game_state._player_config.clear()
+        game_state._player_config.update(game_state._DEFAULT_PLAYER_CONFIG)
         game_state._subscribers.clear()
