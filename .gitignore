@@ -23,4 +23,7 @@ __pycache__/
 
 /server.log
 
+# Persisted game state (survives server restarts, see game_state.py)
+/data/
+
 **/.DS_Store

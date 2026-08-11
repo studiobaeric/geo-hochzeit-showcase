@@ -2,6 +2,12 @@
 
 game_state.py keeps its data in module-level dicts (no database), so every
 test gets a clean slate by resetting those dicts directly before it runs.
+
+It also mirrors that state to a JSON file on disk (see game_state.STATE_FILE)
+so a server restart doesn't lose the game. Tests must never touch the real
+project file, and must not see state left behind by an earlier test, so
+`isolate_state_file` points game_state.STATE_FILE at a fresh path under
+pytest's per-test tmp_path for every test.
 """
 
 import sys
@@ -27,7 +33,14 @@ def client(app):
 
 
 @pytest.fixture(autouse=True)
-def reset_game_state():
+def isolate_state_file(tmp_path, monkeypatch):
+    """Point persistence at a throwaway file so tests never touch the real
+    game_state_data.json on disk or leak state between tests."""
+    monkeypatch.setattr(game_state, "STATE_FILE", str(tmp_path / "game_state.json"))
+
+
+@pytest.fixture(autouse=True)
+def reset_game_state(isolate_state_file):
     """Give every test a fresh in-memory game state, and clean up after."""
     with game_state._lock:
         game_state._gamestate.update(

@@ -64,7 +64,12 @@ Details siehe [`static/config/README.md`](static/config/README.md).
 ## App starten
 
 Spielstand und Live-Sync laufen direkt in Flask (siehe `game_state.py`) -
-kein separater Datenbankprozess mehr nötig.
+kein separater Datenbankprozess mehr nötig. Der Spielstand wird bei jeder
+Änderung zusätzlich nach `data/game_state.json` gespiegelt und beim Start
+wieder eingelesen, damit ein Neustart oder Absturz des Server-Prozesses den
+laufenden Spielstand nicht verliert. Über die Umgebungsvariable
+`GAME_STATE_FILE` lässt sich ein anderer Pfad wählen; ein leerer Wert
+schaltet die Persistenz ganz ab.
 
 ```bash
 source .venv/bin/activate        # falls noch nicht aktiv
