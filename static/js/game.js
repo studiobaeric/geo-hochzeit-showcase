@@ -2,6 +2,7 @@
 import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation} from "./multiplayer.js";
 import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./basemap.js";
 import {PhotoZoom} from "./photo.js";
+import {loadDisplayNames} from "./player-names.js";
 
 let guessMarker = null;
 let isLocked = false;
@@ -117,6 +118,7 @@ async function initGame() {
         return;
     }
 
+    await loadDisplayNames();
     await initSubscriptions();
 
     let gamestateRecord = await getGamestateRecord();

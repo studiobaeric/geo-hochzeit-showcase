@@ -102,10 +102,38 @@
             transform: translateY(0);
         }
 
+        .start-container {
+            position: relative;
+        }
+
+        .config-link-button {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: #f0f0f0;
+            color: #555;
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .config-link-button:hover {
+            background: #e0e0e0;
+            transform: rotate(30deg);
+        }
+
     </style>
 </head>
 <body>
 <div class="start-container">
+    <button type="button" class="config-link-button" id="configButton" aria-label="Konfiguration öffnen" title="Konfiguration">⚙️</button>
     <h1>🎉 Hochzeits Geoguesser</h1>
     <p>Erraten Sie die Orte aus den Hochzeitsfotos!</p>
 
@@ -127,10 +155,15 @@
 </div>
 
 <script type="module">
-    import { NAME_1, NAME_2 } from "{{ url_for('static', filename='config/players.js') }}";
+    import { loadDisplayNames } from "{{ url_for('static', filename='js/player-names.js') }}";
 
-    document.getElementById('player1Button').textContent = NAME_1;
-    document.getElementById('player2Button').textContent = NAME_2;
+    const names = await loadDisplayNames();
+    document.getElementById('player1Button').textContent = names.player1;
+    document.getElementById('player2Button').textContent = names.player2;
+
+    document.getElementById('configButton').addEventListener('click', () => {
+        window.location.href = '/config';
+    });
 
     async function startGame(name) {
         sessionStorage.setItem('name', name);
