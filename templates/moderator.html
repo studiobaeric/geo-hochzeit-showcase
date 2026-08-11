@@ -45,8 +45,20 @@
             <div class="round-indicator">
                 Runde: <span id="currentRound">1</span>
             </div>
-            <!---div id="countdownPlaceholder" class="countdown-placeholder">Countdown</div--->
-            <button type="button" id="lockPlayerInputButton" class="control-button">Spieler Input Erlauben</button>
+
+            <div id="timeControlPanel" class="time-control-panel">
+                <button type="button" id="lockPlayerInputButton" class="control-button">Spieler Input Erlauben</button>
+
+                <div id="countdownControls" class="countdown-controls is-hidden">
+                    <div id="countdownDisplay" class="countdown-placeholder">--:--</div>
+                    <div class="countdown-buttons">
+                        <button type="button" id="timerStartButton" class="control-button">Start</button>
+                        <button type="button" id="timerPauseButton" class="control-button is-hidden">Pause</button>
+                        <button type="button" id="timerExtendButton" class="control-button is-hidden">+30s</button>
+                    </div>
+                </div>
+            </div>
+
             <button type="button" id="mainControlButton" class="control-button">Auflösung</button>
             <button type="button" id="resetGameButton" class="control-button">Spiel Zurücksetzen</button>
         </section>

@@ -103,6 +103,28 @@ body, html {
     cursor: move;
 }
 
+.round-timer {
+    margin: 0 auto 10px;
+    padding: 6px 18px;
+    width: fit-content;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 1.4em;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.round-timer.is-urgent {
+    background: rgba(231, 76, 60, 0.35);
+    color: #ff8a80;
+}
+
+.round-timer.is-hidden {
+    display: none;
+}
+
 #photoImage {
     max-width: 100%;
     max-height: 100%;

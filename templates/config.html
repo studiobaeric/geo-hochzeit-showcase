@@ -95,6 +95,40 @@
             text-align: left;
         }
 
+        .mode-options {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .mode-option:has(input:checked) {
+            border-color: #667eea;
+            background: #f5f4ff;
+        }
+
+        .mode-option input {
+            margin: 0;
+        }
+
+        .mode-option span {
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .field.is-hidden {
+            display: none;
+        }
+
         .config-buttons {
             display: grid;
             gap: 12px;
@@ -164,6 +198,24 @@
             </div>
         </div>
 
+        <div class="config-section">
+            <h2>Rundenzeit</h2>
+            <div class="mode-options">
+                <label class="mode-option">
+                    <input type="radio" name="roundMode" value="manual" id="roundModeManual">
+                    <span>Manuell – Moderator löst die Runde per Klick auf</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="roundMode" value="countdown" id="roundModeCountdown">
+                    <span>Countdown – Runde läuft automatisch nach Ablauf der Zeit aus</span>
+                </label>
+            </div>
+            <div class="field" id="roundDurationField">
+                <label for="roundDuration">Zeitlimit pro Runde (Sekunden)</label>
+                <input type="number" id="roundDuration" name="roundDuration" min="5" max="3600" step="1" required>
+            </div>
+        </div>
+
         <div class="future-config-note">
             Weitere Konfigurationsmöglichkeiten folgen hier in Zukunft.
         </div>
@@ -179,15 +231,36 @@
 
 <script type="module">
     import { getDisplayNames, loadDisplayNames, saveDisplayNames } from "{{ url_for('static', filename='js/player-names.js') }}";
+    import { getRoundConfig, loadRoundConfig, saveRoundConfig } from "{{ url_for('static', filename='js/round-config.js') }}";
 
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
     const statusMessage = document.getElementById('statusMessage');
 
+    const roundModeManualInput = document.getElementById('roundModeManual');
+    const roundModeCountdownInput = document.getElementById('roundModeCountdown');
+    const roundDurationField = document.getElementById('roundDurationField');
+    const roundDurationInput = document.getElementById('roundDuration');
+
+    function updateRoundDurationVisibility() {
+        roundDurationField.classList.toggle('is-hidden', !roundModeCountdownInput.checked);
+    }
+
+    document.querySelectorAll('input[name="roundMode"]').forEach((input) => {
+        input.addEventListener('change', updateRoundDurationVisibility);
+    });
+
     await loadDisplayNames();
     const currentNames = getDisplayNames();
     player1Input.value = currentNames.player1;
     player2Input.value = currentNames.player2;
+
+    await loadRoundConfig();
+    const currentRoundConfig = getRoundConfig();
+    roundModeManualInput.checked = currentRoundConfig.mode === 'manual';
+    roundModeCountdownInput.checked = currentRoundConfig.mode === 'countdown';
+    roundDurationInput.value = currentRoundConfig.duration_seconds;
+    updateRoundDurationVisibility();
 
     document.getElementById('backButton').addEventListener('click', () => {
         window.location.href = '/';
@@ -203,6 +276,10 @@
             await saveDisplayNames({
                 player1: player1Input.value.trim(),
                 player2: player2Input.value.trim()
+            });
+            await saveRoundConfig({
+                mode: roundModeCountdownInput.checked ? 'countdown' : 'manual',
+                duration_seconds: parseInt(roundDurationInput.value, 10)
             });
             window.location.href = '/';
         } catch (error) {
