@@ -204,8 +204,7 @@
                 player1: player1Input.value.trim(),
                 player2: player2Input.value.trim()
             });
-            statusMessage.textContent = 'Gespeichert!';
-            statusMessage.className = 'status-message success';
+            window.location.href = '/';
         } catch (error) {
             statusMessage.textContent = error.message || 'Speichern fehlgeschlagen.';
             statusMessage.className = 'status-message error';
