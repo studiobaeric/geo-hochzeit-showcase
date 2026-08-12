@@ -103,21 +103,33 @@ body, html {
     cursor: move;
 }
 
+/* Fixed/overlaid (rather than living inside #photoView) so it stays visible
+   whether the player is looking at the photo or the map - see #16's
+   follow-up comment ("countdown should also be visible when the players
+   are looking at the map"). pointer-events: none so it never blocks map
+   clicks underneath it. */
 .round-timer {
-    margin: 0 auto 10px;
+    position: fixed;
+    top: calc(14px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1200;
     padding: 6px 18px;
     width: fit-content;
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(17, 17, 17, 0.82);
     color: #fff;
     font-size: 1.4em;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     text-align: center;
+    pointer-events: none;
 }
 
 .round-timer.is-urgent {
-    background: rgba(231, 76, 60, 0.35);
+    border-color: rgba(231, 76, 60, 0.7);
+    background: rgba(75, 12, 12, 0.88);
     color: #ff8a80;
 }
 

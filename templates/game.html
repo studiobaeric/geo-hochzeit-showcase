@@ -36,7 +36,6 @@
 <!-- Foto-Ansicht -->
 <div id="photoView" class="view">
     <div id="roundInfo" style="text-align: center; margin-bottom: 10px; font-weight: bold;">Runde 1 / 1</div>
-    <div id="roundTimer" class="round-timer is-hidden">--:--</div>
     <div id="photoContainer" class="zoom-container">
         <img id="photoImage" src="" alt="Hochzeitsfoto" class="zoomable">
     </div>
@@ -46,6 +45,10 @@
         <button id="guessButton" class="btn-primary">Tipp abgeben</button>
     </div>
 </div>
+
+<!-- Countdown overlay - lives outside photoView/mapView so it stays visible
+     on both the photo and the map (see #16's follow-up comment). -->
+<div id="roundTimer" class="round-timer is-hidden">--:--</div>
 
 
 <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
