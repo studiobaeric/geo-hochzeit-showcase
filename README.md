@@ -1,10 +1,23 @@
 # Hochzeits-Geoguesser
 
 [![Tests](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml/badge.svg)](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml)
+[![Release](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/release.yml/badge.svg)](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/release.yml)
 
 Errate die Orte von Hochzeitsfotos auf einer Karte. Die Karte ist eine
 **komplett offline** gerenderte OpenStreetMap-Vektorkarte (MapLibre GL +
 PMTiles) – im Spielbetrieb wird **kein** Internet benötigt.
+
+## Download (ohne Python-Setup)
+
+Für Windows, macOS und Linux gibt es auf der
+[Releases-Seite](https://github.com/n1c01/Geo_Hochzeit/releases) fertige,
+startklare Binaries – kein Python nötig. Entpacken, ausführbare Datei
+starten, Browser öffnet sich automatisch auf `http://localhost:8080`.
+Details zu Inhalt und Grenzen dieser Builds (z.B. Offline-Karte fehlt und
+muss wie unten beschrieben ergänzt werden) stehen im mitgelieferten
+`README.txt` und in [RELEASING.md](RELEASING.md). Wer stattdessen aus dem
+Quellcode entwickeln oder selbst bauen möchte, macht mit den Schritten
+unten weiter.
 
 ## Setup nach dem Klonen
 
