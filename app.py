@@ -4,6 +4,7 @@ from flask import Flask, render_template, send_file
 from flask_compress import Compress
 
 from game_state import bp as api_bp
+from map_build import bp as map_bp
 
 mimetypes.add_type('application/javascript', '.mjs')
 
@@ -11,6 +12,7 @@ app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 Compress(app)
 app.register_blueprint(api_bp)
+app.register_blueprint(map_bp)
 
 
 @app.after_request
