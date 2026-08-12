@@ -112,8 +112,29 @@ pytest
 ## Offline-Karte (PMTiles) bauen
 
 Die Kartendaten (`static/data/basemap.pmtiles`) sind zu groß für Git und
-werden **nicht** eingecheckt. Das Skript baut die Karte in zwei Schritten und
-merged das Ergebnis:
+werden **nicht** eingecheckt.
+
+### Über das Webinterface (empfohlen für's initiale Einrichten)
+
+Im Konfigurationsmenü (`/config`) gibt es den Abschnitt **„Kartendaten“**:
+dort lassen sich Kartenausschnitt (Bounding Box), Detailgrad (Zoom für
+Kartenausschnitt und Weltübersicht) sowie das Protomaps-Build-Datum
+einstellen und der Download-Button startet `tools/build_basemap*.sh` direkt
+auf dem Server (`POST /api/map/build`, Fortschritt/Log über
+`GET /api/map/build/status`).
+
+Der beim Herunterladen tatsächlich verwendete Kartenausschnitt wird dabei
+**automatisch erweitert**, falls nötig, damit er immer alle Fotostandorte
+aus [`static/config/photos.json`](static/config/photos.json) mit Rand
+umschließt – so ist für jede Runde garantiert Kartendaten in hohem Detail
+vorhanden, unabhängig davon, welchen Ausschnitt man konfiguriert hat. Der
+gespeicherte (eigene) Ausschnitt bleibt dabei unverändert; nur der Build
+selbst nutzt bei Bedarf den erweiterten Bereich (`effective_bbox`,
+sichtbar über `GET /api/map/config`).
+
+### Über die Kommandozeile
+
+Das Skript baut die Karte in zwei Schritten und merged das Ergebnis:
 
 1. **Weltweit z0–5** – winzige Übersichts-Tiles (wenige MB), damit man beim
    weit Herauszoomen immer die ganze Erde sieht.

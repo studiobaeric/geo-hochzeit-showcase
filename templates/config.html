@@ -86,6 +86,67 @@
             border-color: #667eea;
         }
 
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .field-hint {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 4px;
+        }
+
+        .build-status {
+            background: #f5f4ff;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-top: 14px;
+            font-size: 0.9em;
+            color: #444;
+        }
+
+        .build-status.state-error {
+            background: #fdecea;
+            color: #c62828;
+        }
+
+        .build-status.state-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .build-log {
+            max-height: 140px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 10px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.78em;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .build-log:empty {
+            display: none;
+        }
+
+        .config-button.build {
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            color: white;
+        }
+
+        .config-button.build:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .future-config-note {
             background: #f0f0f0;
             border-radius: 10px;
@@ -216,6 +277,34 @@
             </div>
         </div>
 
+        <div class="config-section">
+            <h2>Kartendaten</h2>
+            <div class="field">
+                <label for="mapBbox">Kartenausschnitt (min_lon,min_lat,max_lon,max_lat)</label>
+                <input type="text" id="mapBbox" name="mapBbox" required>
+                <p class="field-hint" id="photoCoverageHint"></p>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="mapMaxzoom">Detailgrad Kartenausschnitt (Zoom)</label>
+                    <input type="number" id="mapMaxzoom" name="mapMaxzoom" min="0" max="14" step="1" required>
+                </div>
+                <div class="field">
+                    <label for="mapWorldMaxzoom">Detailgrad Weltübersicht (Zoom)</label>
+                    <input type="number" id="mapWorldMaxzoom" name="mapWorldMaxzoom" min="0" max="14" step="1" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="mapBuildDate">Protomaps-Build-Datum (YYYYMMDD)</label>
+                <input type="text" id="mapBuildDate" name="mapBuildDate" pattern="\d{8}" maxlength="8" required>
+            </div>
+            <div class="config-buttons">
+                <button type="button" class="config-button build" id="downloadMapButton">🗺️ Karte jetzt herunterladen</button>
+            </div>
+            <div class="build-status" id="buildStatus" role="status" aria-live="polite" hidden></div>
+            <pre class="build-log" id="buildLog"></pre>
+        </div>
+
         <div class="future-config-note">
             Weitere Konfigurationsmöglichkeiten folgen hier in Zukunft.
         </div>
@@ -232,6 +321,9 @@
 <script type="module">
     import { getDisplayNames, loadDisplayNames, saveDisplayNames } from "{{ url_for('static', filename='js/player-names.js') }}";
     import { getRoundConfig, loadRoundConfig, saveRoundConfig } from "{{ url_for('static', filename='js/round-config.js') }}";
+    import {
+        getMapConfig, loadMapConfig, saveMapConfig, startMapBuild, getMapBuildStatus
+    } from "{{ url_for('static', filename='js/map-config.js') }}";
 
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
@@ -262,6 +354,103 @@
     roundDurationInput.value = currentRoundConfig.duration_seconds;
     updateRoundDurationVisibility();
 
+    const mapBboxInput = document.getElementById('mapBbox');
+    const mapMaxzoomInput = document.getElementById('mapMaxzoom');
+    const mapWorldMaxzoomInput = document.getElementById('mapWorldMaxzoom');
+    const mapBuildDateInput = document.getElementById('mapBuildDate');
+    const photoCoverageHint = document.getElementById('photoCoverageHint');
+    const downloadMapButton = document.getElementById('downloadMapButton');
+    const buildStatusEl = document.getElementById('buildStatus');
+    const buildLogEl = document.getElementById('buildLog');
+
+    function applyMapConfigToForm(config) {
+        mapBboxInput.value = config.bbox;
+        mapMaxzoomInput.value = config.maxzoom;
+        mapWorldMaxzoomInput.value = config.world_maxzoom;
+        mapBuildDateInput.value = config.build_date;
+
+        if (config.photo_bbox && config.effective_bbox !== config.bbox) {
+            photoCoverageHint.textContent =
+                `Wird beim Herunterladen automatisch erweitert auf ${config.effective_bbox}, ` +
+                'damit alle Fotostandorte in hohem Detail abgedeckt sind.';
+        } else if (config.photo_bbox) {
+            photoCoverageHint.textContent = 'Deckt bereits alle Fotostandorte ab.';
+        } else {
+            photoCoverageHint.textContent = '';
+        }
+    }
+
+    await loadMapConfig();
+    applyMapConfigToForm(getMapConfig());
+
+    const BUILD_STATUS_LABELS = {
+        idle: 'Noch keine Karte heruntergeladen.',
+        running: '⏳ Karte wird heruntergeladen …',
+        success: '✅ Karte erfolgreich heruntergeladen.',
+        error: '❌ Fehler beim Herunterladen der Karte.'
+    };
+
+    function renderBuildStatus(status) {
+        buildStatusEl.hidden = status.status === 'idle';
+        buildStatusEl.className = `build-status state-${status.status}`;
+        let text = BUILD_STATUS_LABELS[status.status] || status.status;
+        if (status.status === 'error' && status.error) {
+            text += ` (${status.error})`;
+        }
+        buildStatusEl.textContent = text;
+        buildLogEl.textContent = (status.log_tail || []).join('\n');
+        buildLogEl.scrollTop = buildLogEl.scrollHeight;
+        downloadMapButton.disabled = status.status === 'running';
+    }
+
+    let pollHandle = null;
+
+    function stopPolling() {
+        if (pollHandle) {
+            clearInterval(pollHandle);
+            pollHandle = null;
+        }
+    }
+
+    async function pollBuildStatus() {
+        try {
+            const status = await getMapBuildStatus();
+            renderBuildStatus(status);
+            if (status.status !== 'running') {
+                stopPolling();
+            }
+        } catch (error) {
+            console.error('Konnte Build-Status nicht abrufen:', error);
+        }
+    }
+
+    // Pick up an already-running build (e.g. triggered from another device).
+    await pollBuildStatus();
+    if (buildStatusEl.className.includes('state-running')) {
+        pollHandle = setInterval(pollBuildStatus, 1500);
+    }
+
+    downloadMapButton.addEventListener('click', async () => {
+        downloadMapButton.disabled = true;
+        try {
+            await saveMapConfig({
+                maxzoom: parseInt(mapMaxzoomInput.value, 10),
+                world_maxzoom: parseInt(mapWorldMaxzoomInput.value, 10),
+                bbox: mapBboxInput.value.trim(),
+                build_date: mapBuildDateInput.value.trim()
+            });
+            const status = await startMapBuild();
+            renderBuildStatus(status);
+            stopPolling();
+            pollHandle = setInterval(pollBuildStatus, 1500);
+        } catch (error) {
+            downloadMapButton.disabled = false;
+            buildStatusEl.hidden = false;
+            buildStatusEl.className = 'build-status state-error';
+            buildStatusEl.textContent = error.message || 'Download konnte nicht gestartet werden.';
+        }
+    });
+
     document.getElementById('backButton').addEventListener('click', () => {
         window.location.href = '/';
     });
@@ -280,6 +469,12 @@
             await saveRoundConfig({
                 mode: roundModeCountdownInput.checked ? 'countdown' : 'manual',
                 duration_seconds: parseInt(roundDurationInput.value, 10)
+            });
+            await saveMapConfig({
+                maxzoom: parseInt(mapMaxzoomInput.value, 10),
+                world_maxzoom: parseInt(mapWorldMaxzoomInput.value, 10),
+                bbox: mapBboxInput.value.trim(),
+                build_date: mapBuildDateInput.value.trim()
             });
             window.location.href = '/';
         } catch (error) {

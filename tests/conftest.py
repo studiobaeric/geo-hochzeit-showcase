@@ -18,6 +18,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import game_state  # noqa: E402
+import map_build  # noqa: E402
 from app import app as flask_app  # noqa: E402
 
 
@@ -67,3 +68,23 @@ def reset_game_state(isolate_state_file):
     yield
     with game_state._lock:
         _reset_module_state()
+
+
+def _reset_map_module_state():
+    map_build._map_config.clear()
+    map_build._map_config.update(map_build.DEFAULT_MAP_CONFIG)
+    map_build._build_status.clear()
+    map_build._build_status.update(map_build._DEFAULT_BUILD_STATUS)
+
+
+@pytest.fixture(autouse=True)
+def isolate_map_config(tmp_path, monkeypatch):
+    """Point map config persistence at a throwaway file, reset in-memory
+    map config + build status before/after every test, and replace the
+    real (multi-GB, network-heavy) build runner with a no-op fake so tests
+    never accidentally invoke it."""
+    monkeypatch.setattr(map_build, "MAP_CONFIG_FILE", str(tmp_path / "map_config.json"))
+    monkeypatch.setattr(map_build, "_build_runner", map_build._default_runner)
+    _reset_map_module_state()
+    yield
+    _reset_map_module_state()
