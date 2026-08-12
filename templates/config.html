@@ -121,6 +121,39 @@
             color: #2e7d32;
         }
 
+        .build-progress {
+            margin-top: 10px;
+        }
+
+        .build-progress progress {
+            width: 100%;
+            height: 10px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: none;
+        }
+
+        .build-progress progress::-webkit-progress-bar {
+            background: #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .build-progress progress::-webkit-progress-value {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+        }
+
+        .build-progress progress::-moz-progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+        }
+
+        .build-progress-label {
+            margin: 6px 0 0;
+            font-size: 0.8em;
+            color: #666;
+        }
+
         .build-log {
             max-height: 140px;
             overflow-y: auto;
@@ -379,13 +412,18 @@
             <button type="button" class="add-region-button" id="addRegionButton">+ weiteren Kartenausschnitt hinzufügen</button>
 
             <div class="field">
-                <label for="mapBuildDate">Protomaps-Build-Datum (YYYYMMDD)</label>
-                <input type="text" id="mapBuildDate" name="mapBuildDate" pattern="\d{8}" maxlength="8" required>
+                <label for="mapBuildDate">Protomaps-Build-Datum (optional)</label>
+                <input type="text" id="mapBuildDate" name="mapBuildDate" pattern="\d{8}" maxlength="8"
+                       placeholder="leer = automatisch neuester Stand">
                 <p class="field-hint">
-                    Protomaps hält tägliche Builds nur ca. 5 Tage vor - ein
-                    aktuelles Datum auf der
-                    <a href="https://build.protomaps.com" target="_blank" rel="noopener">Build-Übersicht (build.protomaps.com)</a>
-                    nachsehen und im Format JJJJMMTT eintragen (z.B. 20260810).
+                    Leer lassen, um beim Herunterladen automatisch den
+                    neuesten verfügbaren Stand zu verwenden (empfohlen).
+                    Protomaps hält tägliche Builds nur ca. 5 Tage vor, daher
+                    wird ein hier fest eingetragenes Datum irgendwann
+                    ungültig. Nur zum gezielten Festlegen eines bestimmten
+                    Standes ein Datum im Format JJJJMMTT eintragen (z.B.
+                    20260810) - Übersicht der verfügbaren Daten auf
+                    <a href="https://build.protomaps.com" target="_blank" rel="noopener">build.protomaps.com</a>.
                 </p>
             </div>
 
@@ -393,6 +431,10 @@
                 <button type="button" class="config-button build" id="downloadMapButton">🗺️ Karte jetzt herunterladen</button>
             </div>
             <div class="build-status" id="buildStatus" role="status" aria-live="polite" hidden></div>
+            <div class="build-progress" id="buildProgress" hidden>
+                <progress id="buildProgressBar" max="100" value="0"></progress>
+                <p class="build-progress-label" id="buildProgressLabel"></p>
+            </div>
             <pre class="build-log" id="buildLog"></pre>
         </div>
 
@@ -449,6 +491,9 @@
     const downloadMapButton = document.getElementById('downloadMapButton');
     const buildStatusEl = document.getElementById('buildStatus');
     const buildLogEl = document.getElementById('buildLog');
+    const buildProgressEl = document.getElementById('buildProgress');
+    const buildProgressBarEl = document.getElementById('buildProgressBar');
+    const buildProgressLabelEl = document.getElementById('buildProgressLabel');
     const regionListEl = document.getElementById('regionList');
     const addRegionButton = document.getElementById('addRegionButton');
 
@@ -610,6 +655,50 @@
         error: '❌ Fehler beim Herunterladen der Karte.'
     };
 
+    // Rough, honestly-labelled progress: pmtiles' own download/extract
+    // work happens inside an external binary we don't control, so this
+    // can't be an exact byte count - it tracks which stage is running and,
+    // during the (usually longest) extraction stage, which of the
+    // configured Kartenausschnitte is currently downloading.
+    const PROGRESS_STAGE_LABELS = {
+        resolving_pmtiles_cli: 'Kartenwerkzeug wird vorbereitet…',
+        resolving_build_date: 'Suche neuesten verfügbaren Kartenstand…',
+        merging: 'Kartenausschnitte werden zusammengeführt…',
+        done: 'Fertig.'
+    };
+
+    function progressPercent(progress) {
+        switch (progress.stage) {
+            case 'resolving_pmtiles_cli': return 5;
+            case 'resolving_build_date': return 12;
+            case 'extracting': {
+                const count = progress.region_count || 1;
+                const index = progress.region_index || 0;
+                return Math.round(15 + (index / count) * 75);
+            }
+            case 'merging': return 92;
+            case 'done': return 100;
+            default: return 0;
+        }
+    }
+
+    function progressLabel(progress) {
+        if (progress.stage === 'extracting') {
+            return `Lädt Kartenausschnitt ${progress.region_index + 1} von ${progress.region_count}: ${progress.region_name}…`;
+        }
+        return PROGRESS_STAGE_LABELS[progress.stage] || progress.stage;
+    }
+
+    function renderBuildProgress(status) {
+        const progress = status.progress;
+        buildProgressEl.hidden = status.status !== 'running' || !progress;
+        if (!progress) {
+            return;
+        }
+        buildProgressBarEl.value = progressPercent(progress);
+        buildProgressLabelEl.textContent = progressLabel(progress);
+    }
+
     function renderBuildStatus(status) {
         buildStatusEl.hidden = status.status === 'idle';
         buildStatusEl.className = `build-status state-${status.status}`;
@@ -618,6 +707,7 @@
             text += ` (${status.error})`;
         }
         buildStatusEl.textContent = text;
+        renderBuildProgress(status);
         buildLogEl.textContent = (status.log_tail || []).join('\n');
         buildLogEl.scrollTop = buildLogEl.scrollHeight;
         downloadMapButton.disabled = status.status === 'running';

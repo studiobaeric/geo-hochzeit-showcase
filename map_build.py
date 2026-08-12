@@ -54,7 +54,11 @@ DEFAULT_MAP_CONFIG = {
         {"name": "Welt", "bbox": "-180,-90,180,90", "maxzoom": 5},
         {"name": "Europa", "bbox": "-25,32,45,72", "maxzoom": 13},
     ],
-    "build_date": "20260608",
+    # "" = resolved to the newest available Protomaps build at build time
+    # (see tools/build_basemap.py's resolve_latest_build_date). A fixed
+    # date shipped here once before and 404'd for real once Protomaps'
+    # ~5-day retention window rolled past it - never hardcode one again.
+    "build_date": "",
 }
 
 _MIN_ZOOM = 0
@@ -64,19 +68,33 @@ _MAX_REGION_NAME_LENGTH = 60
 _PHOTO_BBOX_PADDING_DEGREES = 0.5
 _MAX_LOG_LINES = 200
 _BUILD_DATE_RE = re.compile(r"\d{8}")
+_PROGRESS_PREFIX = "##PROGRESS## "
 
-_DEFAULT_BUILD_STATUS = {
-    "status": "idle",  # idle | running | success | error
-    "started_at": None,
-    "finished_at": None,
-    "exit_code": None,
-    "log_tail": [],
-    "config_used": None,
-    "error": None,
-}
+def _fresh_build_status():
+    """A brand-new build-status dict with its own, empty `log_tail` list.
 
-_map_config = dict(DEFAULT_MAP_CONFIG)
-_build_status = dict(_DEFAULT_BUILD_STATUS)
+    Never reset via `_build_status.update(_DEFAULT_BUILD_STATUS)` - dict
+    update() only shallow-copies, so every reset would keep re-linking
+    `log_tail` to the exact same list object, silently accumulating every
+    build's log lines forever across the process's whole lifetime instead
+    of actually clearing. Always call this factory for a reset instead.
+    """
+    return {
+        "status": "idle",  # idle | running | success | error
+        "started_at": None,
+        "finished_at": None,
+        "exit_code": None,
+        "log_tail": [],
+        "progress": None,
+        "config_used": None,
+        "error": None,
+    }
+
+
+_DEFAULT_BUILD_STATUS = _fresh_build_status()  # shape reference for comparisons only - see _fresh_build_status
+
+_map_config = {**DEFAULT_MAP_CONFIG, "regions": [dict(r) for r in DEFAULT_MAP_CONFIG["regions"]]}
+_build_status = _fresh_build_status()
 
 
 # --- bounding-box helpers ----------------------------------------------
@@ -217,8 +235,10 @@ def _validate_map_config_updates(updates):
 
     if "build_date" in updates:
         value = updates["build_date"]
-        if not isinstance(value, str) or not _BUILD_DATE_RE.fullmatch(value):
-            return "build_date must be a string in YYYYMMDD format"
+        # "" means "auto-resolve the newest available build" - only a
+        # non-empty value has to match the YYYYMMDD format.
+        if not isinstance(value, str) or (value and not _BUILD_DATE_RE.fullmatch(value)):
+            return "build_date must be '' (automatic) or a string in YYYYMMDD format"
 
     return None
 
@@ -414,6 +434,23 @@ _build_runner = _default_runner
 
 
 def _append_log_line(line):
+    """Feed one line of build-script output into the shared build status.
+
+    Lines prefixed with `_PROGRESS_PREFIX` (see tools/build_basemap.py's
+    `_emit_progress`) are structured machine-readable progress updates -
+    parsed into `_build_status["progress"]` and kept out of the
+    human-facing `log_tail` instead of being appended as raw text.
+    """
+    if line.startswith(_PROGRESS_PREFIX):
+        try:
+            progress = json.loads(line[len(_PROGRESS_PREFIX):])
+        except json.JSONDecodeError:
+            progress = None
+        if progress is not None:
+            with _lock:
+                _build_status["progress"] = progress
+            return
+
     with _lock:
         _build_status["log_tail"].append(line)
         if len(_build_status["log_tail"]) > _MAX_LOG_LINES:
@@ -450,7 +487,7 @@ def start_build():
 
         config_used = _config_with_bbox_info(dict(_map_config))
         _build_status.clear()
-        _build_status.update(_DEFAULT_BUILD_STATUS)
+        _build_status.update(_fresh_build_status())
         _build_status.update(
             {"status": "running", "started_at": time.time(), "config_used": config_used}
         )

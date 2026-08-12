@@ -81,6 +81,26 @@ def test_patch_updates_build_date(client):
     assert data["build_date"] == "20260701"
 
 
+def test_default_build_date_is_empty_meaning_automatic(client):
+    # "" means "resolve the newest available build at build time" (see
+    # tools/build_basemap.py) - never a fixed date baked into source, since
+    # one shipped once before and 404'd once Protomaps' retention window
+    # (~5 days) rolled past it.
+    data = client.get("/api/map/config").get_json()
+
+    assert data["build_date"] == ""
+
+
+def test_patch_accepts_empty_build_date(client):
+    client.patch("/api/map/config", json={"build_date": "20260701"})
+
+    response = client.patch("/api/map/config", json={"build_date": ""})
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert data["build_date"] == ""
+
+
 def test_patch_ignores_unknown_fields(client):
     response = client.patch("/api/map/config", json={"totally_made_up_field": "hi"})
     data = response.get_json()

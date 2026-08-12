@@ -78,6 +78,40 @@ def test_build_reports_success_and_log_tail(client, monkeypatch):
     assert status["finished_at"] >= status["started_at"]
 
 
+def test_build_progress_is_parsed_and_kept_out_of_log_tail(client, monkeypatch):
+    def runner(config, log_callback):
+        log_callback("a plain log line")
+        log_callback('##PROGRESS## {"stage": "extracting", "region_index": 0, "region_count": 2}')
+        log_callback("another plain log line")
+        return 0
+
+    monkeypatch.setattr(map_build, "_build_runner", runner)
+
+    client.post("/api/map/build")
+    status = _wait_until_not_running(client)
+
+    assert status["progress"] == {"stage": "extracting", "region_index": 0, "region_count": 2}
+    assert status["log_tail"] == ["a plain log line", "another plain log line"]
+
+
+def test_build_progress_falls_back_to_plain_log_on_malformed_json(client, monkeypatch):
+    # A malformed progress line is never silently dropped - it just isn't
+    # parsed as structured progress, so it shows up as a normal log line
+    # instead (still visible for debugging).
+    def runner(config, log_callback):
+        log_callback("##PROGRESS## not valid json")
+        return 0
+
+    monkeypatch.setattr(map_build, "_build_runner", runner)
+
+    client.post("/api/map/build")
+    status = _wait_until_not_running(client)
+
+    assert status["status"] == "success"
+    assert status["progress"] is None
+    assert status["log_tail"] == ["##PROGRESS## not valid json"]
+
+
 def test_build_reports_error_on_nonzero_exit_code(client, monkeypatch):
     monkeypatch.setattr(map_build, "_build_runner", _fake_runner(exit_code=1))
 

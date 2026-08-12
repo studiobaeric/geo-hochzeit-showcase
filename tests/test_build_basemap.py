@@ -17,6 +17,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -209,7 +210,9 @@ def test_pmtiles_download_url():
 def test_pinned_pmtiles_release_asset_exists(system, machine):
     """Confirms the real release actually has the asset we'd request, for
     the PMTILES_VERSION pinned in this script. Skips without network access
-    rather than failing the suite over connectivity."""
+    or on a transient server-side error (5xx) rather than failing the suite
+    over connectivity/infrastructure hiccups - a 404 specifically (the
+    asset genuinely doesn't exist) is still a hard failure."""
     url = bb.pmtiles_download_url(bb.DEFAULT_PMTILES_VERSION, system, machine)
     request = urllib.request.Request(url, method="HEAD")
     try:
@@ -220,7 +223,109 @@ def test_pinned_pmtiles_release_asset_exists(system, machine):
     except (urllib.error.URLError, TimeoutError) as e:
         pytest.skip(f"no network access to verify release asset ({e})")
 
+    if status >= 500:
+        pytest.skip(f"transient server error ({status}) verifying release asset: {url}")
+
     assert status == 200, f"pmtiles release asset not found: {url}"
+
+
+# --- build-date resolution --------------------------------------------------
+#
+# BUILD_DATE used to default to a fixed string hardcoded in source, which
+# 404'd for real once Protomaps' ~5-day retention window rolled past it.
+# resolve_latest_build_date() asks the server instead of guessing, so
+# these tests inject a fake probe rather than hitting the network - the
+# real endpoint is covered separately, further down.
+
+
+def test_build_source_url():
+    assert bb.build_source_url("20260810") == "https://build.protomaps.com/20260810.pmtiles"
+
+
+def test_resolve_latest_build_date_returns_first_available_date():
+    today = datetime.now(timezone.utc).date()
+    available = (today - timedelta(days=2)).strftime("%Y%m%d")
+
+    def fake_probe(candidate):
+        return candidate == available
+
+    assert bb.resolve_latest_build_date(log=lambda _: None, probe=fake_probe) == available
+
+
+def test_resolve_latest_build_date_prefers_more_recent_dates():
+    today = datetime.now(timezone.utc).date()
+    newer = today.strftime("%Y%m%d")
+    older = (today - timedelta(days=3)).strftime("%Y%m%d")
+
+    def fake_probe(candidate):
+        return candidate in (newer, older)
+
+    assert bb.resolve_latest_build_date(log=lambda _: None, probe=fake_probe) == newer
+
+
+def test_resolve_latest_build_date_raises_when_nothing_found_in_window():
+    with pytest.raises(bb.BuildError, match="no Protomaps daily build found"):
+        bb.resolve_latest_build_date(log=lambda _: None, probe=lambda candidate: False, window_days=3)
+
+
+def test_resolve_latest_build_date_stops_probing_once_found():
+    today = datetime.now(timezone.utc).date()
+    newest = today.strftime("%Y%m%d")
+    probed = []
+
+    def fake_probe(candidate):
+        probed.append(candidate)
+        return candidate == newest
+
+    bb.resolve_latest_build_date(log=lambda _: None, probe=fake_probe)
+
+    assert probed == [newest]
+
+
+@pytest.mark.parametrize("status_code", [200, 206])
+def test_source_exists_accepts_ok_and_partial_content(monkeypatch, status_code):
+    class FakeResponse:
+        status = status_code
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", lambda *a, **k: FakeResponse())
+
+    assert bb._source_exists("20260810") is True
+
+
+def test_source_exists_false_on_404(monkeypatch):
+    def raise_404(*args, **kwargs):
+        raise urllib.error.HTTPError("url", 404, "not found", {}, None)
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", raise_404)
+
+    assert bb._source_exists("20260101") is False
+
+
+def test_source_exists_false_on_connection_error(monkeypatch):
+    def raise_url_error(*args, **kwargs):
+        raise urllib.error.URLError("no network")
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", raise_url_error)
+
+    assert bb._source_exists("20260101") is False
+
+
+def test_resolve_latest_build_date_against_real_server():
+    """Confirms the real endpoint responds as resolve_latest_build_date
+    expects, without asserting an exact date (that changes daily). Skips
+    without network access."""
+    try:
+        result = bb.resolve_latest_build_date(log=lambda _: None)
+    except bb.BuildError as e:
+        pytest.skip(f"no network access to verify build-date resolution ({e})")
+
+    assert len(result) == 8 and result.isdigit()
 
 
 # --- per-region cache metadata -----------------------------------------
@@ -372,10 +477,10 @@ def test_build_dry_run_uses_regions_file(tmp_path):
 
 def test_build_dry_run_detects_cached_region(tmp_path):
     (tmp_path / "basemap_region_0.pmtiles").write_bytes(b"")
-    bb.write_cache_meta(tmp_path, 0, bbox=bb.WORLD_BBOX, minzoom=0, maxzoom=5, build_date=bb.DEFAULT_BUILD_DATE)
+    bb.write_cache_meta(tmp_path, 0, bbox=bb.WORLD_BBOX, minzoom=0, maxzoom=5, build_date="20260608")
 
     lines = []
-    bb.build({"DRY_RUN": "true", "CACHE_DIR": str(tmp_path)}, log=lines.append)
+    bb.build({"DRY_RUN": "true", "CACHE_DIR": str(tmp_path), "BUILD_DATE": "20260608"}, log=lines.append)
 
     assert any("(cached)" in line for line in lines if "'Welt'" in line)
 
@@ -404,6 +509,143 @@ def test_build_propagates_region_errors(tmp_path):
 
     with pytest.raises(bb.BuildError, match="must be greater than"):
         bb.build({"DRY_RUN": "true", "CACHE_DIR": str(tmp_path), "REGIONS_FILE": str(regions_file)}, log=lambda _: None)
+
+
+def test_build_dry_run_with_empty_build_date_never_touches_network(tmp_path, monkeypatch):
+    """DRY_RUN must stay fully offline even when BUILD_DATE is left empty -
+    it shows a placeholder instead of actually resolving "latest"."""
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("resolve_latest_build_date must not run a probe during DRY_RUN")
+
+    monkeypatch.setattr(bb, "resolve_latest_build_date", fail_if_called)
+    monkeypatch.setattr(bb, "_source_exists", fail_if_called)
+
+    lines = []
+    bb.build({"DRY_RUN": "true", "CACHE_DIR": str(tmp_path)}, log=lines.append)
+
+    assert any(bb.BUILD_DATE_PLACEHOLDER in line for line in lines)
+
+
+# --- build() orchestration with everything mocked out (no real network/subprocess, not DRY_RUN) --
+
+
+def _mocked_build(tmp_path, monkeypatch, env=None, resolved_build_date="20260810"):
+    """Runs the real (non-DRY_RUN) build() orchestration end-to-end, but
+    with every network/subprocess touchpoint replaced by a fake, so the
+    full control flow (build-date resolution, progress emission, region
+    extraction, merging) is exercised without ever calling out to pmtiles
+    or the network."""
+    monkeypatch.setattr(bb, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(bb, "resolve_pmtiles_cli", lambda bin_dir, version, log: Path("/fake/pmtiles"))
+    monkeypatch.setattr(bb, "resolve_latest_build_date", lambda log, **kwargs: resolved_build_date)
+
+    extract_calls = []
+
+    def fake_extract_region(pmtiles_bin, source, build_date, out_path, bbox, minzoom, maxzoom, log):
+        extract_calls.append({"source": source, "build_date": build_date, "out_path": out_path})
+        out_path.write_bytes(b"")
+
+    monkeypatch.setattr(bb, "extract_region", fake_extract_region)
+
+    def fake_run_pmtiles(pmtiles_bin, args, log):
+        if args[0] == "merge":
+            Path(args[-1]).write_bytes(b"fake-merged-basemap")
+        return []
+
+    monkeypatch.setattr(bb, "run_pmtiles", fake_run_pmtiles)
+
+    lines = []
+    out_path = bb.build({"CACHE_DIR": str(tmp_path / "cache"), **(env or {})}, log=lines.append)
+    return out_path, lines, extract_calls
+
+
+def test_build_resolves_empty_build_date_when_not_dry_run(tmp_path, monkeypatch):
+    out_path, lines, extract_calls = _mocked_build(tmp_path, monkeypatch)
+
+    assert extract_calls[0]["build_date"] == "20260810"
+    assert extract_calls[0]["source"] == "https://build.protomaps.com/20260810.pmtiles"
+    assert out_path.read_bytes() == b"fake-merged-basemap"
+    assert any("looking up the newest available" in line for line in lines)
+
+
+def test_build_does_not_resolve_when_build_date_explicitly_set(tmp_path, monkeypatch):
+    _out_path, _lines, extract_calls = _mocked_build(tmp_path, monkeypatch, env={"BUILD_DATE": "20260101"})
+
+    assert extract_calls[0]["build_date"] == "20260101"
+    assert extract_calls[0]["source"] == "https://build.protomaps.com/20260101.pmtiles"
+
+
+def test_build_emits_progress_lines_in_order(tmp_path, monkeypatch):
+    _out_path, lines, _extract_calls = _mocked_build(tmp_path, monkeypatch)
+
+    progress_events = [
+        json.loads(line[len(bb.PROGRESS_PREFIX):])
+        for line in lines
+        if line.startswith(bb.PROGRESS_PREFIX)
+    ]
+    stages = [event["stage"] for event in progress_events]
+
+    assert stages == [
+        "resolving_pmtiles_cli",
+        "resolving_build_date",
+        "extracting",
+        "extracting",
+        "merging",
+        "done",
+    ]
+    extracting_events = [e for e in progress_events if e["stage"] == "extracting"]
+    assert [e["region_name"] for e in extracting_events] == ["Welt", "Europa"]
+    assert all(e["region_count"] == 2 for e in extracting_events)
+
+
+def test_build_progress_lines_are_not_shown_as_plain_log_text(tmp_path, monkeypatch):
+    """map_build.py strips ##PROGRESS## lines out of the human-facing log -
+    this just confirms the prefix is exact/greppable so that works."""
+    _out_path, lines, _extract_calls = _mocked_build(tmp_path, monkeypatch)
+
+    assert any(line.startswith("##PROGRESS## {") for line in lines)
+
+
+# --- friendly error on a stale/missing BUILD_DATE ------------------------
+
+
+def test_extract_region_adds_hint_on_404_and_still_raises(monkeypatch):
+    log_lines = []
+
+    def fake_run(pmtiles_bin, args, log):
+        raise bb.PmtilesError(
+            "pmtiles extract failed with exit code 1",
+            ["main.go:185: Failed to create range reader for 20260608.pmtiles, HTTP error: 404"],
+        )
+
+    monkeypatch.setattr(bb, "run_pmtiles", fake_run)
+
+    with pytest.raises(bb.BuildError):
+        bb.extract_region(
+            Path("/fake/pmtiles"), "https://build.protomaps.com/20260608.pmtiles", "20260608",
+            Path("/tmp/out.pmtiles"), "-1,-1,1,1", 0, 5, log_lines.append,
+        )
+
+    assert any("build.protomaps.com" in line for line in log_lines)
+    assert any("20260608" in line for line in log_lines)
+
+
+def test_extract_region_does_not_add_404_hint_for_unrelated_failures(monkeypatch):
+    log_lines = []
+
+    def fake_run(pmtiles_bin, args, log):
+        raise bb.PmtilesError("pmtiles extract failed with exit code 1", ["some unrelated error"])
+
+    monkeypatch.setattr(bb, "run_pmtiles", fake_run)
+
+    with pytest.raises(bb.BuildError):
+        bb.extract_region(
+            Path("/fake/pmtiles"), "https://build.protomaps.com/20260608.pmtiles", "20260608",
+            Path("/tmp/out.pmtiles"), "-1,-1,1,1", 0, 5, log_lines.append,
+        )
+
+    assert not any("build.protomaps.com" in line for line in log_lines)
 
 
 # --- CLI entry point (subprocess) ---------------------------------------

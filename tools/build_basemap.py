@@ -31,8 +31,11 @@ Configurable via environment variables:
     MAXZOOM=13           Legacy mode only: detail region's zoom cap.
     WORLD_MAXZOOM=5      Legacy mode only: last zoom level for the world overview.
     EUROPE_BBOX=...      Legacy mode only: bbox for the detail region.
-    BUILD_DATE           Protomaps daily build YYYYMMDD.
-                         Pick a recent one from https://build.protomaps.com
+    BUILD_DATE           Protomaps daily build YYYYMMDD. Leave unset/empty
+                         to auto-resolve the newest build actually available
+                         (see `resolve_latest_build_date`) - Protomaps only
+                         keeps daily builds for a few days, so any fixed
+                         date hardcoded here would eventually 404.
     FORCE_REBUILD=true   ignore caches and rebuild everything from scratch
     DRY_RUN=true         print the build plan without downloading/writing anything
     CACHE_DIR            where per-region caches are kept between runs (default: system temp dir)
@@ -56,6 +59,7 @@ import urllib.error
 import urllib.request
 import zipfile
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
@@ -63,13 +67,15 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
 DEFAULT_PMTILES_VERSION = "1.30.3"
-DEFAULT_BUILD_DATE = "20260608"
 DEFAULT_MAXZOOM = 13
 DEFAULT_WORLD_MAXZOOM = 5
 DEFAULT_EUROPE_BBOX = "-25,32,45,72"  # all of Europe (covers all images down to Madeira 32.65°N)
 WORLD_BBOX = "-180,-90,180,90"
 
 OUT_RELATIVE = Path("static/data/basemap.pmtiles")
+BUILD_SOURCE_URL_TEMPLATE = "https://build.protomaps.com/{build_date}.pmtiles"
+BUILD_DATE_PROBE_WINDOW_DAYS = 10  # Protomaps documents ~5 days retention; generous safety margin
+BUILD_DATE_PLACEHOLDER = "<neuester verfuegbarer Stand>"  # DRY_RUN display only, never resolved over the network
 
 LogFn = Callable[[str], None]
 
@@ -264,6 +270,48 @@ def resolve_pmtiles_cli(bin_dir: Path, version: str, log: LogFn) -> Path:
     return local_path
 
 
+# --- build-date resolution ------------------------------------------------
+
+
+def build_source_url(build_date: str) -> str:
+    return BUILD_SOURCE_URL_TEMPLATE.format(build_date=build_date)
+
+
+def _source_exists(build_date: str) -> bool:
+    request = urllib.request.Request(build_source_url(build_date), method="HEAD")
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return response.status in (200, 206)
+    except urllib.error.HTTPError as e:
+        return e.code in (200, 206)
+    except urllib.error.URLError:
+        return False
+
+
+def resolve_latest_build_date(
+    log: LogFn,
+    probe: Callable[[str], bool] = _source_exists,
+    window_days: int = BUILD_DATE_PROBE_WINDOW_DAYS,
+) -> str:
+    """The most recent YYYYMMDD date that actually has a Protomaps daily
+    build available, found by probing backwards from today.
+
+    Protomaps keeps daily planet builds for only ~5 days, so no fixed date
+    can be hardcoded reliably here - one shipped in source once already and
+    404'd within weeks. Asking the server what's actually there instead
+    means this never goes stale.
+    """
+    today = datetime.now(timezone.utc).date()
+    for offset in range(window_days):
+        candidate = (today - timedelta(days=offset)).strftime("%Y%m%d")
+        if probe(candidate):
+            return candidate
+    raise BuildError(
+        f"no Protomaps daily build found in the last {window_days} days - "
+        "check https://build.protomaps.com manually and set BUILD_DATE"
+    )
+
+
 # --- per-region caching -------------------------------------------------
 
 
@@ -313,35 +361,76 @@ def clear_stale_region_caches(cache_dir: Path, keep_count: int) -> None:
         index += 1
 
 
+# --- progress reporting --------------------------------------------------
+#
+# map_build.py (the Flask backend driving this script from the web UI)
+# scans log lines for this prefix to update a structured "progress" field
+# it exposes over the /api/map/build/status poll, without having to guess
+# progress from free-form text. Lines with this prefix are stripped from
+# the human-facing log by the backend; everything else is shown as-is.
+
+PROGRESS_PREFIX = "##PROGRESS## "
+
+
+def _emit_progress(log: LogFn, **fields) -> None:
+    log(PROGRESS_PREFIX + json.dumps(fields))
+
+
 # --- pmtiles CLI invocation -----------------------------------------------
 
 
-def run_pmtiles(pmtiles_bin: Path, args: List[str], log: LogFn) -> None:
+class PmtilesError(BuildError):
+    """A pmtiles CLI invocation failed; carries its captured output."""
+
+    def __init__(self, message: str, output_lines: List[str]):
+        super().__init__(message)
+        self.output_lines = output_lines
+
+
+def run_pmtiles(pmtiles_bin: Path, args: List[str], log: LogFn) -> List[str]:
     process = subprocess.run([str(pmtiles_bin), *args], capture_output=True, text=True)
-    for line in (process.stdout or "").splitlines():
-        log(line)
-    for line in (process.stderr or "").splitlines():
+    output_lines = (process.stdout or "").splitlines() + (process.stderr or "").splitlines()
+    for line in output_lines:
         log(line)
     if process.returncode != 0:
-        raise BuildError(f"pmtiles {args[0]} failed with exit code {process.returncode}")
+        raise PmtilesError(f"pmtiles {args[0]} failed with exit code {process.returncode}", output_lines)
+    return output_lines
 
 
 def extract_region(
-    pmtiles_bin: Path, source: str, out_path: Path, bbox: str, minzoom: int, maxzoom: int, log: LogFn
+    pmtiles_bin: Path,
+    source: str,
+    build_date: str,
+    out_path: Path,
+    bbox: str,
+    minzoom: int,
+    maxzoom: int,
+    log: LogFn,
 ) -> None:
-    run_pmtiles(
-        pmtiles_bin,
-        [
-            "extract",
-            source,
-            str(out_path),
-            f"--bbox={bbox}",
-            f"--minzoom={minzoom}",
-            f"--maxzoom={maxzoom}",
-            "--download-threads=8",
-        ],
-        log,
-    )
+    try:
+        run_pmtiles(
+            pmtiles_bin,
+            [
+                "extract",
+                source,
+                str(out_path),
+                f"--bbox={bbox}",
+                f"--minzoom={minzoom}",
+                f"--maxzoom={maxzoom}",
+                "--download-threads=8",
+            ],
+            log,
+        )
+    except PmtilesError as e:
+        if any("404" in line or "range reader" in line for line in e.output_lines):
+            log(
+                f">> Hinweis: Die Protomaps-Quelldatei fuer BUILD_DATE '{build_date}' wurde "
+                "nicht gefunden (404). Protomaps haelt taegliche Builds nur ca. 5 Tage vor - "
+                "entweder das Build-Datum-Feld in den Karten-Einstellungen leer lassen "
+                "(automatisch neuester Stand) oder ein aktuelles Datum von "
+                "https://build.protomaps.com eintragen."
+            )
+        raise
 
 
 # --- orchestration -----------------------------------------------------
@@ -349,14 +438,13 @@ def extract_region(
 
 def build(env: Dict[str, str], log: LogFn = print) -> Path:
     """Run the full build (or, if DRY_RUN, print the plan). Returns the output path."""
-    build_date = env.get("BUILD_DATE", DEFAULT_BUILD_DATE)
+    build_date = env.get("BUILD_DATE") or ""
     force_rebuild = env.get("FORCE_REBUILD", "false") == "true"
     dry_run = env.get("DRY_RUN", "false") == "true"
     cache_dir = Path(env["CACHE_DIR"]) if env.get("CACHE_DIR") else Path(tempfile.gettempdir())
     pmtiles_version = env.get("PMTILES_VERSION", DEFAULT_PMTILES_VERSION)
     regions_file = env.get("REGIONS_FILE")
 
-    source = f"https://build.protomaps.com/{build_date}.pmtiles"
     out_path = PROJECT_ROOT / OUT_RELATIVE
 
     if regions_file:
@@ -369,9 +457,23 @@ def build(env: Dict[str, str], log: LogFn = print) -> Path:
     if not dry_run:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         cache_dir.mkdir(parents=True, exist_ok=True)
+
+        _emit_progress(log, stage="resolving_pmtiles_cli")
         pmtiles_bin = resolve_pmtiles_cli(PROJECT_ROOT / "tools" / "bin", pmtiles_version, log)
+
+        if not build_date:
+            _emit_progress(log, stage="resolving_build_date")
+            log(">> BUILD_DATE not set, looking up the newest available Protomaps build...")
+            build_date = resolve_latest_build_date(log)
+            log(f"   using {build_date}")
+
         if force_rebuild:
             clear_region_caches(cache_dir)
+    elif not build_date:
+        build_date = BUILD_DATE_PLACEHOLDER  # display only - never resolved over the network in a dry run
+
+    source = build_source_url(build_date)
+    log(f">> Protomaps-Kartendaten vom {build_date}  ({source})")
 
     merge_sources = []
     for plan in plans:
@@ -392,7 +494,16 @@ def build(env: Dict[str, str], log: LogFn = print) -> Path:
         region_cache = _cache_path(cache_dir, plan.index)
         if not valid and not dry_run:
             assert pmtiles_bin is not None
-            extract_region(pmtiles_bin, source, region_cache, region.bbox, plan.minzoom, region.maxzoom, log)
+            _emit_progress(
+                log,
+                stage="extracting",
+                region_index=plan.index,
+                region_count=len(plans),
+                region_name=region.name,
+            )
+            extract_region(
+                pmtiles_bin, source, build_date, region_cache, region.bbox, plan.minzoom, region.maxzoom, log
+            )
             write_cache_meta(
                 cache_dir, plan.index, bbox=region.bbox, minzoom=plan.minzoom, maxzoom=region.maxzoom, build_date=build_date
             )
@@ -405,10 +516,12 @@ def build(env: Dict[str, str], log: LogFn = print) -> Path:
     if dry_run:
         log(f">> (dry run) would run: pmtiles merge {' '.join(str(s) for s in merge_sources)} {out_path}")
     else:
+        _emit_progress(log, stage="merging")
         assert pmtiles_bin is not None
         run_pmtiles(pmtiles_bin, ["merge", *[str(s) for s in merge_sources], str(out_path)], log)
         size_mb = out_path.stat().st_size / (1024 * 1024)
         log(f">> done: {size_mb:.1f} MB at {out_path}")
+        _emit_progress(log, stage="done")
 
     return out_path
 

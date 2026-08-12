@@ -71,10 +71,16 @@ def reset_game_state(isolate_state_file):
 
 
 def _reset_map_module_state():
+    # Plain dict.update() would shallow-copy DEFAULT_MAP_CONFIG's "regions"
+    # list and _fresh_build_status()'s "log_tail" list by reference, so a
+    # naive reset here would keep leaking test-to-test - see
+    # map_build._fresh_build_status's docstring for the same issue.
     map_build._map_config.clear()
-    map_build._map_config.update(map_build.DEFAULT_MAP_CONFIG)
+    map_build._map_config.update(
+        {**map_build.DEFAULT_MAP_CONFIG, "regions": [dict(r) for r in map_build.DEFAULT_MAP_CONFIG["regions"]]}
+    )
     map_build._build_status.clear()
-    map_build._build_status.update(map_build._DEFAULT_BUILD_STATUS)
+    map_build._build_status.update(map_build._fresh_build_status())
 
 
 @pytest.fixture(autouse=True)
