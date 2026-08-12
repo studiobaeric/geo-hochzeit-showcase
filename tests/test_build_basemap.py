@@ -345,6 +345,43 @@ def test_source_exists_uses_ranged_get_not_head(monkeypatch):
     assert captured["range_header"] == "bytes=0-0"
 
 
+def test_source_exists_sends_a_non_default_user_agent(monkeypatch):
+    """Regression test: build.protomaps.com (and GitHub releases) 403
+    Python's default "Python-urllib/x.y" User-Agent as bot traffic, even
+    though the identical request from a browser or curl succeeds - this
+    made every single candidate date look "missing" on a real run."""
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    def fake_urlopen(request, timeout=None):
+        captured["user_agent"] = request.get_header("User-agent")  # urllib title-cases header keys
+        return FakeResponse()
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", fake_urlopen)
+
+    bb._source_exists("20260810")
+
+    assert captured["user_agent"] == bb.USER_AGENT
+    assert "python-urllib" not in captured["user_agent"].lower()
+
+
+def test_source_exists_false_on_403(monkeypatch):
+    def raise_403(*args, **kwargs):
+        raise urllib.error.HTTPError("url", 403, "forbidden", {}, None)
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", raise_403)
+
+    assert bb._source_exists("20260812") is False
+
+
 def test_source_exists_logs_the_outcome_of_every_attempt(monkeypatch):
     class FakeResponse:
         status = 200
@@ -446,6 +483,65 @@ def test_clear_region_caches_removes_everything(tmp_path):
     bb.clear_region_caches(tmp_path)
 
     assert list(tmp_path.iterdir()) == []
+
+
+# --- resolving/downloading the pmtiles CLI itself -----------------------
+
+
+def test_resolve_pmtiles_cli_downloads_with_user_agent_and_extracts(tmp_path, monkeypatch):
+    """End-to-end (but network-free) check of the download path that used
+    to call urllib.request.urlretrieve - which can't send custom headers,
+    so it always went out with Python's default User-Agent and got 403'd
+    by build.protomaps.com/GitHub's CDN. Confirms the replacement
+    (urlopen + streamed write) both sends USER_AGENT and produces a
+    working binary."""
+    import io
+    import zipfile
+
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w") as zf:
+        zf.writestr("pmtiles", b"fake-pmtiles-binary")
+    payload_bytes = payload.getvalue()
+
+    monkeypatch.setattr(bb.shutil, "which", lambda name: None)
+    monkeypatch.setattr(bb.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(bb.platform, "machine", lambda: "x86_64")
+
+    captured = {}
+
+    class FakeResponse(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    def fake_urlopen(request, timeout=None):
+        captured["url"] = request.full_url
+        captured["user_agent"] = request.get_header("User-agent")
+        return FakeResponse(payload_bytes)
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", fake_urlopen)
+
+    bin_dir = tmp_path / "bin"
+    result = bb.resolve_pmtiles_cli(bin_dir, "1.30.3", log=lambda _: None)
+
+    assert captured["user_agent"] == bb.USER_AGENT
+    assert "go-pmtiles-1.30.3_Darwin_x86_64.zip" in captured["url"]
+    assert result == bin_dir / "pmtiles"
+    assert result.read_bytes() == b"fake-pmtiles-binary"
+
+
+def test_resolve_pmtiles_cli_raises_build_error_on_download_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(bb.shutil, "which", lambda name: None)
+
+    def raise_url_error(*args, **kwargs):
+        raise bb.urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", raise_url_error)
+
+    with pytest.raises(bb.BuildError, match="download failed"):
+        bb.resolve_pmtiles_cli(tmp_path / "bin", "1.30.3", log=lambda _: None)
 
 
 # --- extracting the pmtiles binary from a release archive -------------

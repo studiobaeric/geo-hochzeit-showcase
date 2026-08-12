@@ -75,6 +75,14 @@ WORLD_BBOX = "-180,-90,180,90"
 OUT_RELATIVE = Path("static/data/basemap.pmtiles")
 BUILD_SOURCE_URL_TEMPLATE = "https://build.protomaps.com/{build_date}.pmtiles"
 BUILD_DATE_PROBE_WINDOW_DAYS = 21  # Protomaps documents ~5 days retention; wide safety margin
+
+# Some CDNs/WAFs (build.protomaps.com and GitHub releases both went through
+# a CDN) return 403 for Python's default "Python-urllib/x.y" User-Agent,
+# treating it as bot/scraper traffic, even though the exact same request
+# from a browser or the pmtiles CLI's own HTTP client succeeds. Every
+# request this script makes itself (not the pmtiles binary, which has its
+# own client) sends this instead - see `_request`.
+USER_AGENT = "geo-hochzeit-build-basemap/1.0 (+https://github.com/n1c01/Geo_Hochzeit)"
 BUILD_DATE_PLACEHOLDER = "<neuester verfuegbarer Stand>"  # DRY_RUN display only, never resolved over the network
 
 LogFn = Callable[[str], None]
@@ -170,6 +178,14 @@ def assign_zoom_ranges(regions: Sequence[Region]) -> List[RegionPlan]:
     return plans
 
 
+def _request(url: str, headers: Optional[Dict[str, str]] = None) -> urllib.request.Request:
+    """A urllib Request with USER_AGENT set - see its definition for why."""
+    all_headers = {"User-Agent": USER_AGENT}
+    if headers:
+        all_headers.update(headers)
+    return urllib.request.Request(url, headers=all_headers)
+
+
 # --- pmtiles CLI resolution --------------------------------------------------
 
 
@@ -253,7 +269,8 @@ def resolve_pmtiles_cli(bin_dir: Path, version: str, log: LogFn) -> Path:
     bin_dir.mkdir(parents=True, exist_ok=True)
     archive_path = bin_dir / Path(url).name
     try:
-        urllib.request.urlretrieve(url, archive_path)  # noqa: S310 - trusted, pinned release URL
+        with urllib.request.urlopen(_request(url), timeout=60) as response, open(archive_path, "wb") as f:
+            shutil.copyfileobj(response, f)
     except urllib.error.URLError as e:
         raise BuildError(f"download failed (check version/OS/arch): {url} ({e})") from e
 
@@ -280,18 +297,20 @@ def build_source_url(build_date: str) -> str:
 def _source_exists(build_date: str, log: LogFn = lambda _line: None) -> bool:
     """Whether a Protomaps daily build actually exists for this date.
 
-    Uses a ranged GET (`Range: bytes=0-0`), not HEAD: pmtiles itself only
-    ever reads these files via range requests, and some static-file/
-    object-storage backends don't support HEAD at all - using it here once
-    made every single candidate date look "missing" even though real
-    builds existed, exhausting the whole probe window for no real reason.
+    Uses a ranged GET (`Range: bytes=0-0`) with USER_AGENT set, not a bare
+    HEAD: pmtiles itself only ever reads these files via range requests,
+    and some static-file/CDN backends don't support HEAD at all, or 403 a
+    generic Python User-Agent as bot traffic - either one made every
+    single candidate date look "missing" even though real builds existed,
+    exhausting the whole probe window for no real reason. Both have
+    happened for real, on different attempts, before this fix.
 
     Logs the outcome of every attempt (not just failures) so a repeat of
     that failure mode is diagnosable from the build log instead of just
     seeing a flat "nothing found" at the end.
     """
     url = build_source_url(build_date)
-    request = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
+    request = _request(url, headers={"Range": "bytes=0-0"})
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
             ok = response.status in (200, 206)
