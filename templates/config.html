@@ -147,6 +147,85 @@
             box-shadow: none;
         }
 
+        .region-list {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .region-row {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .region-row-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .region-row-header span {
+            font-size: 0.85em;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .region-remove-button {
+            border: none;
+            background: none;
+            color: #c62828;
+            font-size: 0.85em;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+
+        .region-remove-button:disabled {
+            color: #bbb;
+            cursor: not-allowed;
+        }
+
+        .region-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .region-fields .field {
+            margin-bottom: 0;
+        }
+
+        .region-fields .field.region-bbox-field {
+            grid-column: 1 / -1;
+        }
+
+        .region-coverage-hint {
+            margin-top: 8px;
+            font-size: 0.8em;
+            color: #2e7d32;
+        }
+
+        .add-region-button {
+            border: 2px dashed #c5c1f0;
+            background: none;
+            color: #667eea;
+            border-radius: 8px;
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-bottom: 14px;
+        }
+
+        .add-region-button:hover {
+            background: #f5f4ff;
+        }
+
+        .field-hint a {
+            color: #667eea;
+        }
+
         .future-config-note {
             background: #f0f0f0;
             border-radius: 10px;
@@ -279,25 +358,27 @@
 
         <div class="config-section">
             <h2>Kartendaten</h2>
-            <div class="field">
-                <label for="mapBbox">Kartenausschnitt (min_lon,min_lat,max_lon,max_lat)</label>
-                <input type="text" id="mapBbox" name="mapBbox" required>
-                <p class="field-hint" id="photoCoverageHint"></p>
-            </div>
-            <div class="field-row">
-                <div class="field">
-                    <label for="mapMaxzoom">Detailgrad Kartenausschnitt (Zoom)</label>
-                    <input type="number" id="mapMaxzoom" name="mapMaxzoom" min="0" max="14" step="1" required>
-                </div>
-                <div class="field">
-                    <label for="mapWorldMaxzoom">Detailgrad Weltübersicht (Zoom)</label>
-                    <input type="number" id="mapWorldMaxzoom" name="mapWorldMaxzoom" min="0" max="14" step="1" required>
-                </div>
-            </div>
+            <p class="field-hint">
+                Kartenausschnitte von grob nach fein anlegen - z.B. weltweit mit
+                wenig Detail für die Übersicht, dann einzelne Orte in hohem
+                Detail. Für alle Fotostandorte (siehe Rundenfotos) wird beim
+                Herunterladen automatisch hohes Detail sichergestellt, auch
+                wenn ein Ausschnitt sie eigentlich nicht abdeckt.
+            </p>
+            <div class="region-list" id="regionList"></div>
+            <button type="button" class="add-region-button" id="addRegionButton">+ weiteren Kartenausschnitt hinzufügen</button>
+
             <div class="field">
                 <label for="mapBuildDate">Protomaps-Build-Datum (YYYYMMDD)</label>
                 <input type="text" id="mapBuildDate" name="mapBuildDate" pattern="\d{8}" maxlength="8" required>
+                <p class="field-hint">
+                    Protomaps hält tägliche Builds nur ca. 5 Tage vor - ein
+                    aktuelles Datum auf der
+                    <a href="https://build.protomaps.com" target="_blank" rel="noopener">Build-Übersicht (build.protomaps.com)</a>
+                    nachsehen und im Format JJJJMMTT eintragen (z.B. 20260810).
+                </p>
             </div>
+
             <div class="config-buttons">
                 <button type="button" class="config-button build" id="downloadMapButton">🗺️ Karte jetzt herunterladen</button>
             </div>
@@ -354,30 +435,159 @@
     roundDurationInput.value = currentRoundConfig.duration_seconds;
     updateRoundDurationVisibility();
 
-    const mapBboxInput = document.getElementById('mapBbox');
-    const mapMaxzoomInput = document.getElementById('mapMaxzoom');
-    const mapWorldMaxzoomInput = document.getElementById('mapWorldMaxzoom');
     const mapBuildDateInput = document.getElementById('mapBuildDate');
-    const photoCoverageHint = document.getElementById('photoCoverageHint');
     const downloadMapButton = document.getElementById('downloadMapButton');
     const buildStatusEl = document.getElementById('buildStatus');
     const buildLogEl = document.getElementById('buildLog');
+    const regionListEl = document.getElementById('regionList');
+    const addRegionButton = document.getElementById('addRegionButton');
+
+    // Zoom is a technical parameter for non-technical users, so it's offered
+    // as a labelled dropdown (what it looks like / roughly how big the
+    // download gets) rather than a bare number input.
+    const ZOOM_LEVEL_LABELS = [
+        [0, 'Kontinente'],
+        [1, 'Kontinente'],
+        [2, 'Kontinente / große Länder'],
+        [3, 'Länder'],
+        [4, 'Länder'],
+        [5, 'Bundesländer / Regionen (Weltübersicht, wenige MB)'],
+        [6, 'Bundesländer / Regionen'],
+        [7, 'Landkreise'],
+        [8, 'Städte im Überblick'],
+        [9, 'Städte im Überblick'],
+        [10, 'Stadt-Ebene, Standard (~1.4 GB für ganz Europa)'],
+        [11, 'Hauptstraßennetz (~2.9 GB für ganz Europa)'],
+        [12, 'Die meisten Straßen (~6.5 GB für ganz Europa)'],
+        [13, 'Jede Nebenstraße (~13 GB für ganz Europa)'],
+        [14, 'Maximale Detailtiefe']
+    ];
+
+    let regionsState = [];
+
+    function buildZoomSelect(selectedZoom) {
+        const select = document.createElement('select');
+        ZOOM_LEVEL_LABELS.forEach(([zoom, label]) => {
+            const option = document.createElement('option');
+            option.value = String(zoom);
+            option.textContent = `Zoom ${zoom} – ${label}`;
+            option.selected = zoom === selectedZoom;
+            select.appendChild(option);
+        });
+        return select;
+    }
+
+    function fieldWithLabel(labelText, inputEl, extraClass) {
+        const field = document.createElement('div');
+        field.className = extraClass ? `field ${extraClass}` : 'field';
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        field.appendChild(label);
+        field.appendChild(inputEl);
+        return field;
+    }
+
+    function renderRegionList() {
+        regionListEl.innerHTML = '';
+
+        let topIndex = -1;
+        regionsState.forEach((region, index) => {
+            if (topIndex === -1 || region.maxzoom > regionsState[topIndex].maxzoom) {
+                topIndex = index;
+            }
+        });
+
+        regionsState.forEach((region, index) => {
+            const row = document.createElement('div');
+            row.className = 'region-row';
+
+            const header = document.createElement('div');
+            header.className = 'region-row-header';
+            const label = document.createElement('span');
+            label.textContent = `Kartenausschnitt ${index + 1}`;
+            header.appendChild(label);
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'region-remove-button';
+            removeButton.textContent = '✕ entfernen';
+            removeButton.disabled = regionsState.length <= 1;
+            removeButton.addEventListener('click', () => {
+                regionsState.splice(index, 1);
+                renderRegionList();
+            });
+            header.appendChild(removeButton);
+            row.appendChild(header);
+
+            const fields = document.createElement('div');
+            fields.className = 'region-fields';
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.maxLength = 60;
+            nameInput.required = true;
+            nameInput.value = region.name;
+            nameInput.addEventListener('input', () => { region.name = nameInput.value; });
+            fields.appendChild(fieldWithLabel('Name', nameInput));
+
+            const zoomSelect = buildZoomSelect(region.maxzoom);
+            zoomSelect.addEventListener('change', () => {
+                region.maxzoom = parseInt(zoomSelect.value, 10);
+                renderRegionList();
+            });
+            fields.appendChild(fieldWithLabel('Detailgrad', zoomSelect));
+
+            const bboxInput = document.createElement('input');
+            bboxInput.type = 'text';
+            bboxInput.required = true;
+            bboxInput.placeholder = 'min_lon,min_lat,max_lon,max_lat';
+            bboxInput.value = region.bbox;
+            bboxInput.addEventListener('input', () => { region.bbox = bboxInput.value; });
+            fields.appendChild(fieldWithLabel(
+                'Kartenausschnitt (min_lon,min_lat,max_lon,max_lat)', bboxInput, 'region-bbox-field'
+            ));
+
+            row.appendChild(fields);
+
+            if (index === topIndex) {
+                const hint = document.createElement('p');
+                hint.className = 'region-coverage-hint';
+                hint.textContent =
+                    'Detailreichster Ausschnitt: wird beim Herunterladen automatisch ' +
+                    'erweitert, damit alle Fotostandorte abgedeckt sind.';
+                row.appendChild(hint);
+            }
+
+            regionListEl.appendChild(row);
+        });
+    }
+
+    addRegionButton.addEventListener('click', () => {
+        const maxUsedZoom = regionsState.length ? Math.max(...regionsState.map((r) => r.maxzoom)) : -1;
+        regionsState.push({
+            name: `Ausschnitt ${regionsState.length + 1}`,
+            bbox: '',
+            maxzoom: Math.min(14, maxUsedZoom + 1)
+        });
+        renderRegionList();
+    });
+
+    function collectRegionsPayload() {
+        return regionsState.map((region) => ({
+            name: region.name.trim(),
+            bbox: region.bbox.trim(),
+            maxzoom: region.maxzoom
+        }));
+    }
 
     function applyMapConfigToForm(config) {
-        mapBboxInput.value = config.bbox;
-        mapMaxzoomInput.value = config.maxzoom;
-        mapWorldMaxzoomInput.value = config.world_maxzoom;
+        regionsState = config.regions.map((region) => ({
+            name: region.name,
+            bbox: region.bbox,
+            maxzoom: region.maxzoom
+        }));
+        renderRegionList();
         mapBuildDateInput.value = config.build_date;
-
-        if (config.photo_bbox && config.effective_bbox !== config.bbox) {
-            photoCoverageHint.textContent =
-                `Wird beim Herunterladen automatisch erweitert auf ${config.effective_bbox}, ` +
-                'damit alle Fotostandorte in hohem Detail abgedeckt sind.';
-        } else if (config.photo_bbox) {
-            photoCoverageHint.textContent = 'Deckt bereits alle Fotostandorte ab.';
-        } else {
-            photoCoverageHint.textContent = '';
-        }
     }
 
     await loadMapConfig();
@@ -434,9 +644,7 @@
         downloadMapButton.disabled = true;
         try {
             await saveMapConfig({
-                maxzoom: parseInt(mapMaxzoomInput.value, 10),
-                world_maxzoom: parseInt(mapWorldMaxzoomInput.value, 10),
-                bbox: mapBboxInput.value.trim(),
+                regions: collectRegionsPayload(),
                 build_date: mapBuildDateInput.value.trim()
             });
             const status = await startMapBuild();
@@ -471,9 +679,7 @@
                 duration_seconds: parseInt(roundDurationInput.value, 10)
             });
             await saveMapConfig({
-                maxzoom: parseInt(mapMaxzoomInput.value, 10),
-                world_maxzoom: parseInt(mapWorldMaxzoomInput.value, 10),
-                bbox: mapBboxInput.value.trim(),
+                regions: collectRegionsPayload(),
                 build_date: mapBuildDateInput.value.trim()
             });
             window.location.href = '/';

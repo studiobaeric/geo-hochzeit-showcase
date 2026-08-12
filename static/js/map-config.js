@@ -1,18 +1,19 @@
-// Map-data settings (region, zoom, build date) and the basemap build
-// trigger, set via the /config menu and backed by /api/map/* so the
-// initial "download the map" setup step (tools/build_basemap*.sh) can be
-// driven from the browser instead of the terminal.
+// Map-data settings (regions with their own bbox/zoom, build date) and the
+// basemap build trigger, set via the /config menu and backed by
+// /api/map/* so the initial "download the map" setup step
+// (tools/build_basemap*) can be driven from the browser instead of the
+// terminal.
 const CONFIG_ENDPOINT = '/api/map/config';
 const BUILD_ENDPOINT = '/api/map/build';
 const STATUS_ENDPOINT = '/api/map/build/status';
 
 const DEFAULTS = {
-    maxzoom: 13,
-    world_maxzoom: 5,
-    bbox: '-25,32,45,72',
+    regions: [
+        { name: 'Welt', bbox: '-180,-90,180,90', maxzoom: 5, effective_bbox: '-180,-90,180,90' },
+        { name: 'Europa', bbox: '-25,32,45,72', maxzoom: 13, effective_bbox: '-25,32,45,72' }
+    ],
     build_date: '20260608',
-    photo_bbox: null,
-    effective_bbox: '-25,32,45,72'
+    photo_bbox: null
 };
 
 let cache = { ...DEFAULTS };
@@ -33,11 +34,11 @@ export async function loadMapConfig() {
     return cache;
 }
 
-export async function saveMapConfig({ maxzoom, world_maxzoom, bbox, build_date }) {
+export async function saveMapConfig({ regions, build_date }) {
     const response = await fetch(CONFIG_ENDPOINT, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maxzoom, world_maxzoom, bbox, build_date })
+        body: JSON.stringify({ regions, build_date })
     });
 
     if (!response.ok) {

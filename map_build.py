@@ -1,18 +1,23 @@
 """Map-data settings + basemap build trigger, exposed via the web config UI.
 
-Building the offline PMTiles basemap (see `tools/build_basemap*.sh`) used to
-be a manual, terminal-only step during initial setup. This module lets the
-`/config` page configure *where* (bounding box) and *how detailed*
-(zoom levels) the basemap should be, and trigger the existing build script
-as a background process - the script itself is untouched, this just drives
-it.
+Building the offline PMTiles basemap (see `tools/build_basemap*`) used to be
+a manual, terminal-only step during initial setup. This module lets the
+`/config` page define one or more map *regions* - each with its own
+bounding box and zoom cap, e.g. a coarse worldwide overview plus one or more
+specific areas in high detail - and trigger the existing build script as a
+background process. The script itself does the actual (network-heavy,
+multi-GB) work; this just configures and drives it.
 
-Whatever region gets configured, the bounding box actually used for a build
-is always widened (if needed) to cover every photo location in
-`static/config/photos.json` with a safety margin, so a round's location is
-never left outside the high-detail map data - see `_photos_bbox`/
-`_union_bbox`. The user-configured `bbox` on disk is left untouched; only
-the box passed to the build script is widened.
+Regions are ordered by zoom ascending and merged so each one only
+contributes the zoom levels above the previous region's cap, restricted to
+its own bbox (see tools/build_basemap_linux.sh for the merge strategy).
+
+Whatever bbox is configured for the most detailed region, the bbox actually
+used for a build is always widened (if needed) to cover every photo
+location in static/config/photos.json with a safety margin, so a round's
+photo location is never left outside the high-detail map data - see
+`_photos_bbox`/`_union_bbox`. The user-configured bbox on disk is left
+untouched; only the box passed to the build script is widened.
 
 Mirrors game_state.py's conventions: module-level dicts as the source of
 truth, JSON-file mirroring for persistence, and a file path overridable via
@@ -45,14 +50,17 @@ MAP_CONFIG_FILE = os.environ.get(
 PHOTOS_FILE = os.path.join(PROJECT_ROOT, "static", "config", "photos.json")
 
 DEFAULT_MAP_CONFIG = {
-    "maxzoom": 13,
-    "world_maxzoom": 5,
-    "bbox": "-25,32,45,72",
+    "regions": [
+        {"name": "Welt", "bbox": "-180,-90,180,90", "maxzoom": 5},
+        {"name": "Europa", "bbox": "-25,32,45,72", "maxzoom": 13},
+    ],
     "build_date": "20260608",
 }
 
 _MIN_ZOOM = 0
 _MAX_ZOOM = 14
+_MAX_REGIONS = 8
+_MAX_REGION_NAME_LENGTH = 60
 _PHOTO_BBOX_PADDING_DEGREES = 0.5
 _MAX_LOG_LINES = 200
 _BUILD_DATE_RE = re.compile(r"\d{8}")
@@ -159,23 +167,51 @@ def _union_bbox(bbox_str, photo_bbox):
 # --- map config: validation, persistence, API ---------------------------
 
 
-def _validate_map_config_updates(updates):
-    if "maxzoom" in updates or "world_maxzoom" in updates:
-        maxzoom = updates.get("maxzoom", _map_config["maxzoom"])
-        world_maxzoom = updates.get("world_maxzoom", _map_config["world_maxzoom"])
-        for name, value in (("maxzoom", maxzoom), ("world_maxzoom", world_maxzoom)):
-            if (
-                isinstance(value, bool)
-                or not isinstance(value, int)
-                or value < _MIN_ZOOM
-                or value > _MAX_ZOOM
-            ):
-                return f"{name} must be an integer between {_MIN_ZOOM} and {_MAX_ZOOM}"
-        if world_maxzoom >= maxzoom:
-            return "world_maxzoom must be smaller than maxzoom"
+def _validate_regions(regions):
+    if not isinstance(regions, list) or not regions:
+        return "regions must be a non-empty list"
+    if len(regions) > _MAX_REGIONS:
+        return f"regions must contain at most {_MAX_REGIONS} entries"
 
-    if "bbox" in updates:
-        error = _validate_bbox(updates["bbox"])
+    seen_maxzoom = set()
+    for region in regions:
+        if not isinstance(region, dict):
+            return "each region must be an object"
+
+        name = region.get("name")
+        if (
+            not isinstance(name, str)
+            or not name.strip()
+            or len(name.strip()) > _MAX_REGION_NAME_LENGTH
+        ):
+            return f"region name must be a non-empty string of at most {_MAX_REGION_NAME_LENGTH} characters"
+
+        bbox_error = _validate_bbox(region.get("bbox"))
+        if bbox_error:
+            return f"region '{name}': {bbox_error}"
+
+        maxzoom = region.get("maxzoom")
+        if (
+            isinstance(maxzoom, bool)
+            or not isinstance(maxzoom, int)
+            or maxzoom < _MIN_ZOOM
+            or maxzoom > _MAX_ZOOM
+        ):
+            return f"region '{name}': maxzoom must be an integer between {_MIN_ZOOM} and {_MAX_ZOOM}"
+
+        if maxzoom in seen_maxzoom:
+            return (
+                f"region '{name}': maxzoom {maxzoom} is already used by another region - "
+                "each region needs its own, increasing zoom cap"
+            )
+        seen_maxzoom.add(maxzoom)
+
+    return None
+
+
+def _validate_map_config_updates(updates):
+    if "regions" in updates:
+        error = _validate_regions(updates["regions"])
         if error:
             return error
 
@@ -185,6 +221,14 @@ def _validate_map_config_updates(updates):
             return "build_date must be a string in YYYYMMDD format"
 
     return None
+
+
+def _normalize_regions(regions):
+    normalized = [
+        {"name": r["name"].strip(), "bbox": r["bbox"], "maxzoom": r["maxzoom"]} for r in regions
+    ]
+    normalized.sort(key=lambda r: r["maxzoom"])
+    return normalized
 
 
 def _persist_map_config_locked():
@@ -239,15 +283,31 @@ def load_map_config_from_disk():
     if _validate_map_config_updates(known) is not None:
         return
 
+    known["regions"] = _normalize_regions(known["regions"])
     _map_config.clear()
     _map_config.update(known)
 
 
 def _config_with_bbox_info(config):
+    """Config annotated with per-region `effective_bbox` + top-level `photo_bbox`.
+
+    Regions come back sorted ascending by maxzoom. Only the most detailed
+    (last/highest-maxzoom) region's `effective_bbox` is widened to cover
+    every photo location - that's the region that actually determines how
+    much detail a photo's surroundings get.
+    """
     record = dict(config)
+    regions = [dict(r) for r in config["regions"]]
+    regions.sort(key=lambda r: r["maxzoom"])
+
     photo_bbox = _photos_bbox()
+    for region in regions:
+        region["effective_bbox"] = region["bbox"]
+    if regions:
+        regions[-1]["effective_bbox"] = _union_bbox(regions[-1]["bbox"], photo_bbox)
+
+    record["regions"] = regions
     record["photo_bbox"] = _format_bbox(photo_bbox) if photo_bbox else None
-    record["effective_bbox"] = _union_bbox(record["bbox"], photo_bbox)
     return record
 
 
@@ -267,9 +327,10 @@ def patch_map_config():
         return jsonify({"error": error}), 400
 
     with _lock:
-        for key in DEFAULT_MAP_CONFIG:
-            if key in updates:
-                _map_config[key] = updates[key]
+        if "regions" in updates:
+            _map_config["regions"] = _normalize_regions(updates["regions"])
+        if "build_date" in updates:
+            _map_config["build_date"] = updates["build_date"]
         config = dict(_map_config)
         _persist_map_config_locked()
 
@@ -281,19 +342,44 @@ def patch_map_config():
 
 def _script_path():
     system = platform.system()
-    name = {"Linux": "build_basemap_linux.sh", "Darwin": "build_basemap.sh"}.get(system)
+    name = {
+        "Linux": "build_basemap_linux.sh",
+        "Darwin": "build_basemap.sh",
+        "Windows": "build_basemap.ps1",
+    }.get(system)
     if name is None:
         return None
     path = os.path.join(PROJECT_ROOT, "tools", name)
     return path if os.path.isfile(path) else None
 
 
+def _write_regions_file(regions):
+    """Write `name<TAB>effective_bbox<TAB>maxzoom` lines for the build script."""
+    fd, path = tempfile.mkstemp(prefix="map_regions_", suffix=".tsv")
+    try:
+        with os.fdopen(fd, "w", newline="\n") as f:
+            for region in regions:
+                name = region["name"].replace("\t", " ").replace("\n", " ")
+                f.write(f"{name}\t{region['effective_bbox']}\t{region['maxzoom']}\n")
+    except Exception:
+        os.remove(path)
+        raise
+    return path
+
+
+def _build_command(script):
+    if platform.system() == "Windows":
+        return ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script]
+    return ["bash", script]
+
+
 def _default_runner(config, log_callback):
     """Run the platform's build script as a subprocess.
 
-    Streams combined stdout/stderr line by line to `log_callback` and
-    returns the process exit code (1 if no script is available for this
-    platform, without spawning anything).
+    Writes the configured regions to a temp TSV file, streams the script's
+    combined stdout/stderr line by line to `log_callback`, and returns the
+    process exit code (1 if no script is available for this platform,
+    without spawning anything).
     """
     script = _script_path()
     if script is None:
@@ -302,25 +388,30 @@ def _default_runner(config, log_callback):
         )
         return 1
 
-    env = os.environ.copy()
-    env["MAXZOOM"] = str(config["maxzoom"])
-    env["WORLD_MAXZOOM"] = str(config["world_maxzoom"])
-    env["EUROPE_BBOX"] = config["effective_bbox"]
-    env["BUILD_DATE"] = config["build_date"]
+    regions_file = _write_regions_file(config["regions"])
+    try:
+        env = os.environ.copy()
+        env["REGIONS_FILE"] = regions_file
+        env["BUILD_DATE"] = config["build_date"]
 
-    process = subprocess.Popen(
-        ["bash", script],
-        cwd=PROJECT_ROOT,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
-    for line in process.stdout:
-        log_callback(line.rstrip("\n"))
-    process.wait()
-    return process.returncode
+        process = subprocess.Popen(
+            _build_command(script),
+            cwd=PROJECT_ROOT,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        for line in process.stdout:
+            log_callback(line.rstrip("\n"))
+        process.wait()
+        return process.returncode
+    finally:
+        try:
+            os.remove(regions_file)
+        except OSError:
+            pass
 
 
 # Overridable indirection point: tests monkeypatch this to a fast fake so
