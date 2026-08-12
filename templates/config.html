@@ -71,17 +71,21 @@
             margin-bottom: 6px;
         }
 
-        .field input {
+        .field input,
+        .field select {
             width: 100%;
+            min-width: 0;
             padding: 12px 14px;
             font-size: 1em;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             box-sizing: border-box;
             transition: border-color 0.2s;
+            font-family: inherit;
         }
 
-        .field input:focus {
+        .field input:focus,
+        .field select:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -188,8 +192,14 @@
 
         .region-fields {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .region-fields {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
 
         .region-fields .field {
