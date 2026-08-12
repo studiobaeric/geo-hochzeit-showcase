@@ -1,10 +1,12 @@
 import {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
-    initSubscriptions, getPlacedPoints, getRoundResults, postRoundResult
+    initSubscriptions, getPlacedPoints, getRoundResults, postRoundResult,
+    getTimerState, startTimer, pauseTimer, resumeTimer, extendTimer, stopTimer
 } from './multiplayer.js';
 import { photoFilenames } from '../config/players.js';
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
+import { loadRoundConfig } from './round-config.js';
 
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
@@ -20,6 +22,13 @@ const lockPlayerInputButton = document.getElementById('lockPlayerInputButton');
 const continueButton = document.getElementById('continueButton');
 const resetGameButton = document.getElementById('resetGameButton');
 const resultContinueButton = document.getElementById('resultContinueButton');
+
+const timeControlPanel = document.getElementById('timeControlPanel');
+const countdownControls = document.getElementById('countdownControls');
+const countdownDisplay = document.getElementById('countdownDisplay');
+const timerStartButton = document.getElementById('timerStartButton');
+const timerPauseButton = document.getElementById('timerPauseButton');
+const timerExtendButton = document.getElementById('timerExtendButton');
 
 const roundResultView = document.getElementById('roundResultView');
 const playerPointElements = {
@@ -50,6 +59,11 @@ let rightPlayerMarker = null;
 let round = 0;
 let playerInputLocked = false;
 let photos = {};
+let currentGameState = 'waiting';
+
+let roundConfig = { mode: 'manual', duration_seconds: 60 };
+let timerState = { running: false, paused: false, ends_at: null, remaining_seconds: null };
+let autoResolvedForRound = false;
 
 // latestPlayerRecords/resolutionPlayerMarkers are plain objects, not Maps -
 // they must be reassigned/removed explicitly, a bare `.clear` call is a
@@ -165,11 +179,98 @@ async function loadCurrentPhoto(photo=round) {
         if (!currentPhoto) return;
 
         currentPhotoImage.src = `/static/photos/${currentPhoto.filename}`;
-        currentPhotoImage.classList.add('is-loaded');
-        currentPhotoFallback.classList.add('is-hidden');
     } catch (error) {
         console.error('Moderator photo could not be loaded:', error);
+    } finally {
+        updatePhotoVisibility();
     }
+}
+
+// Mirrors the player view: the round's photo only appears on the moderator
+// page once the round is actually running (state "playing"), not the
+// instant it's loaded/preloaded - matches #16's "image is shown only after
+// the start" requirement.
+function updatePhotoVisibility() {
+    if (!currentPhotoImage || !currentPhotoFallback) return;
+
+    const shouldShow = currentGameState === 'playing' && Boolean(currentPhoto);
+    currentPhotoImage.classList.toggle('is-loaded', shouldShow);
+    currentPhotoFallback.classList.toggle('is-hidden', shouldShow);
+
+    if (!shouldShow) {
+        currentPhotoFallback.textContent = currentGameState === 'waiting' ? 'Warte auf Start…' : 'Aktuelles Foto';
+    }
+}
+
+function formatSeconds(totalSeconds) {
+    const clamped = Math.max(0, Math.round(totalSeconds || 0));
+    const minutes = Math.floor(clamped / 60);
+    const seconds = clamped % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function computeRemainingSeconds() {
+    if (timerState.paused) return timerState.remaining_seconds ?? 0;
+    if (timerState.running) return Math.max(0, (timerState.ends_at ?? 0) - (Date.now() / 1000));
+    return roundConfig.duration_seconds;
+}
+
+function renderTimeControlPanel() {
+    if (!timeControlPanel) return;
+
+    const isCountdownMode = roundConfig.mode === 'countdown';
+    lockPlayerInputButton?.classList.toggle('is-hidden', isCountdownMode);
+    countdownControls?.classList.toggle('is-hidden', !isCountdownMode);
+
+    if (!isCountdownMode) return;
+
+    const remaining = computeRemainingSeconds();
+    if (countdownDisplay) countdownDisplay.textContent = formatSeconds(remaining);
+    countdownControls.classList.toggle('is-urgent', timerState.running && !timerState.paused && remaining <= 10);
+
+    timerStartButton?.classList.toggle('is-hidden', timerState.running);
+    timerPauseButton?.classList.toggle('is-hidden', !timerState.running);
+    timerExtendButton?.classList.toggle('is-hidden', !timerState.running);
+    if (timerPauseButton) timerPauseButton.textContent = timerState.paused ? 'Fortsetzen' : 'Pause';
+}
+
+// Ends the round the same way a manual "Auflösung" click would, but
+// triggered by the countdown reaching 0 instead of the moderator's click.
+// Guarded by autoResolvedForRound so a slow network response or a couple of
+// overlapping ticks can't fire it twice for the same round.
+async function triggerResolution() {
+    showResolutionView();
+    await toggleLockPlayerScreen();
+
+    if (roundConfig.mode === 'countdown') {
+        try {
+            await stopTimer();
+        } catch (error) {
+            console.error('Could not stop timer:', error);
+        }
+    }
+}
+
+async function maybeAutoResolveRound() {
+    if (roundConfig.mode !== 'countdown') return;
+    if (!timerState.running || timerState.paused) return;
+    if (autoResolvedForRound) return;
+    if (currentGameState !== 'playing') return;
+    if (computeRemainingSeconds() > 0) return;
+
+    autoResolvedForRound = true;
+    await triggerResolution();
+}
+
+export function onRoundConfigUpdate(record) {
+    roundConfig = record;
+    renderTimeControlPanel();
+}
+
+export function onTimerUpdate(record) {
+    timerState = record;
+    renderTimeControlPanel();
+    maybeAutoResolveRound();
 }
 
 function getRecordLatLng(record) {
@@ -407,6 +508,13 @@ async function showModPageNextRound() {
 
     await startNextRound();
 
+    // The round we just advanced to always starts hidden/"waiting" (see
+    // startNextRound()) - set this synchronously rather than waiting on the
+    // gamestate SSE round-trip, so the previous round's photo can't flash
+    // on screen for that brief window.
+    currentGameState = 'waiting';
+    updatePhotoVisibility();
+
     moderatorApp.classList.remove('is-hidden');
     resolutionView.classList.remove('is-active');
 
@@ -546,11 +654,18 @@ function showRoundResult() {
 export async function onGamestateUpdate(record) {
     console.log("Moderator updating with Gamestate: ", record)
 
+    const previousRound = round;
+
     playerInputLocked = (record.state === "waiting");
+    currentGameState = record.state;
     console.log("round running: " + playerInputLocked);
     round = record.round;
     console.log("Round: ", round)
     roundIndicator.textContent = round;
+
+    if (round !== previousRound) {
+        autoResolvedForRound = false;
+    }
 
     ['player1', 'player2'].forEach((role) => {
         playerMapElements[role]?.classList.toggle('is-locked-in', Boolean(record[`${role}_locked`]));
@@ -567,6 +682,7 @@ export async function onGamestateUpdate(record) {
     }
 
     await loadCurrentPhoto();
+    renderTimeControlPanel();
 }
 
 async function toggleLockPlayerScreen(){
@@ -608,9 +724,46 @@ function initEventListeners() {
             player2: 0
         };
         resultCollection = {};
+        autoResolvedForRound = false;
 
         updateCurrentPointDisplay()
 
+    });
+
+    timerStartButton?.addEventListener('click', async () => {
+        if (timerStartButton.disabled) return;
+        timerStartButton.disabled = true;
+        try {
+            // Unlocking input reveals the photo (state -> "playing"); the
+            // countdown then starts from the same click, matching #16's
+            // "moderator starts the timer by clicking start".
+            await unlockPlayerInput();
+            await startTimer();
+        } finally {
+            timerStartButton.disabled = false;
+        }
+    });
+
+    timerPauseButton?.addEventListener('click', async () => {
+        if (timerPauseButton.disabled) return;
+        timerPauseButton.disabled = true;
+        try {
+            if (timerState.paused) {
+                await resumeTimer();
+            } else {
+                await pauseTimer();
+            }
+        } finally {
+            timerPauseButton.disabled = false;
+        }
+    });
+
+    timerExtendButton?.addEventListener('click', async () => {
+        try {
+            await extendTimer(30);
+        } catch (error) {
+            console.error('Could not extend timer:', error);
+        }
     });
 
     resultContinueButton?.addEventListener('click', async () => {
@@ -658,6 +811,13 @@ if (moderatorApp) {
     // scoreboard back to 0.
     await restoreScoreState();
 
+    roundConfig = await loadRoundConfig();
+    try {
+        timerState = await getTimerState();
+    } catch (error) {
+        console.error('Could not load timer state:', error);
+    }
+
     await initSubscriptions();
 
     await onGamestateUpdate(await getGamestateRecord());
@@ -672,9 +832,14 @@ if (moderatorApp) {
 
     await loadCurrentPhoto();
 
+    renderTimeControlPanel();
+    setInterval(() => {
+        renderTimeControlPanel();
+        maybeAutoResolveRound();
+    }, 250);
+
     mainControlButton?.addEventListener('click', async () => {
-        showResolutionView();
-        await toggleLockPlayerScreen();
+        await triggerResolution();
     });
 
     initModeratorMaps().catch((error) => {

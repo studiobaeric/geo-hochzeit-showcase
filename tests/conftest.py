@@ -39,35 +39,31 @@ def isolate_state_file(tmp_path, monkeypatch):
     monkeypatch.setattr(game_state, "STATE_FILE", str(tmp_path / "game_state.json"))
 
 
+def _reset_module_state():
+    game_state._gamestate.update(
+        {
+            "state": "waiting",
+            "round": 1,
+            "player1_locked": False,
+            "player2_locked": False,
+        }
+    )
+    game_state._placed_points.clear()
+    game_state._round_results.clear()
+    game_state._player_config.clear()
+    game_state._player_config.update(game_state._DEFAULT_PLAYER_CONFIG)
+    game_state._round_config.clear()
+    game_state._round_config.update(game_state._DEFAULT_ROUND_CONFIG)
+    game_state._timer_state.clear()
+    game_state._timer_state.update(game_state._DEFAULT_TIMER_STATE)
+    game_state._subscribers.clear()
+
+
 @pytest.fixture(autouse=True)
 def reset_game_state(isolate_state_file):
     """Give every test a fresh in-memory game state, and clean up after."""
     with game_state._lock:
-        game_state._gamestate.update(
-            {
-                "state": "waiting",
-                "round": 1,
-                "player1_locked": False,
-                "player2_locked": False,
-            }
-        )
-        game_state._placed_points.clear()
-        game_state._round_results.clear()
-        game_state._player_config.clear()
-        game_state._player_config.update(game_state._DEFAULT_PLAYER_CONFIG)
-        game_state._subscribers.clear()
+        _reset_module_state()
     yield
     with game_state._lock:
-        game_state._gamestate.update(
-            {
-                "state": "waiting",
-                "round": 1,
-                "player1_locked": False,
-                "player2_locked": False,
-            }
-        )
-        game_state._placed_points.clear()
-        game_state._round_results.clear()
-        game_state._player_config.clear()
-        game_state._player_config.update(game_state._DEFAULT_PLAYER_CONFIG)
-        game_state._subscribers.clear()
+        _reset_module_state()

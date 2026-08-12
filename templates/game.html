@@ -46,6 +46,10 @@
     </div>
 </div>
 
+<!-- Countdown overlay - lives outside photoView/mapView so it stays visible
+     on both the photo and the map (see #16's follow-up comment). -->
+<div id="roundTimer" class="round-timer is-hidden">--:--</div>
+
 
 <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>

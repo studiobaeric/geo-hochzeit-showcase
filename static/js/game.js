@@ -3,12 +3,17 @@ import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation} fro
 import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./basemap.js";
 import {PhotoZoom} from "./photo.js";
 import {loadDisplayNames} from "./player-names.js";
+import {loadRoundConfig} from "./round-config.js";
 
 let guessMarker = null;
 let isLocked = false;
 let currentPhoto = null;
 let map = null;
 let allPhotos = null;
+
+let roundConfig = { mode: 'manual', duration_seconds: 60 };
+let timerState = { running: false, paused: false, ends_at: null, remaining_seconds: null };
+const roundTimerElement = document.getElementById('roundTimer');
 // game.js is imported (for loadNextRound/updateView) from every role's page via
 // multiplayer.js, but #photoContainer only exists on the player's photo view -
 // guard the PhotoZoom setup so it's a no-op on the moderator page.
@@ -76,6 +81,44 @@ function updateRoundDisplay(round) {
         : `Runde ${round}`;
 }
 
+function formatSeconds(totalSeconds) {
+    const clamped = Math.max(0, Math.round(totalSeconds || 0));
+    const minutes = Math.floor(clamped / 60);
+    const seconds = clamped % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function computeRemainingSeconds() {
+    if (timerState.paused) return timerState.remaining_seconds ?? 0;
+    if (timerState.running) return Math.max(0, (timerState.ends_at ?? 0) - (Date.now() / 1000));
+    return roundConfig.duration_seconds;
+}
+
+// Renders the moderator-synced countdown (see game_state.py's /api/timer)
+// next to the round indicator. Hidden entirely in manual mode, or before
+// the moderator has pressed Start for the current round.
+function renderRoundTimer() {
+    if (!roundTimerElement) return;
+
+    const shouldShow = roundConfig.mode === 'countdown' && timerState.running;
+    roundTimerElement.classList.toggle('is-hidden', !shouldShow);
+    if (!shouldShow) return;
+
+    const remaining = computeRemainingSeconds();
+    roundTimerElement.textContent = formatSeconds(remaining);
+    roundTimerElement.classList.toggle('is-urgent', !timerState.paused && remaining <= 10);
+}
+
+export function onRoundConfigUpdate(record) {
+    roundConfig = record;
+    renderRoundTimer();
+}
+
+export function onTimerUpdate(record) {
+    timerState = record;
+    renderRoundTimer();
+}
+
 // View-Wechsel (Wait <-> Photo <-> Map)
 function showView(viewName) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -119,6 +162,11 @@ async function initGame() {
     }
 
     await loadDisplayNames();
+
+    roundConfig = await loadRoundConfig();
+    renderRoundTimer();
+    setInterval(renderRoundTimer, 250);
+
     await initSubscriptions();
 
     let gamestateRecord = await getGamestateRecord();

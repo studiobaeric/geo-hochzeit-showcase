@@ -1,5 +1,5 @@
-import {onGamestateUpdate, updateMapPosition} from './moderator.js';
-import {loadNextRound, updateView} from "./game.js";
+import {onGamestateUpdate, updateMapPosition, onRoundConfigUpdate as onModeratorRoundConfigUpdate, onTimerUpdate as onModeratorTimerUpdate} from './moderator.js';
+import {loadNextRound, updateView, onRoundConfigUpdate as onPlayerRoundConfigUpdate, onTimerUpdate as onPlayerTimerUpdate} from "./game.js";
 import {getDisplayNames} from './player-names.js';
 
 const API_BASE = '/api';
@@ -70,6 +70,28 @@ function initEventStream() {
         if (name === "Moderator") {
             console.log("Updating Moderator Interface...")
             updateMapPosition(record);
+        }
+    });
+
+    eventSource.addEventListener('round_config', (event) => {
+        const record = JSON.parse(event.data);
+        const name = sessionStorage.getItem("name");
+
+        if (name === "Moderator") {
+            onModeratorRoundConfigUpdate(record);
+        } else if (name === "player1" || name === "player2") {
+            onPlayerRoundConfigUpdate(record);
+        }
+    });
+
+    eventSource.addEventListener('timer', (event) => {
+        const record = JSON.parse(event.data);
+        const name = sessionStorage.getItem("name");
+
+        if (name === "Moderator") {
+            onModeratorTimerUpdate(record);
+        } else if (name === "player1" || name === "player2") {
+            onPlayerTimerUpdate(record);
         }
     });
 
@@ -151,10 +173,14 @@ export async function startNextRound() {
     console.log("Starting next round...")
 
     try {
+        // A new round always starts hidden ("waiting") - the moderator has
+        // to explicitly reveal it (lockPlayerInputButton in manual mode, or
+        // the time-control panel's Start button in countdown mode) rather
+        // than it appearing the instant "Weiter" is clicked.
         await apiRequest('/gamestate', {
             method: 'PATCH',
             body: JSON.stringify({
-                state: "playing",
+                state: "waiting",
                 round: (await getGamestateRecord()).round + 1,
                 player1_locked: false,
                 player2_locked: false
@@ -187,4 +213,33 @@ export async function lockInSolution() {
         body: JSON.stringify({[`${role}_locked`]: true})
     });
     console.log(`Pushed ${getDisplayNames()[role]} lockIn`)
+}
+
+export async function getTimerState() {
+    return apiRequest('/timer');
+}
+
+export async function startTimer() {
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+    return apiRequest('/timer/start', {method: 'POST'});
+}
+
+export async function pauseTimer() {
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+    return apiRequest('/timer/pause', {method: 'POST'});
+}
+
+export async function resumeTimer() {
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+    return apiRequest('/timer/resume', {method: 'POST'});
+}
+
+export async function extendTimer(seconds) {
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+    return apiRequest('/timer/extend', {method: 'POST', body: JSON.stringify({seconds})});
+}
+
+export async function stopTimer() {
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+    return apiRequest('/timer/stop', {method: 'POST'});
 }
