@@ -1,0 +1,426 @@
+#!/usr/bin/env python3
+"""Build the offline vector basemap (PMTiles) for the Geoguesser.
+
+One cross-platform script instead of separate bash/PowerShell copies -
+the platform-specific parts (three earlier scripts: build_basemap_linux.sh,
+build_basemap.sh, build_basemap.ps1) had drifted out of sync before (a
+Windows/macOS release-asset naming mismatch shipped and broke on a real
+Windows machine), and PowerShell/bash logic can't be unit tested the same
+way Python can. Only the pmtiles CLI's own download URL differs by
+platform now (see `pmtiles_asset_name`), and that's covered directly by
+tests/test_build_basemap.py.
+
+Strategy: an ordered list of regions, from least to most detailed, merged
+into a single static/data/basemap.pmtiles. Each region only contributes
+the zoom levels above the previous region's maxzoom, restricted to its own
+bbox - e.g. a worldwide region at z0-5 for orientation, then a detailed
+region at z6-13 for a specific area, then an even more detailed region at
+z14 for one particular town. Any number of regions works, not just two.
+
+Regions are read from a tab-separated file (name<TAB>bbox<TAB>maxzoom, one
+per line, sorted ascending by maxzoom), passed via REGIONS_FILE. If unset,
+a two-region default (worldwide overview + one detail area) is synthesized
+from the legacy MAXZOOM/WORLD_MAXZOOM/EUROPE_BBOX env vars for backwards
+compatible manual/CLI use.
+
+Each region is cached independently (by index) under CACHE_DIR, keyed by
+its bbox/zoom range/build date; unchanged regions are skipped on rerun.
+
+Configurable via environment variables:
+    REGIONS_FILE        Path to a TSV file: name<TAB>bbox<TAB>maxzoom per line.
+    MAXZOOM=13           Legacy mode only: detail region's zoom cap.
+    WORLD_MAXZOOM=5      Legacy mode only: last zoom level for the world overview.
+    EUROPE_BBOX=...      Legacy mode only: bbox for the detail region.
+    BUILD_DATE           Protomaps daily build YYYYMMDD.
+                         Pick a recent one from https://build.protomaps.com
+    FORCE_REBUILD=true   ignore caches and rebuild everything from scratch
+    DRY_RUN=true         print the build plan without downloading/writing anything
+    CACHE_DIR            where per-region caches are kept between runs (default: system temp dir)
+    PMTILES_VERSION      go-pmtiles CLI release to use if not already installed
+
+Example: more street detail in legacy mode
+    MAXZOOM=12 python tools/build_basemap.py
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import urllib.error
+import urllib.request
+import zipfile
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+DEFAULT_PMTILES_VERSION = "1.30.3"
+DEFAULT_BUILD_DATE = "20260608"
+DEFAULT_MAXZOOM = 13
+DEFAULT_WORLD_MAXZOOM = 5
+DEFAULT_EUROPE_BBOX = "-25,32,45,72"  # all of Europe (covers all images down to Madeira 32.65°N)
+WORLD_BBOX = "-180,-90,180,90"
+
+OUT_RELATIVE = Path("static/data/basemap.pmtiles")
+
+LogFn = Callable[[str], None]
+
+
+class BuildError(Exception):
+    """Invalid input or an unrecoverable build failure."""
+
+
+@dataclass(frozen=True)
+class Region:
+    name: str
+    bbox: str
+    maxzoom: int
+
+
+@dataclass(frozen=True)
+class RegionPlan:
+    index: int
+    region: Region
+    minzoom: int
+
+
+# --- region parsing / zoom-range assignment ---------------------------------
+
+
+def parse_bbox(value: str) -> Tuple[float, float, float, float]:
+    parts = value.split(",")
+    if len(parts) != 4:
+        raise BuildError(f"malformed bbox: '{value}'")
+    try:
+        min_lon, min_lat, max_lon, max_lat = (float(p) for p in parts)
+    except ValueError as e:
+        raise BuildError(f"malformed bbox: '{value}'") from e
+    return min_lon, min_lat, max_lon, max_lat
+
+
+def parse_regions_file(path: Path) -> List[Region]:
+    if not path.is_file():
+        raise BuildError(f"REGIONS_FILE not found: {path}")
+
+    regions = []
+    for line_no, raw_line in enumerate(path.read_text().splitlines(), start=1):
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = raw_line.rstrip("\n").split("\t")
+        if len(parts) != 3:
+            raise BuildError(
+                f"malformed region on line {line_no} (expected name<TAB>bbox<TAB>maxzoom): {raw_line!r}"
+            )
+        name, bbox, maxzoom_str = parts
+        if not name.strip():
+            raise BuildError(f"region on line {line_no} has an empty name")
+        try:
+            maxzoom = int(maxzoom_str)
+        except ValueError as e:
+            raise BuildError(f"region '{name}' has a non-integer maxzoom: '{maxzoom_str}'") from e
+        parse_bbox(bbox)  # raises BuildError on malformed bbox
+        regions.append(Region(name=name, bbox=bbox, maxzoom=maxzoom))
+
+    if not regions:
+        raise BuildError(f"no regions defined in {path}")
+    return regions
+
+
+def legacy_regions_from_env(env: Dict[str, str]) -> List[Region]:
+    maxzoom = int(env.get("MAXZOOM", DEFAULT_MAXZOOM))
+    world_maxzoom = int(env.get("WORLD_MAXZOOM", DEFAULT_WORLD_MAXZOOM))
+    europe_bbox = env.get("EUROPE_BBOX", DEFAULT_EUROPE_BBOX)
+    return [
+        Region(name="Welt", bbox=WORLD_BBOX, maxzoom=world_maxzoom),
+        Region(name="Europa", bbox=europe_bbox, maxzoom=maxzoom),
+    ]
+
+
+def assign_zoom_ranges(regions: Sequence[Region]) -> List[RegionPlan]:
+    """Each region gets the zoom band above the previous region's maxzoom.
+
+    Requires strictly increasing maxzoom values so bands never overlap or
+    have negative height.
+    """
+    plans = []
+    prev_maxzoom = -1
+    for index, region in enumerate(regions):
+        if region.maxzoom <= prev_maxzoom:
+            raise BuildError(
+                f"region '{region.name}' maxzoom ({region.maxzoom}) must be greater than "
+                f"the previous region's maxzoom ({prev_maxzoom})"
+            )
+        plans.append(RegionPlan(index=index, region=region, minzoom=prev_maxzoom + 1))
+        prev_maxzoom = region.maxzoom
+    return plans
+
+
+# --- pmtiles CLI resolution --------------------------------------------------
+
+
+def pmtiles_asset_name(version: str, system: str, machine: str) -> str:
+    """The go-pmtiles release asset filename for this OS/arch.
+
+    Upstream naming isn't consistent across platforms: Windows uses an
+    underscore after "go-pmtiles", macOS uses a hyphen there, and Linux
+    uses an underscore with a .tar.gz extension instead of .zip. Getting
+    this wrong reached a real Windows user once already (a hyphen was used
+    for Windows, copied from the older macOS-only script) - this is the
+    single place that decides it now.
+    """
+    arch = {
+        "AMD64": "x86_64",
+        "x86_64": "x86_64",
+        "ARM64": "arm64",
+        "arm64": "arm64",
+        "aarch64": "arm64",
+    }.get(machine)
+    if arch is None:
+        raise BuildError(f"unsupported architecture: {machine}")
+
+    if system == "Linux":
+        return f"go-pmtiles_{version}_Linux_{arch}.tar.gz"
+    if system == "Darwin":
+        return f"go-pmtiles-{version}_Darwin_{arch}.zip"
+    if system == "Windows":
+        return f"go-pmtiles_{version}_Windows_{arch}.zip"
+    raise BuildError(f"unsupported OS: {system}")
+
+
+def pmtiles_download_url(version: str, system: str, machine: str) -> str:
+    asset = pmtiles_asset_name(version, system, machine)
+    return f"https://github.com/protomaps/go-pmtiles/releases/download/v{version}/{asset}"
+
+
+def _extract_pmtiles_binary(archive_path: Path, dest_dir: Path) -> Path:
+    """Pull just the `pmtiles`/`pmtiles.exe` binary out of a release archive."""
+    wanted_names = ("pmtiles", "pmtiles.exe")
+
+    if archive_path.suffixes[-2:] == [".tar", ".gz"] or archive_path.suffix == ".tgz":
+        with tarfile.open(archive_path) as tar:
+            member = next((m for m in tar.getmembers() if Path(m.name).name in wanted_names), None)
+            if member is None:
+                raise BuildError(f"no pmtiles binary found inside {archive_path.name}")
+            out_name = Path(member.name).name
+            out_path = dest_dir / out_name
+            extracted = tar.extractfile(member)
+            if extracted is None:
+                raise BuildError(f"could not read {member.name} from {archive_path.name}")
+            with extracted, open(out_path, "wb") as dst:
+                shutil.copyfileobj(extracted, dst)
+    else:
+        with zipfile.ZipFile(archive_path) as zf:
+            member = next((n for n in zf.namelist() if Path(n).name in wanted_names), None)
+            if member is None:
+                raise BuildError(f"no pmtiles binary found inside {archive_path.name}")
+            out_name = Path(member).name
+            out_path = dest_dir / out_name
+            with zf.open(member) as src, open(out_path, "wb") as dst:
+                shutil.copyfileobj(src, dst)
+
+    return out_path
+
+
+def resolve_pmtiles_cli(bin_dir: Path, version: str, log: LogFn) -> Path:
+    found = shutil.which("pmtiles")
+    if found:
+        return Path(found)
+
+    local_name = "pmtiles.exe" if platform.system() == "Windows" else "pmtiles"
+    local_path = bin_dir / local_name
+    if local_path.is_file():
+        return local_path
+
+    log(f">> pmtiles CLI not found, downloading v{version}...")
+    url = pmtiles_download_url(version, platform.system(), platform.machine())
+    log(f"    URL: {url}")
+
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = bin_dir / Path(url).name
+    try:
+        urllib.request.urlretrieve(url, archive_path)  # noqa: S310 - trusted, pinned release URL
+    except urllib.error.URLError as e:
+        raise BuildError(f"download failed (check version/OS/arch): {url} ({e})") from e
+
+    try:
+        extracted_path = _extract_pmtiles_binary(archive_path, bin_dir)
+    finally:
+        archive_path.unlink(missing_ok=True)
+
+    if extracted_path != local_path:
+        extracted_path.replace(local_path)
+    if platform.system() != "Windows":
+        local_path.chmod(0o755)
+
+    return local_path
+
+
+# --- per-region caching -------------------------------------------------
+
+
+def _cache_path(cache_dir: Path, index: int) -> Path:
+    return cache_dir / f"basemap_region_{index}.pmtiles"
+
+
+def _meta_path(cache_dir: Path, index: int) -> Path:
+    return cache_dir / f"basemap_region_{index}.meta.json"
+
+
+def is_cache_valid(cache_dir: Path, index: int, *, bbox: str, minzoom: int, maxzoom: int, build_date: str) -> bool:
+    if not _cache_path(cache_dir, index).is_file():
+        return False
+    meta_file = _meta_path(cache_dir, index)
+    if not meta_file.is_file():
+        return False
+    try:
+        meta = json.loads(meta_file.read_text())
+    except (OSError, json.JSONDecodeError):
+        return False
+    return (
+        meta.get("bbox") == bbox
+        and meta.get("minzoom") == minzoom
+        and meta.get("maxzoom") == maxzoom
+        and meta.get("build_date") == build_date
+    )
+
+
+def write_cache_meta(cache_dir: Path, index: int, *, bbox: str, minzoom: int, maxzoom: int, build_date: str) -> None:
+    _meta_path(cache_dir, index).write_text(
+        json.dumps({"bbox": bbox, "minzoom": minzoom, "maxzoom": maxzoom, "build_date": build_date})
+    )
+
+
+def clear_region_caches(cache_dir: Path) -> None:
+    for f in cache_dir.glob("basemap_region_*"):
+        f.unlink(missing_ok=True)
+
+
+def clear_stale_region_caches(cache_dir: Path, keep_count: int) -> None:
+    """Remove cached regions left over from a previous run with more regions."""
+    index = keep_count
+    while _cache_path(cache_dir, index).exists() or _meta_path(cache_dir, index).exists():
+        _cache_path(cache_dir, index).unlink(missing_ok=True)
+        _meta_path(cache_dir, index).unlink(missing_ok=True)
+        index += 1
+
+
+# --- pmtiles CLI invocation -----------------------------------------------
+
+
+def run_pmtiles(pmtiles_bin: Path, args: List[str], log: LogFn) -> None:
+    process = subprocess.run([str(pmtiles_bin), *args], capture_output=True, text=True)
+    for line in (process.stdout or "").splitlines():
+        log(line)
+    for line in (process.stderr or "").splitlines():
+        log(line)
+    if process.returncode != 0:
+        raise BuildError(f"pmtiles {args[0]} failed with exit code {process.returncode}")
+
+
+def extract_region(
+    pmtiles_bin: Path, source: str, out_path: Path, bbox: str, minzoom: int, maxzoom: int, log: LogFn
+) -> None:
+    run_pmtiles(
+        pmtiles_bin,
+        [
+            "extract",
+            source,
+            str(out_path),
+            f"--bbox={bbox}",
+            f"--minzoom={minzoom}",
+            f"--maxzoom={maxzoom}",
+            "--download-threads=8",
+        ],
+        log,
+    )
+
+
+# --- orchestration -----------------------------------------------------
+
+
+def build(env: Dict[str, str], log: LogFn = print) -> Path:
+    """Run the full build (or, if DRY_RUN, print the plan). Returns the output path."""
+    build_date = env.get("BUILD_DATE", DEFAULT_BUILD_DATE)
+    force_rebuild = env.get("FORCE_REBUILD", "false") == "true"
+    dry_run = env.get("DRY_RUN", "false") == "true"
+    cache_dir = Path(env["CACHE_DIR"]) if env.get("CACHE_DIR") else Path(tempfile.gettempdir())
+    pmtiles_version = env.get("PMTILES_VERSION", DEFAULT_PMTILES_VERSION)
+    regions_file = env.get("REGIONS_FILE")
+
+    source = f"https://build.protomaps.com/{build_date}.pmtiles"
+    out_path = PROJECT_ROOT / OUT_RELATIVE
+
+    if regions_file:
+        regions = parse_regions_file(Path(regions_file))
+    else:
+        regions = legacy_regions_from_env(env)
+    plans = assign_zoom_ranges(regions)
+
+    pmtiles_bin: Optional[Path] = None
+    if not dry_run:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        pmtiles_bin = resolve_pmtiles_cli(PROJECT_ROOT / "tools" / "bin", pmtiles_version, log)
+        if force_rebuild:
+            clear_region_caches(cache_dir)
+
+    merge_sources = []
+    for plan in plans:
+        region = plan.region
+        valid = is_cache_valid(
+            cache_dir,
+            plan.index,
+            bbox=region.bbox,
+            minzoom=plan.minzoom,
+            maxzoom=region.maxzoom,
+            build_date=build_date,
+        )
+        log(
+            f">> region {plan.index + 1} '{region.name}'  z{plan.minzoom}..{region.maxzoom}  "
+            f"bbox={region.bbox}  ({'cached' if valid else 'fresh'})"
+        )
+
+        region_cache = _cache_path(cache_dir, plan.index)
+        if not valid and not dry_run:
+            assert pmtiles_bin is not None
+            extract_region(pmtiles_bin, source, region_cache, region.bbox, plan.minzoom, region.maxzoom, log)
+            write_cache_meta(
+                cache_dir, plan.index, bbox=region.bbox, minzoom=plan.minzoom, maxzoom=region.maxzoom, build_date=build_date
+            )
+        merge_sources.append(region_cache)
+
+    if not dry_run:
+        clear_stale_region_caches(cache_dir, keep_count=len(plans))
+
+    log(f">> merging {len(plans)} region(s) into {out_path}")
+    if dry_run:
+        log(f">> (dry run) would run: pmtiles merge {' '.join(str(s) for s in merge_sources)} {out_path}")
+    else:
+        assert pmtiles_bin is not None
+        run_pmtiles(pmtiles_bin, ["merge", *[str(s) for s in merge_sources], str(out_path)], log)
+        size_mb = out_path.stat().st_size / (1024 * 1024)
+        log(f">> done: {size_mb:.1f} MB at {out_path}")
+
+    return out_path
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    try:
+        build(dict(os.environ))
+    except BuildError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

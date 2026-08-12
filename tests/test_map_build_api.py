@@ -8,6 +8,7 @@ swaps in a fast fake before triggering a build.
 """
 
 import json
+import os
 import threading
 import time
 
@@ -193,39 +194,29 @@ def test_build_effective_bbox_covers_out_of_range_photo(client, monkeypatch, tmp
     assert status["config_used"]["regions"][1]["effective_bbox"] == detail_region["effective_bbox"]
 
 
-# --- platform resolution + regions file -----------------------------------
+# --- script resolution + regions file --------------------------------------
 
 
-def test_script_path_resolves_per_platform(monkeypatch):
-    monkeypatch.setattr(map_build.os.path, "isfile", lambda path: True)
+def test_script_path_resolves_to_the_one_cross_platform_script():
+    # No more per-OS branching (see tools/build_basemap.py's docstring for
+    # why the old bash/PowerShell scripts were replaced with one Python
+    # script) - the same path is used regardless of platform.system().
+    path = map_build._script_path()
 
-    monkeypatch.setattr(map_build.platform, "system", lambda: "Linux")
-    assert map_build._script_path().endswith("build_basemap_linux.sh")
+    assert path is not None
+    assert path.endswith("build_basemap.py")
+    assert os.path.isfile(path)
 
-    monkeypatch.setattr(map_build.platform, "system", lambda: "Darwin")
-    assert map_build._script_path().endswith("build_basemap.sh")
 
-    monkeypatch.setattr(map_build.platform, "system", lambda: "Windows")
-    assert map_build._script_path().endswith("build_basemap.ps1")
-
-    monkeypatch.setattr(map_build.platform, "system", lambda: "Plan9")
+def test_script_path_returns_none_if_missing(monkeypatch):
+    monkeypatch.setattr(map_build.os.path, "isfile", lambda path: False)
     assert map_build._script_path() is None
 
 
-def test_build_command_uses_powershell_on_windows(monkeypatch):
-    monkeypatch.setattr(map_build.platform, "system", lambda: "Windows")
-    command = map_build._build_command("C:\\repo\\tools\\build_basemap.ps1")
+def test_build_command_runs_the_script_with_the_current_interpreter():
+    command = map_build._build_command("/repo/tools/build_basemap.py")
 
-    assert command[0] == "powershell"
-    assert command[-1] == "C:\\repo\\tools\\build_basemap.ps1"
-
-
-def test_build_command_uses_bash_elsewhere(monkeypatch):
-    monkeypatch.setattr(map_build.platform, "system", lambda: "Linux")
-    assert map_build._build_command("/repo/tools/build_basemap_linux.sh") == [
-        "bash",
-        "/repo/tools/build_basemap_linux.sh",
-    ]
+    assert command == [map_build.sys.executable, "/repo/tools/build_basemap.py"]
 
 
 def test_default_runner_returns_error_without_crashing_when_script_missing(monkeypatch):
@@ -238,7 +229,7 @@ def test_default_runner_returns_error_without_crashing_when_script_missing(monke
     )
 
     assert exit_code == 1
-    assert lines and "Kein Build-Skript" in lines[0]
+    assert lines and "build_basemap.py" in lines[0]
 
 
 def test_write_regions_file_produces_tsv_lines(tmp_path):
@@ -253,6 +244,4 @@ def test_write_regions_file_produces_tsv_lines(tmp_path):
         assert lines[0] == "Welt\t-180,-90,180,90\t5"
         assert lines[1] == "Has Tab And Newline\t5,47,15,55\t12"
     finally:
-        import os
-
         os.remove(path)

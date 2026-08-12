@@ -1,7 +1,7 @@
 """Map-data settings + basemap build trigger, exposed via the web config UI.
 
-Building the offline PMTiles basemap (see `tools/build_basemap*`) used to be
-a manual, terminal-only step during initial setup. This module lets the
+Building the offline PMTiles basemap (see `tools/build_basemap.py`) used to
+be a manual, terminal-only step during initial setup. This module lets the
 `/config` page define one or more map *regions* - each with its own
 bounding box and zoom cap, e.g. a coarse worldwide overview plus one or more
 specific areas in high detail - and trigger the existing build script as a
@@ -10,7 +10,7 @@ multi-GB) work; this just configures and drives it.
 
 Regions are ordered by zoom ascending and merged so each one only
 contributes the zoom levels above the previous region's cap, restricted to
-its own bbox (see tools/build_basemap_linux.sh for the merge strategy).
+its own bbox (see tools/build_basemap.py for the merge strategy).
 
 Whatever bbox is configured for the most detailed region, the bbox actually
 used for a build is always widened (if needed) to cover every photo
@@ -27,9 +27,9 @@ env var (and directly in tests) so test runs don't touch real project files.
 import json
 import logging
 import os
-import platform
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -341,15 +341,10 @@ def patch_map_config():
 
 
 def _script_path():
-    system = platform.system()
-    name = {
-        "Linux": "build_basemap_linux.sh",
-        "Darwin": "build_basemap.sh",
-        "Windows": "build_basemap.ps1",
-    }.get(system)
-    if name is None:
-        return None
-    path = os.path.join(PROJECT_ROOT, "tools", name)
+    """tools/build_basemap.py - one script, works identically on every OS
+    (see its own module docstring for why the old per-platform bash/
+    PowerShell scripts were replaced)."""
+    path = os.path.join(PROJECT_ROOT, "tools", "build_basemap.py")
     return path if os.path.isfile(path) else None
 
 
@@ -368,24 +363,23 @@ def _write_regions_file(regions):
 
 
 def _build_command(script):
-    if platform.system() == "Windows":
-        return ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script]
-    return ["bash", script]
+    # Run with the same interpreter Flask itself is running under, so there's
+    # no dependency on a "python"/"python3" launcher being on PATH, and no
+    # ambiguity about which installed Python version gets used.
+    return [sys.executable, script]
 
 
 def _default_runner(config, log_callback):
-    """Run the platform's build script as a subprocess.
+    """Run tools/build_basemap.py as a subprocess.
 
     Writes the configured regions to a temp TSV file, streams the script's
     combined stdout/stderr line by line to `log_callback`, and returns the
-    process exit code (1 if no script is available for this platform,
-    without spawning anything).
+    process exit code (1 if the script is missing, without spawning
+    anything - this shouldn't normally happen since it ships with the repo).
     """
     script = _script_path()
     if script is None:
-        log_callback(
-            f"Kein Build-Skript fuer dieses Betriebssystem ({platform.system()}) gefunden."
-        )
+        log_callback("Build-Skript tools/build_basemap.py wurde nicht gefunden.")
         return 1
 
     regions_file = _write_regions_file(config["regions"])

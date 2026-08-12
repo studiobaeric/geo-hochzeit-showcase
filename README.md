@@ -32,29 +32,32 @@ pip install -r requirements.txt
 **2. Karten-Assets** – zwei davon sind zu groß bzw. zu zahlreich für Git und
 werden einmalig lokal erzeugt:
 
+`tools/build_basemap.py` is plain Python and works the same on every OS -
+only the font-fetching script differs per platform:
+
 **macOS:**
 
 ```bash
-bash tools/build_basemap.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
-bash tools/fetch_fonts.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
+python3 tools/build_basemap.py   # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+bash tools/fetch_fonts.sh        # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
 
 **Linux:**
 
 ```bash
-bash tools/build_basemap_linux.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
-bash tools/fetch_fonts_linux.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
+python3 tools/build_basemap.py   # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+bash tools/fetch_fonts_linux.sh  # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-.\tools\build_basemap.ps1      # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+python tools/build_basemap.py  # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
 .\tools\fetch_fonts.ps1        # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
-> **Hinweis (Windows):** Falls die `.ps1`-Scripts nicht starten, muss die
+> **Hinweis (Windows):** Falls `fetch_fonts.ps1` nicht startet, muss die
 > PowerShell-Execution-Policy angepasst werden:
 >
 > ```powershell
@@ -123,10 +126,10 @@ Dropdown statt Zahlenfeld) – z.B. ein weltweiter Ausschnitt mit wenig Detail
 für die Übersicht, dazu ein oder mehrere einzelne Orte in hohem Detail.
 Zusätzlich lässt sich das Protomaps-Build-Datum eintragen; ein Link zur
 [Build-Übersicht](https://build.protomaps.com) zeigt, welche Daten dort
-gerade verfügbar sind. Der Download-Button startet
-`tools/build_basemap_linux.sh` / `.sh` / `.ps1` (je nach Server-Betriebssystem,
-inklusive Windows) direkt auf dem Server (`POST /api/map/build`,
-Fortschritt/Log über `GET /api/map/build/status`).
+gerade verfügbar sind. Der Download-Button startet `tools/build_basemap.py`
+direkt auf dem Server (`POST /api/map/build`, Fortschritt/Log über
+`GET /api/map/build/status`) - das Skript ist reines Python und läuft
+identisch auf Linux, macOS und Windows.
 
 Die Ausschnitte werden von grob nach fein sortiert und so gemerged, dass
 jeder nur die Zoomstufen oberhalb des vorherigen Ausschnitts beisteuert,
@@ -141,25 +144,26 @@ Ausschnitt, sichtbar über `GET /api/map/config`).
 
 ### Über die Kommandozeile
 
-Ohne Web-UI lässt sich das Skript weiterhin direkt aufrufen. Ohne weitere
-Angaben baut es die Karte in zwei Schritten (Legacy-Modus) und merged das
-Ergebnis:
+Ohne Web-UI lässt sich das Skript weiterhin direkt aufrufen - ein einziges
+`tools/build_basemap.py`, identisch auf Linux/macOS/Windows (frühere
+Versionen hatten separate `build_basemap_linux.sh`/`.sh`/`.ps1`-Scripts).
+Ohne weitere Angaben baut es die Karte in zwei Schritten (Legacy-Modus) und
+merged das Ergebnis:
 
 1. **Weltweit z0–5** – winzige Übersichts-Tiles (wenige MB), damit man beim
    weit Herauszoomen immer die ganze Erde sieht.
 2. **Europa z6–13** – detaillierte Tiles für den europäischen Spielbereich.
 
 ```bash
-bash tools/build_basemap_linux.sh   # Linux
-bash tools/build_basemap.sh         # macOS
+python3 tools/build_basemap.py   # Linux/macOS
 ```
 
 ```powershell
-.\tools\build_basemap.ps1           # Windows
+python tools/build_basemap.py    # Windows
 ```
 
-Das Skript lädt bei Bedarf automatisch die `pmtiles`-CLI herunter und schreibt
-`static/data/basemap.pmtiles`.
+Das Skript lädt bei Bedarf automatisch die `pmtiles`-CLI herunter (reines
+Python, ohne curl/unzip/tar) und schreibt `static/data/basemap.pmtiles`.
 
 Für mehr als zwei Ausschnitte (wie im Webinterface) lässt sich `REGIONS_FILE`
 auf eine eigene TSV-Datei zeigen (`Name<TAB>Bounding-Box<TAB>Zoom`, eine
@@ -167,7 +171,7 @@ Zeile pro Ausschnitt, aufsteigend nach Zoom sortiert):
 
 ```bash
 printf 'Welt\t-180,-90,180,90\t5\nEuropa\t-25,32,45,72\t11\nMadeira\t-17.5,32.5,-16.5,33\t14\n' > /tmp/regions.tsv
-REGIONS_FILE=/tmp/regions.tsv bash tools/build_basemap_linux.sh
+REGIONS_FILE=/tmp/regions.tsv python3 tools/build_basemap.py
 ```
 
 ### pmtiles installieren
@@ -308,13 +312,13 @@ Beispiel – nur Deutschland mit mehr Detail (Legacy-Modus):
 **Linux/macOS:**
 
 ```bash
-EUROPE_BBOX=5.5,47,15.5,55 MAXZOOM=12 bash tools/build_basemap_linux.sh
+EUROPE_BBOX=5.5,47,15.5,55 MAXZOOM=12 python3 tools/build_basemap.py
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-$env:EUROPE_BBOX="5.5,47,15.5,55"; $env:MAXZOOM=12; .\tools\build_basemap.ps1
+$env:EUROPE_BBOX="5.5,47,15.5,55"; $env:MAXZOOM=12; python tools/build_basemap.py
 ```
 
 > **Hinweis:** Protomaps hält die täglichen Planet-Builds nur ~5 Tage vor.
