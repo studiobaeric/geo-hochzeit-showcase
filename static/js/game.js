@@ -48,7 +48,7 @@ function resetMap() {
 function resetButtons() {
     isLocked = false;
     document.getElementById('lockButton').disabled = true;
-    document.getElementById('lockButton').textContent = 'Einlocken';
+    document.getElementById('lockButton').textContent = 'Einloggen';
     document.getElementById('backToPhotoButton').style.display = 'inline-block';
     photoZoom?.reset();
 }
@@ -243,7 +243,7 @@ async function initGame() {
 
         isLocked = true;
         this.disabled = true;
-        this.textContent = 'Eingelockt!';
+        this.textContent = 'Eingeloggt!';
         lockInSolution();
 
         // Verstecke "Zurück zum Foto" Button
