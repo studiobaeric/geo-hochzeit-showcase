@@ -316,6 +316,72 @@ def test_source_exists_false_on_connection_error(monkeypatch):
     assert bb._source_exists("20260101") is False
 
 
+def test_source_exists_uses_ranged_get_not_head(monkeypatch):
+    """Regression test: HEAD isn't universally supported by static-file
+    backends and using it here once made every candidate date look
+    "missing" even though real builds existed - see resolve_latest_build_date's
+    call site in build() for the reported failure. A ranged GET is what
+    pmtiles itself uses to read these files, so it's guaranteed compatible."""
+    captured = {}
+
+    class FakeResponse:
+        status = 206
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    def fake_urlopen(request, timeout=None):
+        captured["method"] = request.get_method()
+        captured["range_header"] = request.get_header("Range")
+        return FakeResponse()
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", fake_urlopen)
+
+    assert bb._source_exists("20260810") is True
+    assert captured["method"] == "GET"
+    assert captured["range_header"] == "bytes=0-0"
+
+
+def test_source_exists_logs_the_outcome_of_every_attempt(monkeypatch):
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    monkeypatch.setattr(bb.urllib.request, "urlopen", lambda *a, **k: FakeResponse())
+
+    lines = []
+    bb._source_exists("20260810", log=lines.append)
+
+    assert any("20260810" in line and "200" in line for line in lines)
+
+
+def test_resolve_latest_build_date_default_probe_uses_module_level_source_exists(monkeypatch):
+    """Not passing `probe=` explicitly must still go through _source_exists
+    (so monkeypatching it, e.g. in a test or a future caller, actually has
+    an effect) rather than a stale reference captured at def-time."""
+    calls = []
+
+    def fake_source_exists(candidate, log=None):
+        calls.append(candidate)
+        return True
+
+    monkeypatch.setattr(bb, "_source_exists", fake_source_exists)
+
+    result = bb.resolve_latest_build_date(log=lambda _: None)
+
+    today = datetime.now(timezone.utc).date().strftime("%Y%m%d")
+    assert result == today
+    assert calls == [today]
+
+
 def test_resolve_latest_build_date_against_real_server():
     """Confirms the real endpoint responds as resolve_latest_build_date
     expects, without asserting an exact date (that changes daily). Skips

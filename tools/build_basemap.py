@@ -74,7 +74,7 @@ WORLD_BBOX = "-180,-90,180,90"
 
 OUT_RELATIVE = Path("static/data/basemap.pmtiles")
 BUILD_SOURCE_URL_TEMPLATE = "https://build.protomaps.com/{build_date}.pmtiles"
-BUILD_DATE_PROBE_WINDOW_DAYS = 10  # Protomaps documents ~5 days retention; generous safety margin
+BUILD_DATE_PROBE_WINDOW_DAYS = 21  # Protomaps documents ~5 days retention; wide safety margin
 BUILD_DATE_PLACEHOLDER = "<neuester verfuegbarer Stand>"  # DRY_RUN display only, never resolved over the network
 
 LogFn = Callable[[str], None]
@@ -277,20 +277,38 @@ def build_source_url(build_date: str) -> str:
     return BUILD_SOURCE_URL_TEMPLATE.format(build_date=build_date)
 
 
-def _source_exists(build_date: str) -> bool:
-    request = urllib.request.Request(build_source_url(build_date), method="HEAD")
+def _source_exists(build_date: str, log: LogFn = lambda _line: None) -> bool:
+    """Whether a Protomaps daily build actually exists for this date.
+
+    Uses a ranged GET (`Range: bytes=0-0`), not HEAD: pmtiles itself only
+    ever reads these files via range requests, and some static-file/
+    object-storage backends don't support HEAD at all - using it here once
+    made every single candidate date look "missing" even though real
+    builds existed, exhausting the whole probe window for no real reason.
+
+    Logs the outcome of every attempt (not just failures) so a repeat of
+    that failure mode is diagnosable from the build log instead of just
+    seeing a flat "nothing found" at the end.
+    """
+    url = build_source_url(build_date)
+    request = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
-            return response.status in (200, 206)
+            ok = response.status in (200, 206)
+            log(f"   {build_date}: HTTP {response.status}{'' if ok else ' (unexpected status)'}")
+            return ok
     except urllib.error.HTTPError as e:
-        return e.code in (200, 206)
-    except urllib.error.URLError:
+        ok = e.code in (200, 206)
+        log(f"   {build_date}: HTTP {e.code}")
+        return ok
+    except urllib.error.URLError as e:
+        log(f"   {build_date}: request failed ({e.reason})")
         return False
 
 
 def resolve_latest_build_date(
     log: LogFn,
-    probe: Callable[[str], bool] = _source_exists,
+    probe: Optional[Callable[[str], bool]] = None,
     window_days: int = BUILD_DATE_PROBE_WINDOW_DAYS,
 ) -> str:
     """The most recent YYYYMMDD date that actually has a Protomaps daily
@@ -301,10 +319,11 @@ def resolve_latest_build_date(
     404'd within weeks. Asking the server what's actually there instead
     means this never goes stale.
     """
+    actual_probe = probe if probe is not None else (lambda candidate: _source_exists(candidate, log))
     today = datetime.now(timezone.utc).date()
     for offset in range(window_days):
         candidate = (today - timedelta(days=offset)).strftime("%Y%m%d")
-        if probe(candidate):
+        if actual_probe(candidate):
             return candidate
     raise BuildError(
         f"no Protomaps daily build found in the last {window_days} days - "
