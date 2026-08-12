@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#0b1120">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>">
     <title>Hochzeits Geoguesser - Ergebnisse</title>
+    <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body {
@@ -18,21 +20,21 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-bg);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .results-container {
-            background: white;
+            background: var(--color-bg-elevated);
             border-radius: 20px;
             padding: 40px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px var(--shadow-color);
             max-width: 600px;
             width: 100%;
         }
 
         .results-container h1 {
-            color: #333;
+            color: var(--color-text);
             margin-top: 0;
             font-size: 2.5em;
             text-align: center;
@@ -40,14 +42,14 @@
         }
 
         .results-container p {
-            color: #666;
+            color: var(--color-text-muted);
             text-align: center;
             font-size: 1.1em;
             margin-bottom: 30px;
         }
 
         .score-summary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
             color: white;
             border-radius: 15px;
             padding: 25px;
@@ -70,7 +72,7 @@
         }
 
         .scoreboard {
-            background: #f9f9f9;
+            background: var(--color-surface);
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 30px;
@@ -83,7 +85,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 15px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid var(--color-border);
             transition: background 0.2s;
         }
 
@@ -92,12 +94,12 @@
         }
 
         .score-row:hover {
-            background: #f0f0f0;
+            background: var(--color-bg-muted);
         }
 
         .round-number {
             font-weight: bold;
-            color: #667eea;
+            color: var(--color-accent);
             flex: 1;
             cursor: pointer;
             transition: color 0.2s, text-decoration 0.2s;
@@ -106,13 +108,13 @@
         }
 
         .round-number:hover {
-            color: #764ba2;
-            text-decoration-color: #764ba2;
+            color: var(--color-accent-2);
+            text-decoration-color: var(--color-accent-2);
         }
 
         .distance {
             font-weight: bold;
-            color: #333;
+            color: var(--color-text);
             min-width: 100px;
             text-align: right;
         }
@@ -134,18 +136,18 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
             color: white;
         }
 
         .btn-secondary {
-            background: #e0e0e0;
-            color: #333;
+            background: var(--color-bg-muted);
+            color: var(--color-text);
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 20px var(--shadow-color);
         }
 
         .btn:active {
@@ -180,7 +182,7 @@
 
         .empty-state {
             text-align: center;
-            color: #999;
+            color: var(--color-text-muted);
             padding: 40px 20px;
         }
 
@@ -203,7 +205,7 @@
         }
 
         .modal-content {
-            background: white;
+            background: var(--color-bg-elevated);
             border-radius: 15px;
             padding: 20px;
             max-width: 90vw;
@@ -238,7 +240,7 @@
         .modal-title {
             font-size: 1.3em;
             font-weight: bold;
-            color: #333;
+            color: var(--color-text);
             margin: 0;
         }
 
@@ -292,6 +294,11 @@
         </div>
     </div>
 
+    <script type="module">
+        import { loadThemeConfig, subscribeThemeUpdates } from "{{ url_for('static', filename='js/theme.js') }}";
+        loadThemeConfig();
+        subscribeThemeUpdates();
+    </script>
     <script>
         function displayResults() {
             const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": [], "totalDistance": 0}');

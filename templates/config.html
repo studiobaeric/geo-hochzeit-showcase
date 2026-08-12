@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#0b1120">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon"
           href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
     <title>Konfiguration – Hochzeits Geoguesser</title>
+    <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <style>
         body {
             display: flex;
@@ -20,30 +22,30 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-bg);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .config-container {
-            background: white;
+            background: var(--color-bg-elevated);
             border-radius: 20px;
             padding: 50px;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px var(--shadow-color);
             max-width: 500px;
             width: 90%;
             box-sizing: border-box;
         }
 
         .config-container h1 {
-            color: #333;
+            color: var(--color-text);
             margin-top: 0;
             font-size: 2em;
             margin-bottom: 10px;
         }
 
         .config-container > p {
-            color: #666;
+            color: var(--color-text-muted);
             font-size: 1em;
             margin-bottom: 30px;
             line-height: 1.6;
@@ -55,7 +57,7 @@
         }
 
         .config-section h2 {
-            color: #667eea;
+            color: var(--color-accent);
             font-size: 1.1em;
             margin-bottom: 14px;
         }
@@ -66,7 +68,7 @@
 
         .field label {
             display: block;
-            color: #555;
+            color: var(--color-text-muted);
             font-size: 0.9em;
             margin-bottom: 6px;
         }
@@ -75,15 +77,17 @@
             width: 100%;
             padding: 12px 14px;
             font-size: 1em;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--color-border);
             border-radius: 8px;
             box-sizing: border-box;
             transition: border-color 0.2s;
+            background: var(--color-bg-elevated);
+            color: var(--color-text);
         }
 
         .field input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--color-accent);
         }
 
         .field-row {
@@ -93,28 +97,28 @@
         }
 
         .field-hint {
-            color: #888;
+            color: var(--color-text-muted);
             font-size: 0.8em;
             margin-top: 4px;
         }
 
         .build-status {
-            background: #f5f4ff;
+            background: var(--color-bg-muted);
             border-radius: 10px;
             padding: 14px 16px;
             margin-top: 14px;
             font-size: 0.9em;
-            color: #444;
+            color: var(--color-text);
         }
 
         .build-status.state-error {
-            background: #fdecea;
-            color: #c62828;
+            background: var(--color-status-error-bg);
+            color: var(--color-status-error-text);
         }
 
         .build-status.state-success {
-            background: #e8f5e9;
-            color: #2e7d32;
+            background: var(--color-status-success-bg);
+            color: var(--color-status-success-text);
         }
 
         .build-log {
@@ -141,17 +145,17 @@
         }
 
         .config-button.build:disabled {
-            background: #bdbdbd;
+            background: var(--color-disabled);
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
 
         .future-config-note {
-            background: #f0f0f0;
+            background: var(--color-bg-muted);
             border-radius: 10px;
             padding: 16px 20px;
-            color: #777;
+            color: var(--color-text-muted);
             font-size: 0.9em;
             text-align: left;
         }
@@ -167,14 +171,14 @@
             align-items: center;
             gap: 10px;
             padding: 12px 14px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--color-border);
             border-radius: 8px;
             cursor: pointer;
         }
 
         .mode-option:has(input:checked) {
-            border-color: #667eea;
-            background: #f5f4ff;
+            border-color: var(--color-accent);
+            background: var(--color-bg-muted);
         }
 
         .mode-option input {
@@ -182,7 +186,7 @@
         }
 
         .mode-option span {
-            color: #333;
+            color: var(--color-text);
             font-size: 0.95em;
         }
 
@@ -208,18 +212,18 @@
         }
 
         .config-button.save {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
             color: white;
         }
 
         .config-button.back {
-            background: #f0f0f0;
-            color: #333;
+            background: var(--color-bg-muted);
+            color: var(--color-text);
         }
 
         .config-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 20px var(--shadow-color);
         }
 
         .config-button:active {
@@ -233,11 +237,11 @@
         }
 
         .status-message.success {
-            color: #2e7d32;
+            color: var(--color-status-success-text);
         }
 
         .status-message.error {
-            color: #c62828;
+            color: var(--color-status-error-text);
         }
     </style>
 </head>
@@ -257,6 +261,21 @@
                 <label for="player2Name">Name Spieler 2</label>
                 <input type="text" id="player2Name" name="player2Name" maxlength="40" required>
             </div>
+        </div>
+
+        <div class="config-section">
+            <h2>Darstellung</h2>
+            <div class="mode-options">
+                <label class="mode-option">
+                    <input type="radio" name="themeMode" value="light" id="themeModeLight">
+                    <span>☀️ Hell</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="themeMode" value="dark" id="themeModeDark">
+                    <span>🌙 Dunkel</span>
+                </label>
+            </div>
+            <p class="field-hint">Gilt sofort für alle Geräte im Spiel.</p>
         </div>
 
         <div class="config-section">
@@ -324,10 +343,32 @@
     import {
         getMapConfig, loadMapConfig, saveMapConfig, startMapBuild, getMapBuildStatus
     } from "{{ url_for('static', filename='js/map-config.js') }}";
+    import { getThemeConfig, loadThemeConfig, saveThemeConfig } from "{{ url_for('static', filename='js/theme.js') }}";
 
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
     const statusMessage = document.getElementById('statusMessage');
+
+    const themeModeLightInput = document.getElementById('themeModeLight');
+    const themeModeDarkInput = document.getElementById('themeModeDark');
+
+    await loadThemeConfig();
+    const currentThemeConfig = getThemeConfig();
+    themeModeLightInput.checked = currentThemeConfig.mode === 'light';
+    themeModeDarkInput.checked = currentThemeConfig.mode === 'dark';
+
+    // Applied immediately (not just on "Speichern") so the moderator sees
+    // the result of their choice right away, and it's synced to every other
+    // device as soon as they pick it.
+    document.querySelectorAll('input[name="themeMode"]').forEach((input) => {
+        input.addEventListener('change', async () => {
+            try {
+                await saveThemeConfig({ mode: input.value });
+            } catch (error) {
+                console.error('Konnte Theme nicht speichern:', error);
+            }
+        });
+    });
 
     const roundModeManualInput = document.getElementById('roundModeManual');
     const roundModeCountdownInput = document.getElementById('roundModeCountdown');

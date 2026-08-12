@@ -7,7 +7,10 @@ import { photoFilenames } from '../config/players.js';
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { loadRoundConfig } from './round-config.js';
+import { loadThemeConfig, subscribeThemeUpdates } from './theme.js';
 
+loadThemeConfig();
+subscribeThemeUpdates();
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');

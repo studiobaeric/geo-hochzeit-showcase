@@ -4,6 +4,10 @@ import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./bas
 import {PhotoZoom} from "./photo.js";
 import {loadDisplayNames} from "./player-names.js";
 import {loadRoundConfig} from "./round-config.js";
+import {loadThemeConfig, subscribeThemeUpdates} from "./theme.js";
+
+loadThemeConfig();
+subscribeThemeUpdates();
 
 let guessMarker = null;
 let isLocked = false;
