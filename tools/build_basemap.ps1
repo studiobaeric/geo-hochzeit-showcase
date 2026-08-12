@@ -115,7 +115,9 @@ try {
                 { $_ -eq "ARM64" } { "arm64" }
                 default { throw "Unsupported architecture: $_" }
             }
-            $URL = "https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/go-pmtiles-${PMTILES_VERSION}_${OS}_${ARCH}.zip"
+            # Note: unlike macOS releases (hyphen: go-pmtiles-VERSION_OS_ARCH),
+            # Windows release assets use an underscore after "go-pmtiles".
+            $URL = "https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/go-pmtiles_${PMTILES_VERSION}_${OS}_${ARCH}.zip"
             $ZipPath = "$CACHE_DIR/go-pmtiles.zip"
             Invoke-WebRequest -Uri $URL -OutFile $ZipPath -ErrorAction Stop
             Expand-Archive -Path $ZipPath -DestinationPath "tools/bin" -Force
