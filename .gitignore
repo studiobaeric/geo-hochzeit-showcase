@@ -18,6 +18,10 @@ tools/bin/
 __pycache__/
 *.pyc
 
+# Lokale Release-Builds (siehe tools/build_release.py / RELEASING.md)
+/dist/
+/build/
+
 # IDE-Projektdateien (JetBrains)
 .idea/
 
