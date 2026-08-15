@@ -163,3 +163,38 @@ def test_full_round_reload_and_reset_flow(live_server):
         assert context.request.get(f"{live_server}/api/round_results").json() == []
 
         browser.close()
+
+
+def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
+    """Regression test for a reported bug: the "Kartendaten" region editor's
+    zoom <select> (long, descriptive option text) wasn't covered by the
+    `.field input` width/box-sizing rule, so on narrow screens it shrank to
+    fit its content instead of its grid cell - blowing the row width past
+    the white config-container and onto the page's gradient background.
+
+    A phone-sized viewport is exactly what surfaced this, so this checks
+    that the document never becomes horizontally scrollable there, both on
+    initial load and after adding another region (the interaction that
+    grows the region list).
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_context(viewport={"width": 390, "height": 844}).new_page()
+        page.goto(f"{live_server}/config")
+        page.wait_for_selector("#regionList .region-row")
+
+        def assert_no_horizontal_overflow():
+            scroll_width = page.evaluate("document.documentElement.scrollWidth")
+            client_width = page.evaluate("document.documentElement.clientWidth")
+            assert scroll_width <= client_width, (
+                f"page overflows horizontally: scrollWidth={scroll_width} "
+                f"> clientWidth={client_width}"
+            )
+
+        assert_no_horizontal_overflow()
+
+        page.click("#addRegionButton")
+        page.wait_for_selector("#regionList .region-row:nth-child(3)")
+        assert_no_horizontal_overflow()
+
+        browser.close()

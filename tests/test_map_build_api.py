@@ -1,13 +1,14 @@
 """Tests for the /api/map/build + /api/map/build/status endpoints.
 
 The real build runner (map_build._default_runner) shells out to a
-multi-GB, network-heavy bash script and must never run under pytest - the
+multi-GB, network-heavy script and must never run under pytest - the
 `isolate_map_config` autouse fixture in conftest.py already points
 `_build_runner` back at `_default_runner`, so every test here explicitly
 swaps in a fast fake before triggering a build.
 """
 
 import json
+import os
 import threading
 import time
 
@@ -77,6 +78,40 @@ def test_build_reports_success_and_log_tail(client, monkeypatch):
     assert status["finished_at"] >= status["started_at"]
 
 
+def test_build_progress_is_parsed_and_kept_out_of_log_tail(client, monkeypatch):
+    def runner(config, log_callback):
+        log_callback("a plain log line")
+        log_callback('##PROGRESS## {"stage": "extracting", "region_index": 0, "region_count": 2}')
+        log_callback("another plain log line")
+        return 0
+
+    monkeypatch.setattr(map_build, "_build_runner", runner)
+
+    client.post("/api/map/build")
+    status = _wait_until_not_running(client)
+
+    assert status["progress"] == {"stage": "extracting", "region_index": 0, "region_count": 2}
+    assert status["log_tail"] == ["a plain log line", "another plain log line"]
+
+
+def test_build_progress_falls_back_to_plain_log_on_malformed_json(client, monkeypatch):
+    # A malformed progress line is never silently dropped - it just isn't
+    # parsed as structured progress, so it shows up as a normal log line
+    # instead (still visible for debugging).
+    def runner(config, log_callback):
+        log_callback("##PROGRESS## not valid json")
+        return 0
+
+    monkeypatch.setattr(map_build, "_build_runner", runner)
+
+    client.post("/api/map/build")
+    status = _wait_until_not_running(client)
+
+    assert status["status"] == "success"
+    assert status["progress"] is None
+    assert status["log_tail"] == ["##PROGRESS## not valid json"]
+
+
 def test_build_reports_error_on_nonzero_exit_code(client, monkeypatch):
     monkeypatch.setattr(map_build, "_build_runner", _fake_runner(exit_code=1))
 
@@ -125,8 +160,16 @@ def test_concurrent_build_request_is_rejected(client, monkeypatch):
     _wait_until_not_running(client)
 
 
-def test_build_uses_config_from_settings(client, monkeypatch):
-    client.patch("/api/map/config", json={"maxzoom": 8, "world_maxzoom": 2, "bbox": "5,47,15,55"})
+def test_build_uses_regions_from_settings(client, monkeypatch):
+    client.patch(
+        "/api/map/config",
+        json={
+            "regions": [
+                {"name": "Welt", "bbox": "-180,-90,180,90", "maxzoom": 4},
+                {"name": "Detail", "bbox": "5,47,15,55", "maxzoom": 12},
+            ]
+        },
+    )
 
     captured = {}
 
@@ -139,9 +182,9 @@ def test_build_uses_config_from_settings(client, monkeypatch):
     client.post("/api/map/build")
     _wait_until_not_running(client)
 
-    assert captured["maxzoom"] == 8
-    assert captured["world_maxzoom"] == 2
-    assert captured["bbox"] == "5,47,15,55"
+    assert [r["name"] for r in captured["regions"]] == ["Welt", "Detail"]
+    assert captured["regions"][1]["maxzoom"] == 12
+    assert captured["regions"][1]["bbox"] == "5,47,15,55"
 
 
 def test_build_effective_bbox_covers_out_of_range_photo(client, monkeypatch, tmp_path):
@@ -150,7 +193,15 @@ def test_build_effective_bbox_covers_out_of_range_photo(client, monkeypatch, tmp
         json.dumps([{"id": 1, "location": {"lat": 60.0, "lng": 100.0}}])
     )
     monkeypatch.setattr(map_build, "PHOTOS_FILE", str(photos_file))
-    client.patch("/api/map/config", json={"bbox": "5,47,15,55"})
+    client.patch(
+        "/api/map/config",
+        json={
+            "regions": [
+                {"name": "Welt", "bbox": "-180,-90,180,90", "maxzoom": 5},
+                {"name": "Detail", "bbox": "5,47,15,55", "maxzoom": 13},
+            ]
+        },
+    )
 
     captured = {}
 
@@ -163,14 +214,43 @@ def test_build_effective_bbox_covers_out_of_range_photo(client, monkeypatch, tmp
     client.post("/api/map/build")
     _wait_until_not_running(client)
 
+    detail_region = captured["regions"][1]
     min_lon, min_lat, max_lon, max_lat = (
-        float(v) for v in captured["effective_bbox"].split(",")
+        float(v) for v in detail_region["effective_bbox"].split(",")
     )
     assert min_lon <= 100.0 and max_lon >= 100.0
     assert min_lat <= 60.0 and max_lat >= 60.0
 
+    # The low-detail "Welt" region must stay untouched by the photo bbox.
+    assert captured["regions"][0]["effective_bbox"] == captured["regions"][0]["bbox"]
+
     status = client.get("/api/map/build/status").get_json()
-    assert status["config_used"]["effective_bbox"] == captured["effective_bbox"]
+    assert status["config_used"]["regions"][1]["effective_bbox"] == detail_region["effective_bbox"]
+
+
+# --- script resolution + regions file --------------------------------------
+
+
+def test_script_path_resolves_to_the_one_cross_platform_script():
+    # No more per-OS branching (see tools/build_basemap.py's docstring for
+    # why the old bash/PowerShell scripts were replaced with one Python
+    # script) - the same path is used regardless of platform.system().
+    path = map_build._script_path()
+
+    assert path is not None
+    assert path.endswith("build_basemap.py")
+    assert os.path.isfile(path)
+
+
+def test_script_path_returns_none_if_missing(monkeypatch):
+    monkeypatch.setattr(map_build.os.path, "isfile", lambda path: False)
+    assert map_build._script_path() is None
+
+
+def test_build_command_runs_the_script_with_the_current_interpreter():
+    command = map_build._build_command("/repo/tools/build_basemap.py")
+
+    assert command == [map_build.sys.executable, "/repo/tools/build_basemap.py"]
 
 
 def test_default_runner_returns_error_without_crashing_when_script_missing(monkeypatch):
@@ -178,9 +258,24 @@ def test_default_runner_returns_error_without_crashing_when_script_missing(monke
     lines = []
 
     exit_code = map_build._default_runner(
-        {"maxzoom": 10, "world_maxzoom": 5, "bbox": "1,1,2,2", "effective_bbox": "1,1,2,2", "build_date": "20260101"},
+        {"regions": [{"name": "Welt", "bbox": "1,1,2,2", "effective_bbox": "1,1,2,2", "maxzoom": 5}], "build_date": "20260101"},
         lines.append,
     )
 
     assert exit_code == 1
-    assert lines and "Kein Build-Skript" in lines[0]
+    assert lines and "build_basemap.py" in lines[0]
+
+
+def test_write_regions_file_produces_tsv_lines(tmp_path):
+    regions = [
+        {"name": "Welt", "effective_bbox": "-180,-90,180,90", "maxzoom": 5},
+        {"name": "Has\tTab\nAnd Newline", "effective_bbox": "5,47,15,55", "maxzoom": 12},
+    ]
+    path = map_build._write_regions_file(regions)
+    try:
+        with open(path) as f:
+            lines = f.read().splitlines()
+        assert lines[0] == "Welt\t-180,-90,180,90\t5"
+        assert lines[1] == "Has Tab And Newline\t5,47,15,55\t12"
+    finally:
+        os.remove(path)
