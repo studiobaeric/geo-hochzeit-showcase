@@ -485,6 +485,114 @@ def test_clear_region_caches_removes_everything(tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
+# --- pmtiles progress-bar line parsing --------------------------------
+#
+# pmtiles (github.com/schollz/progressbar) renders "<label> NNN% |bar| (...)".
+# These exact lines were captured from a real, local (non-network)
+# `pmtiles cluster`/`extract` run piped through Python subprocess - not
+# guessed - to make sure the regex matches the real format, not an assumed
+# one (the assumption that progress was reported with '\r' and unparseable
+# was wrong; piped/non-TTY output turned out to be one line per update).
+
+REAL_CLUSTER_PROGRESS_LINE = "   0% |                                                | (0/1, 0 it/hr) [0s:0s]"
+REAL_CLUSTER_PROGRESS_DONE_LINE = " 100% |" + ("█" * 49) + "| (1/1, 8004 it/s)"
+REAL_EXTRACT_PROGRESS_LINE = "fetching chunks   0% |                                      | ( 0/69 B) [0s:0s]"
+REAL_EXTRACT_PROGRESS_DONE_LINE = "fetching chunks 100% |" + ("█" * 29) + "| (69/69 B, 278 kB/s)"
+
+
+@pytest.mark.parametrize(
+    "line, expected",
+    [
+        (REAL_CLUSTER_PROGRESS_LINE, 0),
+        (REAL_CLUSTER_PROGRESS_DONE_LINE, 100),
+        (REAL_EXTRACT_PROGRESS_LINE, 0),
+        (REAL_EXTRACT_PROGRESS_DONE_LINE, 100),
+        ("2026/08/15 20:44:42 extract.go:373: fetching 0 dirs, 0 chunks, 0 requests", None),
+        ("2026/08/15 20:44:42 extract.go:578: Completed in 693.893µs", None),
+        ("", None),
+        ("                                                                               ", None),
+    ],
+)
+def test_parse_pmtiles_progress_percent(line, expected):
+    assert bb._parse_pmtiles_progress_percent(line) == expected
+
+
+def test_parse_pmtiles_progress_percent_clamps_out_of_range_values():
+    assert bb._parse_pmtiles_progress_percent("999% |bar|") == 100
+
+
+# --- run_pmtiles: live streaming + progress routing ----------------------
+
+
+class _FakeProcess:
+    """Stands in for subprocess.Popen: .stdout yields lines as an iterator
+    (like a real pipe), matching how run_pmtiles consumes it."""
+
+    def __init__(self, lines, returncode=0):
+        self.stdout = iter(line + "\n" for line in lines)
+        self.returncode = returncode
+
+    def wait(self):
+        pass
+
+
+def test_run_pmtiles_uses_popen_not_blocking_run(monkeypatch):
+    """Regression test: run_pmtiles used to call subprocess.run(capture_
+    output=True), which blocks until the whole process exits before any
+    output is available - meaning "live" progress would only ever appear
+    after the download had already finished. Must use Popen + incremental
+    reads instead."""
+    monkeypatch.setattr(bb.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(
+        AssertionError("run_pmtiles must not use subprocess.run (blocks until exit)")
+    ))
+    monkeypatch.setattr(bb.subprocess, "Popen", lambda *a, **k: _FakeProcess(["done"]))
+
+    bb.run_pmtiles(Path("/fake/pmtiles"), ["merge"], log=lambda _: None)
+
+
+def test_run_pmtiles_routes_progress_lines_to_on_progress_not_log(monkeypatch):
+    lines = [
+        "2026/08/15 20:44:42 extract.go:373: fetching 0 dirs, 0 chunks, 0 requests",
+        REAL_EXTRACT_PROGRESS_LINE,
+        REAL_EXTRACT_PROGRESS_DONE_LINE,
+        "2026/08/15 20:44:42 extract.go:578: Completed in 693.893µs",
+    ]
+    monkeypatch.setattr(bb.subprocess, "Popen", lambda *a, **k: _FakeProcess(lines))
+
+    logged = []
+    progress = []
+    bb.run_pmtiles(Path("/fake/pmtiles"), ["extract"], log=logged.append, on_progress=progress.append)
+
+    assert progress == [0, 100]
+    assert logged == [
+        "2026/08/15 20:44:42 extract.go:373: fetching 0 dirs, 0 chunks, 0 requests",
+        "2026/08/15 20:44:42 extract.go:578: Completed in 693.893µs",
+    ]
+
+
+def test_run_pmtiles_without_on_progress_logs_everything_raw(monkeypatch):
+    """No on_progress given (e.g. the merge call site before this feature)
+    must fall back to logging every line as before, progress bar noise
+    included - only extract/merge call sites that opt in get filtering."""
+    lines = [REAL_EXTRACT_PROGRESS_LINE, "some other line"]
+    monkeypatch.setattr(bb.subprocess, "Popen", lambda *a, **k: _FakeProcess(lines))
+
+    logged = []
+    bb.run_pmtiles(Path("/fake/pmtiles"), ["extract"], log=logged.append)
+
+    assert logged == lines
+
+
+def test_run_pmtiles_raises_pmtiles_error_with_full_output_on_nonzero_exit(monkeypatch):
+    lines = ["some output", "more output"]
+    monkeypatch.setattr(bb.subprocess, "Popen", lambda *a, **k: _FakeProcess(lines, returncode=1))
+
+    with pytest.raises(bb.PmtilesError) as exc_info:
+        bb.run_pmtiles(Path("/fake/pmtiles"), ["extract"], log=lambda _: None)
+
+    assert exc_info.value.output_lines == lines
+
+
 # --- resolving/downloading the pmtiles CLI itself -----------------------
 
 
@@ -647,6 +755,83 @@ def test_build_dry_run_detects_cached_region(tmp_path):
     assert any("(cached)" in line for line in lines if "'Welt'" in line)
 
 
+def test_adding_a_new_highest_zoom_region_only_redownloads_the_new_one(tmp_path):
+    """Answers a direct user question: does adding a Kartenausschnitt
+    re-download everything, or only what's new? A newly added region is
+    normally the most detailed one (the UI defaults a new region's zoom to
+    "one more than the current maximum"), so it gets appended at the end
+    of the zoom-ordered list - every earlier region's own bbox/zoom range
+    is unchanged, so their cache stays valid and only the new region needs
+    a fresh download."""
+    build_date = "20260810"
+
+    # Simulate a completed prior build with two cached regions...
+    for index, (bbox, minzoom, maxzoom) in enumerate(
+        [(bb.WORLD_BBOX, 0, 5), ("-25,32,45,72", 6, 13)]
+    ):
+        (tmp_path / f"basemap_region_{index}.pmtiles").write_bytes(b"")
+        bb.write_cache_meta(tmp_path, index, bbox=bbox, minzoom=minzoom, maxzoom=maxzoom, build_date=build_date)
+
+    # ...then add a third, more detailed region (as the UI's "+ add region" does).
+    regions_file = tmp_path / "regions.tsv"
+    regions_file.write_text(
+        "Welt\t-180,-90,180,90\t5\nEuropa\t-25,32,45,72\t13\nMadeira\t-17.5,32.5,-16.5,33\t14\n"
+    )
+
+    lines = []
+    bb.build(
+        {
+            "DRY_RUN": "true",
+            "CACHE_DIR": str(tmp_path),
+            "BUILD_DATE": build_date,
+            "REGIONS_FILE": str(regions_file),
+        },
+        log=lines.append,
+    )
+
+    assert any("'Welt'" in line and "(cached)" in line for line in lines)
+    assert any("'Europa'" in line and "(cached)" in line for line in lines)
+    assert any("'Madeira'" in line and "(fresh)" in line for line in lines)
+
+
+def test_inserting_a_region_in_the_middle_invalidates_later_regions_too(tmp_path):
+    """The flip side of the above, so the caching behavior's actual limit
+    is documented by a test rather than just asserted in prose: regions
+    are merged in zoom-ascending order, and each one's zoom *band* is
+    "previous region's maxzoom + 1" through its own maxzoom - so inserting
+    a region *before* an existing one (by zoom, not by list position)
+    shifts that later region's band even though its own bbox/maxzoom
+    didn't change, correctly invalidating its cache too (the data at that
+    zoom range genuinely changed)."""
+    build_date = "20260810"
+    (tmp_path / "basemap_region_0.pmtiles").write_bytes(b"")
+    bb.write_cache_meta(tmp_path, 0, bbox=bb.WORLD_BBOX, minzoom=0, maxzoom=5, build_date=build_date)
+    (tmp_path / "basemap_region_1.pmtiles").write_bytes(b"")
+    bb.write_cache_meta(tmp_path, 1, bbox="-25,32,45,72", minzoom=6, maxzoom=13, build_date=build_date)
+
+    # Insert a region between the two existing ones by zoom (8), not at the end.
+    regions_file = tmp_path / "regions.tsv"
+    regions_file.write_text("Welt\t-180,-90,180,90\t5\nZwischenstufe\t-10,30,40,60\t8\nEuropa\t-25,32,45,72\t13\n")
+
+    lines = []
+    bb.build(
+        {
+            "DRY_RUN": "true",
+            "CACHE_DIR": str(tmp_path),
+            "BUILD_DATE": build_date,
+            "REGIONS_FILE": str(regions_file),
+        },
+        log=lines.append,
+    )
+
+    assert any("'Welt'" in line and "(cached)" in line for line in lines)
+    assert any("'Zwischenstufe'" in line and "(fresh)" in line for line in lines)
+    # Europa's bbox/maxzoom are unchanged, but its band is now z9..13
+    # instead of z6..13 (Zwischenstufe took z6..8) - genuinely different
+    # data, so re-fetching it is correct, not a caching bug.
+    assert any("'Europa'" in line and "z9..13" in line and "(fresh)" in line for line in lines)
+
+
 def test_build_dry_run_never_touches_the_real_output_file(tmp_path):
     out_path = bb.PROJECT_ROOT / bb.OUT_RELATIVE
     existed_before = out_path.exists()
@@ -704,14 +889,18 @@ def _mocked_build(tmp_path, monkeypatch, env=None, resolved_build_date="20260810
 
     extract_calls = []
 
-    def fake_extract_region(pmtiles_bin, source, build_date, out_path, bbox, minzoom, maxzoom, log):
+    def fake_extract_region(pmtiles_bin, source, build_date, out_path, bbox, minzoom, maxzoom, log, on_progress=None):
         extract_calls.append({"source": source, "build_date": build_date, "out_path": out_path})
+        if on_progress:
+            on_progress(100)
         out_path.write_bytes(b"")
 
     monkeypatch.setattr(bb, "extract_region", fake_extract_region)
 
-    def fake_run_pmtiles(pmtiles_bin, args, log):
+    def fake_run_pmtiles(pmtiles_bin, args, log, on_progress=None):
         if args[0] == "merge":
+            if on_progress:
+                on_progress(100)
             Path(args[-1]).write_bytes(b"fake-merged-basemap")
         return []
 
@@ -739,6 +928,11 @@ def test_build_does_not_resolve_when_build_date_explicitly_set(tmp_path, monkeyp
 
 
 def test_build_emits_progress_lines_in_order(tmp_path, monkeypatch):
+    # Each region/merge step emits an initial 0% event before the pmtiles
+    # call, then whatever `on_progress` reports during the call itself -
+    # the fake extract_region/run_pmtiles in _mocked_build report a single
+    # 100% each, so every step shows up as an 0% -> 100% pair here. A real
+    # run reports many more (once per pmtiles progress-bar line).
     _out_path, lines, _extract_calls = _mocked_build(tmp_path, monkeypatch)
 
     progress_events = [
@@ -753,12 +947,19 @@ def test_build_emits_progress_lines_in_order(tmp_path, monkeypatch):
         "resolving_build_date",
         "extracting",
         "extracting",
+        "extracting",
+        "extracting",
+        "merging",
         "merging",
         "done",
     ]
     extracting_events = [e for e in progress_events if e["stage"] == "extracting"]
-    assert [e["region_name"] for e in extracting_events] == ["Welt", "Europa"]
+    assert [e["region_name"] for e in extracting_events] == ["Welt", "Welt", "Europa", "Europa"]
+    assert [e["percent"] for e in extracting_events] == [0, 100, 0, 100]
     assert all(e["region_count"] == 2 for e in extracting_events)
+
+    merging_events = [e for e in progress_events if e["stage"] == "merging"]
+    assert [e["percent"] for e in merging_events] == [0, 100]
 
 
 def test_build_progress_lines_are_not_shown_as_plain_log_text(tmp_path, monkeypatch):
@@ -775,7 +976,7 @@ def test_build_progress_lines_are_not_shown_as_plain_log_text(tmp_path, monkeypa
 def test_extract_region_adds_hint_on_404_and_still_raises(monkeypatch):
     log_lines = []
 
-    def fake_run(pmtiles_bin, args, log):
+    def fake_run(pmtiles_bin, args, log, on_progress=None):
         raise bb.PmtilesError(
             "pmtiles extract failed with exit code 1",
             ["main.go:185: Failed to create range reader for 20260608.pmtiles, HTTP error: 404"],
@@ -796,7 +997,7 @@ def test_extract_region_adds_hint_on_404_and_still_raises(monkeypatch):
 def test_extract_region_does_not_add_404_hint_for_unrelated_failures(monkeypatch):
     log_lines = []
 
-    def fake_run(pmtiles_bin, args, log):
+    def fake_run(pmtiles_bin, args, log, on_progress=None):
         raise bb.PmtilesError("pmtiles extract failed with exit code 1", ["some unrelated error"])
 
     monkeypatch.setattr(bb, "run_pmtiles", fake_run)

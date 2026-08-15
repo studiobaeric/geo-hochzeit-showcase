@@ -668,15 +668,22 @@
     };
 
     function progressPercent(progress) {
+        // "percent" (when present) is pmtiles' own real download/merge
+        // progress within the current stage - not guessed, parsed from its
+        // own progress-bar output - so extracting/merging interpolate
+        // smoothly instead of jumping only between fixed checkpoints.
+        const within = typeof progress.percent === 'number' ? progress.percent / 100 : 0;
         switch (progress.stage) {
             case 'resolving_pmtiles_cli': return 5;
             case 'resolving_build_date': return 12;
             case 'extracting': {
                 const count = progress.region_count || 1;
                 const index = progress.region_index || 0;
-                return Math.round(15 + (index / count) * 75);
+                const bandStart = 15 + (index / count) * 75;
+                const bandSize = 75 / count;
+                return Math.round(bandStart + within * bandSize);
             }
-            case 'merging': return 92;
+            case 'merging': return Math.round(92 + within * 7);
             case 'done': return 100;
             default: return 0;
         }
@@ -684,7 +691,8 @@
 
     function progressLabel(progress) {
         if (progress.stage === 'extracting') {
-            return `Lädt Kartenausschnitt ${progress.region_index + 1} von ${progress.region_count}: ${progress.region_name}…`;
+            const percent = typeof progress.percent === 'number' ? ` (${progress.percent}%)` : '';
+            return `Lädt Kartenausschnitt ${progress.region_index + 1} von ${progress.region_count}: ${progress.region_name}${percent}…`;
         }
         return PROGRESS_STAGE_LABELS[progress.stage] || progress.stage;
     }

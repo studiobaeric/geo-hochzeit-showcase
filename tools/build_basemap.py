@@ -50,6 +50,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -414,6 +415,22 @@ def _emit_progress(log: LogFn, **fields) -> None:
     log(PROGRESS_PREFIX + json.dumps(fields))
 
 
+# pmtiles (github.com/schollz/progressbar) renders "<label> NNN% |bar| (...)"
+# per update. On a real terminal it overwrites one line via \r; piped
+# (exactly how we invoke it - not a TTY) it instead prints each update as
+# its own \n-terminated line, which is what makes this parseable at all.
+# Confirmed against a real local `pmtiles extract`/`cluster` run - see
+# tests/test_build_basemap.py for the exact captured line format.
+_PMTILES_PROGRESS_RE = re.compile(r"(\d{1,3})%\s*\|")
+
+
+def _parse_pmtiles_progress_percent(line: str) -> Optional[int]:
+    match = _PMTILES_PROGRESS_RE.search(line)
+    if not match:
+        return None
+    return min(100, max(0, int(match.group(1))))
+
+
 # --- pmtiles CLI invocation -----------------------------------------------
 
 
@@ -425,11 +442,40 @@ class PmtilesError(BuildError):
         self.output_lines = output_lines
 
 
-def run_pmtiles(pmtiles_bin: Path, args: List[str], log: LogFn) -> List[str]:
-    process = subprocess.run([str(pmtiles_bin), *args], capture_output=True, text=True)
-    output_lines = (process.stdout or "").splitlines() + (process.stderr or "").splitlines()
-    for line in output_lines:
-        log(line)
+def run_pmtiles(
+    pmtiles_bin: Path,
+    args: List[str],
+    log: LogFn,
+    on_progress: Optional[Callable[[int], None]] = None,
+) -> List[str]:
+    """Run a pmtiles subcommand, streaming its output line by line as it's
+    produced (not buffered until the process exits - a long extract/merge
+    needs to report progress *during* the download, not after it).
+
+    Lines matching pmtiles' own progress-bar format are routed to
+    `on_progress` (parsed to a percentage) instead of `log`, if given -
+    that's what turns pmtiles' own "fetching chunks NN%" spam (updated
+    many times per second) into a structured, throttleable progress signal
+    instead of flooding the human-facing log with thousands of lines.
+    """
+    process = subprocess.Popen(
+        [str(pmtiles_bin), *args],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    output_lines: List[str] = []
+    assert process.stdout is not None
+    for raw_line in process.stdout:
+        line = raw_line.rstrip("\n")
+        output_lines.append(line)
+        percent = _parse_pmtiles_progress_percent(line) if on_progress else None
+        if percent is not None:
+            on_progress(percent)
+        else:
+            log(line)
+    process.wait()
     if process.returncode != 0:
         raise PmtilesError(f"pmtiles {args[0]} failed with exit code {process.returncode}", output_lines)
     return output_lines
@@ -444,6 +490,7 @@ def extract_region(
     minzoom: int,
     maxzoom: int,
     log: LogFn,
+    on_progress: Optional[Callable[[int], None]] = None,
 ) -> None:
     try:
         run_pmtiles(
@@ -458,6 +505,7 @@ def extract_region(
                 "--download-threads=8",
             ],
             log,
+            on_progress=on_progress,
         )
     except PmtilesError as e:
         if any("404" in line or "range reader" in line for line in e.output_lines):
@@ -538,9 +586,29 @@ def build(env: Dict[str, str], log: LogFn = print) -> Path:
                 region_index=plan.index,
                 region_count=len(plans),
                 region_name=region.name,
+                percent=0,
             )
+
+            def region_progress(percent, region=region, plan=plan):
+                _emit_progress(
+                    log,
+                    stage="extracting",
+                    region_index=plan.index,
+                    region_count=len(plans),
+                    region_name=region.name,
+                    percent=percent,
+                )
+
             extract_region(
-                pmtiles_bin, source, build_date, region_cache, region.bbox, plan.minzoom, region.maxzoom, log
+                pmtiles_bin,
+                source,
+                build_date,
+                region_cache,
+                region.bbox,
+                plan.minzoom,
+                region.maxzoom,
+                log,
+                on_progress=region_progress,
             )
             write_cache_meta(
                 cache_dir, plan.index, bbox=region.bbox, minzoom=plan.minzoom, maxzoom=region.maxzoom, build_date=build_date
@@ -554,9 +622,14 @@ def build(env: Dict[str, str], log: LogFn = print) -> Path:
     if dry_run:
         log(f">> (dry run) would run: pmtiles merge {' '.join(str(s) for s in merge_sources)} {out_path}")
     else:
-        _emit_progress(log, stage="merging")
+        _emit_progress(log, stage="merging", percent=0)
         assert pmtiles_bin is not None
-        run_pmtiles(pmtiles_bin, ["merge", *[str(s) for s in merge_sources], str(out_path)], log)
+        run_pmtiles(
+            pmtiles_bin,
+            ["merge", *[str(s) for s in merge_sources], str(out_path)],
+            log,
+            on_progress=lambda percent: _emit_progress(log, stage="merging", percent=percent),
+        )
         size_mb = out_path.stat().st_size / (1024 * 1024)
         log(f">> done: {size_mb:.1f} MB at {out_path}")
         _emit_progress(log, stage="done")
