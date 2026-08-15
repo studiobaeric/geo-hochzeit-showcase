@@ -32,29 +32,32 @@ pip install -r requirements.txt
 **2. Karten-Assets** – zwei davon sind zu groß bzw. zu zahlreich für Git und
 werden einmalig lokal erzeugt:
 
+`tools/build_basemap.py` is plain Python and works the same on every OS -
+only the font-fetching script differs per platform:
+
 **macOS:**
 
 ```bash
-bash tools/build_basemap.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
-bash tools/fetch_fonts.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
+python3 tools/build_basemap.py   # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+bash tools/fetch_fonts.sh        # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
 
 **Linux:**
 
 ```bash
-bash tools/build_basemap_linux.sh    # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
-bash tools/fetch_fonts_linux.sh      # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
+python3 tools/build_basemap.py   # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+bash tools/fetch_fonts_linux.sh  # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-.\tools\build_basemap.ps1      # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
+python tools/build_basemap.py  # Vektor-Basemap (PMTiles, ~1.5 GB bei Zoom 10)
 .\tools\fetch_fonts.ps1        # Glyph-Fonts fürs Beschriften (~768 Dateien, ~13 MB)
 ```
 
-> **Hinweis (Windows):** Falls die `.ps1`-Scripts nicht starten, muss die
+> **Hinweis (Windows):** Falls `fetch_fonts.ps1` nicht startet, muss die
 > PowerShell-Execution-Policy angepasst werden:
 >
 > ```powershell
@@ -117,36 +120,65 @@ werden **nicht** eingecheckt.
 ### Über das Webinterface (empfohlen für's initiale Einrichten)
 
 Im Konfigurationsmenü (`/config`) gibt es den Abschnitt **„Kartendaten“**:
-dort lassen sich Kartenausschnitt (Bounding Box), Detailgrad (Zoom für
-Kartenausschnitt und Weltübersicht) sowie das Protomaps-Build-Datum
-einstellen und der Download-Button startet `tools/build_basemap*.sh` direkt
-auf dem Server (`POST /api/map/build`, Fortschritt/Log über
-`GET /api/map/build/status`).
+dort lassen sich beliebig viele **Kartenausschnitte** anlegen, jeder mit
+eigenem Namen, Bounding Box und Detailgrad (Zoom, als beschriftetes
+Dropdown statt Zahlenfeld) – z.B. ein weltweiter Ausschnitt mit wenig Detail
+für die Übersicht, dazu ein oder mehrere einzelne Orte in hohem Detail.
+Das Protomaps-Build-Datum kann leer bleiben - dann wird beim Herunterladen
+automatisch der neueste tatsächlich verfügbare Stand ermittelt (Protomaps
+hält tägliche Builds nur ca. 5 Tage vor, ein fest eingetragenes Datum würde
+irgendwann ungültig werden). Nur für einen gezielt fixierten Stand lässt
+sich optional ein Datum eintragen; ein Link zur
+[Build-Übersicht](https://build.protomaps.com) zeigt, welche Daten dort
+gerade verfügbar sind. Der Download-Button startet `tools/build_basemap.py`
+direkt auf dem Server (`POST /api/map/build`) - das Skript ist reines
+Python und läuft identisch auf Linux, macOS und Windows. Während des
+Downloads zeigt die Seite Fortschritt und Log live an (per Polling von
+`GET /api/map/build/status`): welcher Kartenausschnitt gerade geladen wird,
+inklusive Fortschrittsbalken.
 
-Der beim Herunterladen tatsächlich verwendete Kartenausschnitt wird dabei
-**automatisch erweitert**, falls nötig, damit er immer alle Fotostandorte
-aus [`static/config/photos.json`](static/config/photos.json) mit Rand
-umschließt – so ist für jede Runde garantiert Kartendaten in hohem Detail
-vorhanden, unabhängig davon, welchen Ausschnitt man konfiguriert hat. Der
-gespeicherte (eigene) Ausschnitt bleibt dabei unverändert; nur der Build
-selbst nutzt bei Bedarf den erweiterten Bereich (`effective_bbox`,
-sichtbar über `GET /api/map/config`).
+Die Ausschnitte werden von grob nach fein sortiert und so gemerged, dass
+jeder nur die Zoomstufen oberhalb des vorherigen Ausschnitts beisteuert,
+begrenzt auf seine eigene Bounding Box. Der **detailreichste** Ausschnitt
+wird dabei **automatisch erweitert**, falls nötig, damit er immer alle
+Fotostandorte aus [`static/config/photos.json`](static/config/photos.json)
+mit Rand umschließt – so ist für jede Runde garantiert Kartendaten in hohem
+Detail vorhanden, unabhängig davon, welchen Ausschnitt man konfiguriert hat.
+Die gespeicherten (eigenen) Ausschnitte bleiben dabei unverändert; nur der
+Build selbst nutzt bei Bedarf den erweiterten Bereich (`effective_bbox` je
+Ausschnitt, sichtbar über `GET /api/map/config`).
 
 ### Über die Kommandozeile
 
-Das Skript baut die Karte in zwei Schritten und merged das Ergebnis:
+Ohne Web-UI lässt sich das Skript weiterhin direkt aufrufen - ein einziges
+`tools/build_basemap.py`, identisch auf Linux/macOS/Windows (frühere
+Versionen hatten separate `build_basemap_linux.sh`/`.sh`/`.ps1`-Scripts).
+Ohne weitere Angaben baut es die Karte in zwei Schritten (Legacy-Modus) und
+merged das Ergebnis:
 
 1. **Weltweit z0–5** – winzige Übersichts-Tiles (wenige MB), damit man beim
    weit Herauszoomen immer die ganze Erde sieht.
-2. **Europa z6–10** – detaillierte Tiles für den europäischen Spielbereich
-   (~1.4 GB).
+2. **Europa z6–13** – detaillierte Tiles für den europäischen Spielbereich.
 
 ```bash
-bash tools/build_basemap.sh
+python3 tools/build_basemap.py   # Linux/macOS
 ```
 
-Das Skript lädt bei Bedarf automatisch die `pmtiles`-CLI herunter und schreibt
-`static/data/basemap.pmtiles`.
+```powershell
+python tools/build_basemap.py    # Windows
+```
+
+Das Skript lädt bei Bedarf automatisch die `pmtiles`-CLI herunter (reines
+Python, ohne curl/unzip/tar) und schreibt `static/data/basemap.pmtiles`.
+
+Für mehr als zwei Ausschnitte (wie im Webinterface) lässt sich `REGIONS_FILE`
+auf eine eigene TSV-Datei zeigen (`Name<TAB>Bounding-Box<TAB>Zoom`, eine
+Zeile pro Ausschnitt, aufsteigend nach Zoom sortiert):
+
+```bash
+printf 'Welt\t-180,-90,180,90\t5\nEuropa\t-25,32,45,72\t11\nMadeira\t-17.5,32.5,-16.5,33\t14\n' > /tmp/regions.tsv
+REGIONS_FILE=/tmp/regions.tsv python3 tools/build_basemap.py
+```
 
 ### pmtiles installieren
 
@@ -246,65 +278,60 @@ Das Build-Skript sucht automatisch dort nach pmtiles.
 
 ### Zoom-Stufe / Region konfigurieren
 
-| Variable        | Standard       | Bedeutung                                                      |
-|-----------------|----------------|----------------------------------------------------------------|
-| `MAXZOOM`       | `10`           | Höchster Detailgrad für Europa (höher = viel größer)           |
-| `WORLD_MAXZOOM` | `5`            | Bis zu welchem Zoom die Weltkarte reicht (z0–n)                |
-| `EUROPE_BBOX`   | `-25,32,45,72` | Region für Hoch-Zoom-Tiles `min_lon,min_lat,max_lon,max_lat`   |
-| `BUILD_DATE`    | `20260608`     | Protomaps-Build-Datum (`YYYYMMDD`)                             |
-| `FORCE_REBUILD` | `false`        | `true` = ignoriert Caches, lädt alles neu                      |
+| Variable        | Standard       | Bedeutung                                                        |
+|-----------------|----------------|-------------------------------------------------------------------|
+| `REGIONS_FILE`  | –              | TSV-Datei `Name<TAB>bbox<TAB>maxzoom`, ein Ausschnitt pro Zeile, aufsteigend nach Zoom |
+| `MAXZOOM`       | `13`           | Legacy-Modus (kein `REGIONS_FILE`): Detailgrad des Europa-Ausschnitts |
+| `WORLD_MAXZOOM` | `5`            | Legacy-Modus: bis zu welchem Zoom die Weltübersicht reicht (z0–n) |
+| `EUROPE_BBOX`   | `-25,32,45,72` | Legacy-Modus: Bounding Box `min_lon,min_lat,max_lon,max_lat` für den Detail-Ausschnitt |
+| `BUILD_DATE`    | *(leer)*       | Protomaps-Build-Datum (`YYYYMMDD`). Leer = automatisch der neueste tatsächlich verfügbare Stand (siehe `resolve_latest_build_date` in `tools/build_basemap.py`); manuell nur nötig, um einen bestimmten Stand zu fixieren – aktuelle Werte auf <https://build.protomaps.com> |
+| `FORCE_REBUILD` | `false`        | `true` = ignoriert Caches, lädt alles neu                        |
+| `CACHE_DIR`     | `/tmp`         | Wo die Zwischenergebnisse je Ausschnitt liegen                   |
+| `DRY_RUN`       | `false`        | `true` = zeigt nur den Bauplan (keine Downloads, keine Schreibzugriffe) – für Tests |
 
-### Incrementales Build
+Ohne `REGIONS_FILE` synthetisiert das Skript intern zwei Ausschnitte
+("Welt" und "Europa") aus den Legacy-Variablen, genau wie zuvor.
 
-Das Skript cached Zwischenergebnisse in `/tmp/basemap_{world,europe}.pmtiles`.
-Beim nächsten Durchlauf werden nur fehlende Teile nachgeladen:
+### Caching
 
-- **Welt** (z0–5) – einmal geladen, wird bei gleichem `WORLD_MAXZOOM`/`BUILD_DATE` wiederverwendet.
-- **Europa** (z6+) – ändert sich nur `EUROPE_BBOX` (z.B. Erweiterung um Madeira),
-  wird nur der neue geografische Streifen heruntergeladen und mit dem Cache gemerged.
-  Gleiches gilt für eine Erhöhung von `MAXZOOM`: nur die neuen Zoom-Stufen werden
-  extrahiert.
-- Bei Änderung von `BUILD_DATE` oder `FORCE_REBUILD=true` wird komplett neu geladen.
+Jeder Ausschnitt wird einzeln unter `CACHE_DIR` zwischengespeichert
+(`basemap_region_<n>.pmtiles` + `.meta`), passend zu seiner Bounding
+Box/Zoomspanne/`BUILD_DATE`. Ändert sich ein Ausschnitt nicht, wird er beim
+nächsten Lauf übersprungen; ändert er sich (Bbox, Zoom oder `BUILD_DATE`),
+wird nur dieser eine Ausschnitt neu heruntergeladen. `FORCE_REBUILD=true`
+verwirft alle Caches.
 
-> **Cache löschen:** `rm -f /tmp/basemap_{world,europe}.pmtiles /tmp/basemap_{world,europe}.meta*`
+> **Cache löschen:** `rm -f /tmp/basemap_region_*.pmtiles /tmp/basemap_region_*.meta*`
 
-Größen des Europa-Anteils (der Weltteil ist immer nur wenige MB):
+Größengefühl für einen einzelnen Ausschnitt über ganz Europa (grob, hängt
+stark vom Ausschnitt ab):
+
+```
+Zoom 10  ~1.4 GB  (Standard, Stadt-Ebene)
+Zoom 11  ~2.9 GB  (Hauptstraßennetz)
+Zoom 12  ~6.5 GB  (die meisten Straßen)
+Zoom 13  ~13  GB  (jede Nebenstraße)
+```
+
+Beispiel – nur Deutschland mit mehr Detail (Legacy-Modus):
 
 **Linux/macOS:**
 
 ```bash
-MAXZOOM=10 bash tools/build_basemap.sh   # ~1.4 GB  (Standard, Stadt-Ebene)
-MAXZOOM=11 bash tools/build_basemap.sh   # ~2.9 GB  (Hauptstraßennetz)
-MAXZOOM=12 bash tools/build_basemap.sh   # ~6.5 GB  (die meisten Straßen)
-MAXZOOM=13 bash tools/build_basemap.sh   # ~13  GB  (jede Nebenstraße)
+EUROPE_BBOX=5.5,47,15.5,55 MAXZOOM=12 python3 tools/build_basemap.py
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-$env:MAXZOOM=10; .\tools\build_basemap.ps1   # ~1.4 GB  (Standard, Stadt-Ebene)
-$env:MAXZOOM=11; .\tools\build_basemap.ps1   # ~2.9 GB  (Hauptstraßennetz)
-$env:MAXZOOM=12; .\tools\build_basemap.ps1   # ~6.5 GB  (die meisten Straßen)
-$env:MAXZOOM=13; .\tools\build_basemap.ps1   # ~13  GB  (jede Nebenstraße)
-```
-
-Beispiel – nur Deutschland mit mehr Detail:
-
-**Linux/macOS:**
-
-```bash
-EUROPE_BBOX=5.5,47,15.5,55 MAXZOOM=12 bash tools/build_basemap.sh
-```
-
-**Windows (PowerShell):**
-
-```powershell
-$env:EUROPE_BBOX="5.5,47,15.5,55"; $env:MAXZOOM=12; .\tools\build_basemap.ps1
+$env:EUROPE_BBOX="5.5,47,15.5,55"; $env:MAXZOOM=12; python tools/build_basemap.py
 ```
 
 > **Hinweis:** Protomaps hält die täglichen Planet-Builds nur ~5 Tage vor.
-> Falls der Download 404 liefert, ein aktuelles Datum von
-> <https://build.protomaps.com> als `BUILD_DATE` setzen.
+> `BUILD_DATE` leer lassen (Standard) löst das automatisch auf; nur falls
+> hier bewusst ein festes Datum gesetzt wurde und der Download mit einem
+> 404 fehlschlägt, ein aktuelles Datum von <https://build.protomaps.com>
+> eintragen.
 
 Die PMTiles-Datei muss **nicht** komplett in den RAM passen: der Browser liest
 sie per Range-Request, der Flask-Static-Handler liefert nur die angeforderten
