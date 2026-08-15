@@ -67,17 +67,32 @@ export async function saveThemeConfig({ mode }) {
     return cache;
 }
 
+// Applies a theme_config record received from *any* /api/events stream -
+// this page's own (see subscribeThemeUpdates) or, on pages that already
+// keep one open via multiplayer.js's initSubscriptions, that shared
+// connection. Reusing the shared one there avoids piling up a second
+// long-lived SSE connection per page, which is scarce: browsers cap
+// concurrent HTTP/1.1 connections per origin at 6, and with three roles
+// (moderator + 2 players) each opening their own pair, a second stream per
+// page starves out ordinary fetch()/POST requests.
+export function onThemeConfigEvent(record) {
+    cache = record;
+    applyTheme(cache.mode);
+}
+
 let eventSource = null;
 
 // Applies theme changes made on other devices as soon as they happen, so the
-// whole party stays visually in sync without anyone reloading a page.
+// whole party stays visually in sync without anyone reloading a page. Only
+// used on pages that don't already keep an /api/events connection open via
+// multiplayer.js (start/config/end_of_game/results) - game.html and
+// moderator.html instead route theme_config through that shared connection.
 export function subscribeThemeUpdates() {
     if (eventSource) return;
 
     eventSource = new EventSource(EVENTS_ENDPOINT);
     eventSource.addEventListener('theme_config', (event) => {
-        cache = JSON.parse(event.data);
-        applyTheme(cache.mode);
+        onThemeConfigEvent(JSON.parse(event.data));
     });
     eventSource.onerror = (error) => {
         console.error('Theme-Sync-Verbindung getrennt:', error);

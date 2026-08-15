@@ -1,6 +1,7 @@
 import {onGamestateUpdate, updateMapPosition, onRoundConfigUpdate as onModeratorRoundConfigUpdate, onTimerUpdate as onModeratorTimerUpdate} from './moderator.js';
 import {loadNextRound, updateView, onRoundConfigUpdate as onPlayerRoundConfigUpdate, onTimerUpdate as onPlayerTimerUpdate} from "./game.js";
 import {getDisplayNames} from './player-names.js';
+import {onThemeConfigEvent} from './theme.js';
 
 const API_BASE = '/api';
 let gamestateRecord = null;
@@ -93,6 +94,13 @@ function initEventStream() {
         } else if (name === "player1" || name === "player2") {
             onPlayerTimerUpdate(record);
         }
+    });
+
+    // Applies to every role alike (unlike gamestate/round_config/timer
+    // above), and reuses this connection rather than opening a second one -
+    // see theme.js's onThemeConfigEvent for why that matters.
+    eventSource.addEventListener('theme_config', (event) => {
+        onThemeConfigEvent(JSON.parse(event.data));
     });
 
     eventSource.onerror = (err) => {

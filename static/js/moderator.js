@@ -7,10 +7,12 @@ import { photoFilenames } from '../config/players.js';
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { loadRoundConfig } from './round-config.js';
-import { loadThemeConfig, subscribeThemeUpdates } from './theme.js';
+import { loadThemeConfig } from './theme.js';
 
+// Live updates arrive over multiplayer.js's shared /api/events connection
+// (see its 'theme_config' listener) rather than a second one here - see
+// theme.js's onThemeConfigEvent for why that matters.
 loadThemeConfig();
-subscribeThemeUpdates();
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
