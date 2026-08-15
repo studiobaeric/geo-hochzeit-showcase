@@ -13,10 +13,18 @@
    `:root[data-theme="light"]` always wins over plain `:root` because the
    attribute selector makes it more specific.
 
+   --color-accent/-2, --color-accent-strong(-hover), --color-danger and
+   --color-success are deliberately the *same* hex in both blocks: one
+   consistent brand/action palette that both themes share, so light and dark
+   read as the same app with a different backdrop rather than two different
+   apps (see #24's review feedback). Only surfaces, text and borders differ
+   between the two blocks - everything that has to adapt to stay legible
+   against a light vs. a dark backdrop.
+
    Colors that carry meaning independent of theme (player1/player2 identity
-   colors, danger red) are intentionally left out of individual component
-   stylesheets rather than tokenized here - unifying light/dark is about the
-   app chrome, not about repainting things like the blue/red player markers.
+   markers) are intentionally left out of individual component stylesheets
+   rather than tokenized here - unifying light/dark is about the app chrome,
+   not about repainting who's blue and who's red.
 */
 
 :root {
@@ -28,13 +36,13 @@
     --color-text: #f5f5f5;
     --color-text-muted: rgba(245, 245, 245, 0.7);
     --color-border: rgba(255, 255, 255, 0.14);
-    --color-accent: #667eea;
-    --color-accent-2: #764ba2;
-    --color-accent-strong: #2f80ed;
-    --color-accent-strong-hover: #1c6dd0;
-    --color-danger: #e74c3c;
-    --color-success: #4caf50;
-    --color-success-hover: #43a047;
+    --color-accent: #4f46e5;
+    --color-accent-2: #7c3aed;
+    --color-accent-strong: #2563eb;
+    --color-accent-strong-hover: #1d4ed8;
+    --color-danger: #ef4444;
+    --color-success: #22c55e;
+    --color-success-hover: #16a34a;
     --color-disabled: #555555;
     --color-disabled-hover: #6b6b6b;
     --color-glass-bg: rgba(255, 255, 255, 0.08);
@@ -42,13 +50,22 @@
     --color-glass-border: rgba(255, 255, 255, 0.14);
     --color-glass-item-bg: rgba(255, 255, 255, 0.06);
     --color-glass-item-bg-hover: rgba(255, 255, 255, 0.12);
-    --color-highlight-border: #4c63b6;
-    --color-highlight-shadow: rgba(99, 102, 241, 0.35);
-    --color-status-error-bg: rgba(231, 76, 60, 0.18);
-    --color-status-error-text: #ff8a80;
-    --color-status-success-bg: rgba(76, 175, 80, 0.18);
-    --color-status-success-text: #81c995;
-    --gradient-bg: linear-gradient(135deg, #4338ca 0%, #312e81 100%);
+    --color-highlight-border: #4f46e5;
+    --color-highlight-shadow: rgba(79, 70, 229, 0.35);
+    --color-status-error-bg: rgba(239, 68, 68, 0.18);
+    --color-status-error-text: #fca5a5;
+    --color-status-success-bg: rgba(34, 197, 94, 0.18);
+    --color-status-success-text: #86efac;
+    /* A floating chip readable over *any* photo or map underneath it -
+       always a solid, near-opaque surface rather than the translucent
+       --color-glass-* tokens above, which are tuned for cards sitting on
+       this theme's own background, not on arbitrary photo/map content. */
+    --color-chrome-bg: rgba(15, 15, 20, 0.85);
+    --color-chrome-text: #ffffff;
+    --color-chrome-border: rgba(255, 255, 255, 0.25);
+    --color-code-bg: #1e1e1e;
+    --color-code-text: #d4d4d4;
+    --gradient-bg: linear-gradient(135deg, #4338ca 0%, #5b21b6 100%);
     --shadow-color: rgba(0, 0, 0, 0.45);
 }
 
@@ -60,13 +77,13 @@
     --color-text: #222222;
     --color-text-muted: #666666;
     --color-border: #e0e0e0;
-    --color-accent: #667eea;
-    --color-accent-2: #764ba2;
-    --color-accent-strong: #2196f3;
-    --color-accent-strong-hover: #0b7dda;
-    --color-danger: #e74c3c;
-    --color-success: #4caf50;
-    --color-success-hover: #43a047;
+    --color-accent: #4f46e5;
+    --color-accent-2: #7c3aed;
+    --color-accent-strong: #2563eb;
+    --color-accent-strong-hover: #1d4ed8;
+    --color-danger: #ef4444;
+    --color-success: #22c55e;
+    --color-success-hover: #16a34a;
     --color-disabled: #cccccc;
     --color-disabled-hover: #bdbdbd;
     --color-glass-bg: rgba(255, 255, 255, 0.65);
@@ -74,12 +91,20 @@
     --color-glass-border: rgba(0, 0, 0, 0.12);
     --color-glass-item-bg: rgba(0, 0, 0, 0.05);
     --color-glass-item-bg-hover: rgba(0, 0, 0, 0.1);
-    --color-highlight-border: #93c5fd;
-    --color-highlight-shadow: rgba(147, 197, 253, 0.25);
-    --color-status-error-bg: #fdecea;
-    --color-status-error-text: #c62828;
-    --color-status-success-bg: #e8f5e9;
-    --color-status-success-text: #2e7d32;
-    --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --color-highlight-border: #818cf8;
+    --color-highlight-shadow: rgba(99, 102, 241, 0.25);
+    --color-status-error-bg: #fef2f2;
+    --color-status-error-text: #b91c1c;
+    --color-status-success-bg: #f0fdf4;
+    --color-status-success-text: #15803d;
+    /* See the dark block above for why this isn't --color-glass-bg: needs to
+       stay legible over arbitrary photo/map content, not just this theme's
+       own background. */
+    --color-chrome-bg: rgba(255, 255, 255, 0.88);
+    --color-chrome-text: #1f2937;
+    --color-chrome-border: rgba(17, 24, 39, 0.14);
+    --color-code-bg: #1e1e1e;
+    --color-code-text: #d4d4d4;
+    --gradient-bg: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
     --shadow-color: rgba(0, 0, 0, 0.3);
 }

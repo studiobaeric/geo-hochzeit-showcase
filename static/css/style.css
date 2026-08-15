@@ -113,7 +113,12 @@ body, html {
    whether the player is looking at the photo or the map - see #16's
    follow-up comment ("countdown should also be visible when the players
    are looking at the map"). pointer-events: none so it never blocks map
-   clicks underneath it. */
+   clicks underneath it.
+
+   Uses the --color-chrome-* tokens (not the regular surface/text/border
+   ones) because it floats over the photo or map rather than this theme's
+   own background - it needs to stay a solid, readable chip in both themes
+   rather than adopting whatever the page behind it happens to be. */
 .round-timer {
     position: fixed;
     top: calc(14px + env(safe-area-inset-top));
@@ -122,10 +127,10 @@ body, html {
     z-index: 1200;
     padding: 6px 18px;
     width: fit-content;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--color-chrome-border);
     border-radius: 999px;
-    background: rgba(17, 17, 17, 0.82);
-    color: #fff;
+    background: var(--color-chrome-bg);
+    color: var(--color-chrome-text);
     font-size: 1.4em;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
@@ -134,9 +139,9 @@ body, html {
 }
 
 .round-timer.is-urgent {
-    border-color: rgba(231, 76, 60, 0.7);
-    background: rgba(75, 12, 12, 0.88);
-    color: #ff8a80;
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: #ffffff;
 }
 
 .round-timer.is-hidden {

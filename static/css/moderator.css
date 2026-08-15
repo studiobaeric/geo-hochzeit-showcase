@@ -98,6 +98,9 @@ body {
     overflow: hidden;
 }
 
+/* Uses --color-chrome-* (see style.css's .round-timer) rather than the
+   regular surface tokens - it floats over the player's photo, which can be
+   any color, so it needs to stay a solid, readable chip in both themes. */
 .player-score-badge {
     position: absolute;
     bottom: 0;
@@ -110,13 +113,13 @@ body {
     gap: 10px;
     min-height: 42px;
     padding: 8px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    border: 1px solid var(--color-chrome-border);
     border-bottom: none;
     border-radius: 8px 8px 0 0;
-    background: rgba(18, 18, 18, 0.78);
-    color: #fff;
+    background: var(--color-chrome-bg);
+    color: var(--color-chrome-text);
     backdrop-filter: blur(6px);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 8px 22px var(--shadow-color);
 }
 
 .player-score-marker {
@@ -143,7 +146,7 @@ body {
 }
 
 .player-score-points {
-    color: #f8fafc;
+    color: var(--color-chrome-text);
     font-size: clamp(14px, 1.3vw, 18px);
     line-height: 1;
     white-space: nowrap;
@@ -162,7 +165,9 @@ body {
     font-weight: 700;
 }
 
-/* Current round photo */
+/* Current round photo - always a black backdrop regardless of theme
+   (letterboxing, like a camera/gallery app - see style.css's #photoView),
+   so .photo-fallback below stays a fixed light color too. */
 .current-photo-stage {
     position: relative;
     display: flex;
@@ -332,6 +337,11 @@ body {
     font-weight: 800;
 }
 
+/* Deliberately fixed light/dark colors rather than theme tokens: this label
+   and .resolution-distance below sit on the map itself, whose basemap tiles
+   are always light regardless of the app's theme - a dark chip here would
+   have poor contrast against them in dark mode, which is the opposite of
+   this PR's "contrast should stay good in both versions" goal. */
 .resolution-map .player-name-tooltip {
     border: 1px solid rgba(17, 24, 39, 0.18);
     border-radius: 6px;
@@ -408,7 +418,10 @@ body {
     display: block;
 }
 
-/* Round result overlay */
+/* Round result overlay. The dimming scrim behind .result-card is
+   deliberately a fixed dark backdrop in both themes - a universal modal
+   convention (dim what's behind the dialog) independent of the app's own
+   theme; .result-card itself (the actual content) is fully themed. */
 .round-result-view {
     position: fixed;
     inset: 0;

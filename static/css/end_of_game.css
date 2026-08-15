@@ -29,6 +29,10 @@ body {
     background: rgba(0, 0, 0, 0.05);
 }
 
+/* Deliberately fixed colors rather than theme tokens: this label sits on
+   the map itself, whose basemap tiles are always light regardless of the
+   app's theme - see moderator.css's .player-name-tooltip for the same
+   reasoning. */
 .end-marker-label {
     padding: 6px 10px;
     border: 1px solid rgba(17, 24, 39, 0.18);
