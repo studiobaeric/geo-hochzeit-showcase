@@ -501,10 +501,10 @@
             text-align: center;
         }
 
-        /* Spoiler-protected photo: blurred by default so a config page left
-           open on a shared screen never accidentally spoils a round photo -
-           a click reveals it. */
-        .photo-spoiler {
+        /* Whole photo section is spoiler-protected (see .section-spoiler
+           below), so an individual photo frame just displays its image
+           plainly once the section has been revealed. */
+        .photo-frame {
             position: relative;
             border-radius: 8px;
             overflow: hidden;
@@ -513,53 +513,70 @@
             margin-bottom: 10px;
         }
 
-        .photo-spoiler img {
+        .photo-frame img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
-            filter: blur(20px) brightness(0.7);
-            transform: scale(1.15);
-            transition: filter 0.2s, transform 0.2s;
         }
 
-        .photo-spoiler.revealed img {
-            filter: none;
-            transform: none;
-        }
-
-        .photo-spoiler.is-empty img {
-            filter: none;
-            transform: none;
+        .photo-frame.is-empty img {
             opacity: 0.25;
         }
 
-        .photo-reveal-button {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            border: none;
-            background: rgba(0, 0, 0, 0.4);
-            color: white;
-            font-size: 0.8em;
-            cursor: pointer;
+        /* Spoiler protection for the whole "Bilder" section: collapsed
+           behind a warning by default so a config page left open on a
+           shared screen never accidentally spoils player or round photos -
+           a single click reveals the entire section at once. */
+        .section-spoiler-warning {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 14px;
+            padding: 30px 20px;
+            border: 2px dashed var(--color-border);
+            border-radius: 10px;
+            background: var(--color-bg-muted);
             text-align: center;
-            padding: 8px;
         }
 
-        .photo-spoiler.revealed .photo-reveal-button {
-            inset: auto 6px 6px auto;
+        .section-spoiler-warning p {
+            margin: 0;
+            color: var(--color-text-muted);
+            font-size: 0.95em;
+        }
+
+        .section-spoiler-warning .config-button {
             width: auto;
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 0.72em;
+            padding: 10px 20px;
         }
 
-        .photo-spoiler.is-empty .photo-reveal-button {
+        .section-spoiler-content {
             display: none;
+        }
+
+        .section-spoiler.revealed .section-spoiler-warning {
+            display: none;
+        }
+
+        .section-spoiler.revealed .section-spoiler-content {
+            display: block;
+        }
+
+        .section-spoiler-hide-button {
+            display: block;
+            margin: 0 0 16px auto;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            background: var(--color-bg-muted);
+            color: var(--color-text);
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .section-spoiler-hide-button:hover {
+            background: var(--color-border);
         }
 
         .upload-button {
@@ -617,7 +634,7 @@
             }
         }
 
-        .round-photo-row .photo-spoiler {
+        .round-photo-row .photo-frame {
             aspect-ratio: 1;
             margin-bottom: 0;
         }
@@ -648,7 +665,7 @@
             display: none;
         }
 
-        .round-photo-add-fields .photo-spoiler {
+        .round-photo-add-fields .photo-frame {
             max-width: 200px;
             margin: 0 auto 14px;
         }
@@ -836,18 +853,14 @@
             <h2>Bilder</h2>
             <p class="field-hint">
                 Profilfotos der Spieler und die Rundenfotos mit den zu
-                erratenden Orten. Alle Bilder sind hier zunächst
-                unscharf/verborgen und werden erst nach einem Klick
-                angezeigt, damit auf einem geteilten Bildschirm nichts
-                versehentlich verraten wird.
+                erratenden Orten.
             </p>
 
             <h3 class="photo-subheading">Spielerfotos</h3>
             <div class="player-photo-grid">
                 <div class="player-photo-slot">
-                    <div class="photo-spoiler" id="player1PhotoSpoiler">
+                    <div class="photo-frame" id="player1PhotoFrame">
                         <img alt="Spielerfoto 1">
-                        <button type="button" class="photo-reveal-button">🙈 Bild anzeigen</button>
                     </div>
                     <label class="upload-button">
                         📷 Foto ändern
@@ -856,9 +869,8 @@
                     <p class="photo-upload-status" id="player1PhotoStatus"></p>
                 </div>
                 <div class="player-photo-slot">
-                    <div class="photo-spoiler" id="player2PhotoSpoiler">
+                    <div class="photo-frame" id="player2PhotoFrame">
                         <img alt="Spielerfoto 2">
-                        <button type="button" class="photo-reveal-button">🙈 Bild anzeigen</button>
                     </div>
                     <label class="upload-button">
                         📷 Foto ändern
@@ -874,30 +886,44 @@
                 Obergrenze. Beim Auswählen einer Datei wird, falls
                 vorhanden, die GPS-Position aus den Bilddaten automatisch
                 ins Positionsfeld übernommen; sie lässt sich danach
-                trotzdem frei ändern.
+                trotzdem frei ändern. Der Bereich ist standardmäßig
+                verborgen und wird erst nach Klick auf die
+                Spoiler-Warnung sichtbar, damit auf einem geteilten
+                Bildschirm nichts versehentlich verraten wird.
             </p>
-            <div class="round-photo-list" id="roundPhotoList"></div>
 
-            <div class="round-photo-add">
-                <label class="upload-button">
-                    ➕ Neues Rundenfoto hinzufügen
-                    <input type="file" accept="image/*" id="newRoundPhotoFile" hidden>
-                </label>
-                <div class="round-photo-add-fields is-hidden" id="roundPhotoAddFields">
-                    <div class="photo-spoiler" id="newRoundPhotoSpoiler">
-                        <img id="newRoundPhotoPreview" alt="Neues Rundenfoto">
-                        <button type="button" class="photo-reveal-button">🙈 Bild anzeigen</button>
+            <div class="section-spoiler" id="photosSectionSpoiler">
+                <div class="section-spoiler-warning">
+                    <p>⚠️ Dieser Bereich enthält die Rundenfotos.</p>
+                    <button type="button" class="config-button build" id="photosSectionRevealButton">👁 Bereich anzeigen</button>
+                </div>
+
+                <div class="section-spoiler-content">
+                    <button type="button" class="section-spoiler-hide-button" id="photosSectionHideButton">🙈 Wieder verbergen</button>
+
+                    <div class="round-photo-list" id="roundPhotoList"></div>
+
+                    <div class="round-photo-add">
+                        <label class="upload-button">
+                            ➕ Neues Rundenfoto hinzufügen
+                            <input type="file" accept="image/*" id="newRoundPhotoFile" hidden>
+                        </label>
+                        <div class="round-photo-add-fields is-hidden" id="roundPhotoAddFields">
+                            <div class="photo-frame" id="newRoundPhotoFrame">
+                                <img id="newRoundPhotoPreview" alt="Neues Rundenfoto">
+                            </div>
+                            <div class="field">
+                                <label for="newRoundPhotoDescription">Beschreibung</label>
+                                <input type="text" id="newRoundPhotoDescription" maxlength="200">
+                            </div>
+                            <input type="hidden" id="newRoundPhotoLat">
+                            <input type="hidden" id="newRoundPhotoLng">
+                            <button type="button" class="map-pick-button" id="newRoundPhotoPickButton">📍 Position auf Karte wählen</button>
+                            <p class="field-hint" id="newRoundPhotoGpsHint"></p>
+                            <button type="button" class="config-button build" id="addRoundPhotoButton">Foto hinzufügen</button>
+                            <p class="status-message" id="newRoundPhotoStatus"></p>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label for="newRoundPhotoDescription">Beschreibung</label>
-                        <input type="text" id="newRoundPhotoDescription" maxlength="200">
-                    </div>
-                    <input type="hidden" id="newRoundPhotoLat">
-                    <input type="hidden" id="newRoundPhotoLng">
-                    <button type="button" class="map-pick-button" id="newRoundPhotoPickButton">📍 Position auf Karte wählen</button>
-                    <p class="field-hint" id="newRoundPhotoGpsHint"></p>
-                    <button type="button" class="config-button build" id="addRoundPhotoButton">Foto hinzufügen</button>
-                    <p class="status-message" id="newRoundPhotoStatus"></p>
                 </div>
             </div>
         </div>
@@ -1303,28 +1329,25 @@
 
     // --- Bilder: Spielerfotos + Rundenfotos -----------------------------
 
-    // Every spoiler-protected thumbnail (player photos, existing round
-    // photos, the "add new photo" preview) shares the same reveal
-    // interaction, wired up once via delegation instead of per-element.
-    document.addEventListener('click', (event) => {
-        const button = event.target.closest('.photo-reveal-button');
-        if (!button) return;
-        const spoiler = button.closest('.photo-spoiler');
-        if (!spoiler || spoiler.classList.contains('is-empty')) return;
-        const revealed = spoiler.classList.toggle('revealed');
-        button.textContent = revealed ? '🙈 Bild verbergen' : '🙈 Bild anzeigen';
+    // The whole "Bilder" section is spoiler-protected as one unit (rather
+    // than each individual photo), so a config page left open on a shared
+    // screen shows nothing until someone deliberately reveals it.
+    const photosSectionSpoiler = document.getElementById('photosSectionSpoiler');
+    const photosSectionRevealButton = document.getElementById('photosSectionRevealButton');
+    const photosSectionHideButton = document.getElementById('photosSectionHideButton');
+
+    photosSectionRevealButton.addEventListener('click', () => {
+        photosSectionSpoiler.classList.add('revealed');
     });
 
-    function resetSpoiler(spoiler) {
-        spoiler.classList.remove('revealed');
-        const button = spoiler.querySelector('.photo-reveal-button');
-        if (button) button.textContent = '🙈 Bild anzeigen';
-    }
+    photosSectionHideButton.addEventListener('click', () => {
+        photosSectionSpoiler.classList.remove('revealed');
+    });
 
     const playerPhotoRoles = ['player1', 'player2'];
-    const playerPhotoSpoilers = {
-        player1: document.getElementById('player1PhotoSpoiler'),
-        player2: document.getElementById('player2PhotoSpoiler')
+    const playerPhotoFrames = {
+        player1: document.getElementById('player1PhotoFrame'),
+        player2: document.getElementById('player2PhotoFrame')
     };
     const playerPhotoStatusEls = {
         player1: document.getElementById('player1PhotoStatus'),
@@ -1334,14 +1357,14 @@
     function applyPlayerPhoto(role) {
         const filenames = getPhotoFilenames();
         const filename = filenames[role];
-        const spoiler = playerPhotoSpoilers[role];
-        const img = spoiler.querySelector('img');
+        const frame = playerPhotoFrames[role];
+        const img = frame.querySelector('img');
         if (filename) {
             img.src = `/static/photos/${filename}`;
-            spoiler.classList.remove('is-empty');
+            frame.classList.remove('is-empty');
         } else {
             img.removeAttribute('src');
-            spoiler.classList.add('is-empty');
+            frame.classList.add('is-empty');
         }
     }
 
@@ -1360,7 +1383,6 @@
             try {
                 await uploadPlayerPhoto(role, file);
                 applyPlayerPhoto(role);
-                resetSpoiler(playerPhotoSpoilers[role]);
                 statusEl.textContent = '✅ Hochgeladen.';
                 statusEl.className = 'photo-upload-status success';
             } catch (error) {
@@ -1374,25 +1396,20 @@
 
     const roundPhotoListEl = document.getElementById('roundPhotoList');
 
-    function createSpoilerElement(src, alt) {
+    function createPhotoFrame(src, alt) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'photo-spoiler';
+        wrapper.className = 'photo-frame';
         const img = document.createElement('img');
         img.src = src;
         img.alt = alt;
         wrapper.appendChild(img);
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'photo-reveal-button';
-        button.textContent = '🙈 Bild anzeigen';
-        wrapper.appendChild(button);
         return wrapper;
     }
 
     function renderRoundPhotoRow(photo) {
         const row = document.createElement('div');
         row.className = 'round-photo-row';
-        row.appendChild(createSpoilerElement(photo.url, photo.description || 'Rundenfoto'));
+        row.appendChild(createPhotoFrame(photo.url, photo.description || 'Rundenfoto'));
 
         const fields = document.createElement('div');
         fields.className = 'round-photo-fields';
@@ -1504,7 +1521,6 @@
 
     const newRoundPhotoFileInput = document.getElementById('newRoundPhotoFile');
     const roundPhotoAddFields = document.getElementById('roundPhotoAddFields');
-    const newRoundPhotoSpoiler = document.getElementById('newRoundPhotoSpoiler');
     const newRoundPhotoPreview = document.getElementById('newRoundPhotoPreview');
     const newRoundPhotoDescription = document.getElementById('newRoundPhotoDescription');
     const newRoundPhotoLat = document.getElementById('newRoundPhotoLat');
@@ -1542,7 +1558,6 @@
         if (pendingRoundPhotoPreviewUrl) URL.revokeObjectURL(pendingRoundPhotoPreviewUrl);
         pendingRoundPhotoPreviewUrl = URL.createObjectURL(file);
         newRoundPhotoPreview.src = pendingRoundPhotoPreviewUrl;
-        resetSpoiler(newRoundPhotoSpoiler);
 
         newRoundPhotoDescription.value = '';
         newRoundPhotoStatus.textContent = '';
