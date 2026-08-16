@@ -4,6 +4,12 @@ import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./bas
 import {PhotoZoom} from "./photo.js";
 import {loadDisplayNames} from "./player-names.js";
 import {loadRoundConfig} from "./round-config.js";
+import {loadThemeConfig} from "./theme.js";
+
+// Live updates arrive over multiplayer.js's shared /api/events connection
+// (see its 'theme_config' listener) rather than a second one here - see
+// theme.js's onThemeConfigEvent for why that matters.
+loadThemeConfig();
 
 let guessMarker = null;
 let isLocked = false;

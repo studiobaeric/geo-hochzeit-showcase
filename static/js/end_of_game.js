@@ -1,6 +1,10 @@
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { getRoundResults, resetGameState } from './multiplayer.js';
+import { loadThemeConfig, subscribeThemeUpdates } from './theme.js';
+
+loadThemeConfig();
+subscribeThemeUpdates();
 
 const endGameMapElement = document.getElementById('endGameMap');
 const roundListElement = document.getElementById('roundList');

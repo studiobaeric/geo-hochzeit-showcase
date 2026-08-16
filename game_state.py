@@ -68,6 +68,16 @@ _ROUND_MODES = {"manual", "countdown"}
 _MIN_ROUND_DURATION = 5
 _MAX_ROUND_DURATION = 3600
 
+# Light/dark color theme, editable at runtime via the config menu
+# (/config -> PATCH /api/theme-config). Stored server-side (rather than in
+# each browser's localStorage) so a change made on one device applies to
+# every device, per #18.
+_DEFAULT_THEME_CONFIG = {
+    "mode": "dark",
+}
+
+_THEME_MODES = {"light", "dark"}
+
 # Live state of the current round's countdown. Unlike _round_config (a
 # durable setting), this is transient per-round state: it resets to
 # "not running" on every round advance, game reset, and server restart -
@@ -95,6 +105,7 @@ _gamestate = dict(_DEFAULT_GAMESTATE)
 _player_config = dict(_DEFAULT_PLAYER_CONFIG)
 _round_config = dict(_DEFAULT_ROUND_CONFIG)
 _timer_state = dict(_DEFAULT_TIMER_STATE)
+_theme_config = dict(_DEFAULT_THEME_CONFIG)
 
 # keyed by (round_number, placed_by)
 _placed_points = {}
@@ -165,6 +176,7 @@ def _persist_locked():
         "player_config": _player_config,
         "round_config": _round_config,
         "timer_state": _timer_state,
+        "theme_config": _theme_config,
     }
 
     directory = os.path.dirname(STATE_FILE) or "."
@@ -192,7 +204,7 @@ def load_state_from_disk():
     contents is treated the same as "nothing to load" and leaves the
     current in-memory defaults untouched.
     """
-    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state
+    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state, _theme_config
 
     if not STATE_FILE or not os.path.isfile(STATE_FILE):
         return
@@ -256,6 +268,19 @@ def load_state_from_disk():
         else:
             logger.warning(
                 "Ignoring corrupted persisted round_config in %s: %s",
+                STATE_FILE,
+                error or "missing fields",
+            )
+
+    loaded_theme_config = payload.get("theme_config")
+    if isinstance(loaded_theme_config, dict):
+        known_theme_config = {k: v for k, v in loaded_theme_config.items() if k in _DEFAULT_THEME_CONFIG}
+        error = _validate_theme_config_updates(known_theme_config)
+        if error is None and _DEFAULT_THEME_CONFIG.keys() == known_theme_config.keys():
+            _theme_config = dict(known_theme_config)
+        else:
+            logger.warning(
+                "Ignoring corrupted persisted theme_config in %s: %s",
                 STATE_FILE,
                 error or "missing fields",
             )
@@ -460,6 +485,37 @@ def patch_round_config():
     return jsonify(record)
 
 
+def _validate_theme_config_updates(updates):
+    if "mode" in updates and updates["mode"] not in _THEME_MODES:
+        return f"mode must be one of: {', '.join(sorted(_THEME_MODES))}"
+
+    return None
+
+
+@bp.route("/theme-config", methods=["GET"])
+def get_theme_config():
+    with _lock:
+        return jsonify(_theme_config)
+
+
+@bp.route("/theme-config", methods=["PATCH"])
+def patch_theme_config():
+    updates = request.get_json(force=True) or {}
+
+    error = _validate_theme_config_updates(updates)
+    if error:
+        return jsonify({"error": error}), 400
+
+    with _lock:
+        for key, value in updates.items():
+            if key in _DEFAULT_THEME_CONFIG:
+                _theme_config[key] = value
+        record = dict(_theme_config)
+        _persist_locked()
+    _broadcast("theme_config", record)
+    return jsonify(record)
+
+
 @bp.route("/points", methods=["POST"])
 def post_point():
     data = request.get_json(force=True) or {}
@@ -658,10 +714,12 @@ def events():
                 config_snapshot = dict(_player_config)
                 round_config_snapshot = dict(_round_config)
                 timer_snapshot = dict(_timer_state)
+                theme_snapshot = dict(_theme_config)
             yield f"event: gamestate\ndata: {json.dumps(snapshot)}\n\n"
             yield f"event: player_config\ndata: {json.dumps(config_snapshot)}\n\n"
             yield f"event: round_config\ndata: {json.dumps(round_config_snapshot)}\n\n"
             yield f"event: timer\ndata: {json.dumps(timer_snapshot)}\n\n"
+            yield f"event: theme_config\ndata: {json.dumps(theme_snapshot)}\n\n"
             while True:
                 try:
                     yield subscriber.get(timeout=15)
