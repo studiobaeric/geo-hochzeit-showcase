@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import queue
+import sys
 import tempfile
 import threading
 import time
@@ -93,12 +94,24 @@ _DEFAULT_TIMER_STATE = {
 _MIN_EXTEND_SECONDS = 1
 _MAX_EXTEND_SECONDS = 600
 
+# Released binaries (see tools/build_release.py) ship this module frozen
+# into the executable, so __file__ resolves inside PyInstaller's onefile
+# temp extraction dir rather than next to the actual executable - mirrors
+# app.py's frozen-path handling (see there for details). Without this, the
+# persisted game_state.json would be written into that temp dir, which
+# PyInstaller wipes on exit, so the game state would never actually survive
+# a restart of the packaged binary.
+if getattr(sys, "frozen", False):
+    _PROJECT_ROOT = os.path.dirname(sys.executable)
+else:
+    _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 # Where the game state is mirrored to disk. Overridable via env var (and, in
 # tests, by assigning `game_state.STATE_FILE` directly) so test runs and
 # alternate deployments don't fight over one shared file.
 STATE_FILE = os.environ.get(
     "GAME_STATE_FILE",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "game_state.json"),
+    os.path.join(_PROJECT_ROOT, "data", "game_state.json"),
 )
 
 _gamestate = dict(_DEFAULT_GAMESTATE)
