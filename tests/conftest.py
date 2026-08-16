@@ -19,6 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import game_state  # noqa: E402
 import map_build  # noqa: E402
+import photo_config  # noqa: E402
+import photo_storage  # noqa: E402
 from app import app as flask_app  # noqa: E402
 
 
@@ -96,3 +98,12 @@ def isolate_map_config(tmp_path, monkeypatch):
     _reset_map_module_state()
     yield
     _reset_map_module_state()
+
+
+@pytest.fixture(autouse=True)
+def isolate_photo_storage(tmp_path, monkeypatch):
+    """Point round-photo persistence and uploaded files at throwaway paths
+    so tests never touch the real static/config/photos.json or
+    static/photos/ - same convention as the other isolate_* fixtures."""
+    monkeypatch.setattr(photo_config, "PHOTOS_FILE", str(tmp_path / "photos.json"))
+    monkeypatch.setattr(photo_storage, "PHOTOS_DIR", str(tmp_path / "photos"))

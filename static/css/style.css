@@ -65,13 +65,10 @@ body, html {
     display: none;
 }
 
-/* Foto-Ansicht - the photo itself always sits on a black backdrop
-   regardless of theme (letterboxing, like a camera/gallery app), so its
-   overlaid text stays a fixed light color rather than following
-   --color-text. */
+/* Foto-Ansicht */
 #photoView {
-    background: #000;
-    color: #fff;
+    background: var(--color-bg);
+    color: var(--color-text);
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;

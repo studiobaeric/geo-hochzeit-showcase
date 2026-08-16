@@ -8,7 +8,12 @@ def test_get_player_config_has_default_shape(client):
     data = response.get_json()
 
     assert response.status_code == 200
-    assert data == {"player1_name": "player1", "player2_name": "player2"}
+    assert data == {
+        "player1_name": "player1",
+        "player2_name": "player2",
+        "player1_photo": "",
+        "player2_photo": "",
+    }
 
 
 def test_patch_updates_a_single_name(client):
@@ -30,7 +35,12 @@ def test_patch_updates_both_names(client):
     )
     data = response.get_json()
 
-    assert data == {"player1_name": "Jana", "player2_name": "Tobias"}
+    assert data == {
+        "player1_name": "Jana",
+        "player2_name": "Tobias",
+        "player1_photo": "",
+        "player2_photo": "",
+    }
 
 
 def test_patch_trims_whitespace(client):
@@ -72,7 +82,12 @@ def test_patch_rejects_invalid_field_values(client, bad_payload):
 
     # Rejected updates must not partially apply.
     unchanged = client.get("/api/player-config").get_json()
-    assert unchanged == {"player1_name": "player1", "player2_name": "player2"}
+    assert unchanged == {
+        "player1_name": "player1",
+        "player2_name": "player2",
+        "player1_photo": "",
+        "player2_photo": "",
+    }
 
 
 def test_patch_persists_to_disk(client):

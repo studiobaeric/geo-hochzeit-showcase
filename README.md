@@ -72,21 +72,40 @@ liegt bereits eingecheckt in `static/`.
 Für eine neue Hochzeit anpassen:
 
 - **Spielernamen & Profilfotos:** [`static/config/players.js`](static/config/players.js)
+  (Fallback-Werte) - lassen sich zur Laufzeit im Konfigurationsmenü ändern,
+  siehe unten.
 - **Rundenfotos & Orte:** [`static/config/photos.json`](static/config/photos.json)
+  (Fallback-Datei) - lassen sich zur Laufzeit im Konfigurationsmenü
+  hinzufügen/bearbeiten/löschen, siehe unten.
 - **Bilddateien ablegen:** [`static/photos/`](static/photos/README.md)
 
 Details siehe [`static/config/README.md`](static/config/README.md).
 
-### Nutzernamen zur Laufzeit ändern
+### Nutzernamen, Fotos & Rundenfotos zur Laufzeit ändern
 
 Auf der Startseite führt der ⚙️-Button oben rechts zum Konfigurationsmenü
-(`/config`). Dort lassen sich die Nutzernamen der beiden Spieler direkt im
-Browser ändern, ohne `players.js` zu bearbeiten oder den Server neu zu
-starten - praktisch, wenn kurzfristig noch jemand anderes mitspielt. Die
-Namen werden serverseitig gespeichert (`GET`/`PATCH /api/player-config`) und
-gelten dadurch sofort für alle Geräte, die die Seite (neu) laden. Das
-Konfigurationsmenü ist als Ausgangspunkt für künftige weitere
-Einstellungen angelegt.
+(`/config`). Dort lassen sich direkt im Browser ändern, ohne die
+Konfigurationsdateien von Hand zu bearbeiten oder den Server neu zu
+starten - praktisch, wenn kurzfristig noch jemand anderes mitspielt oder
+neue Rundenfotos dazukommen:
+
+- die Nutzernamen der beiden Spieler
+  (`GET`/`PATCH /api/player-config`),
+- die Profilfotos der beiden Spieler
+  (`POST /api/player-config/photo/<player1|player2>`),
+- die Rundenfotos inklusive Beschreibung und Position - beliebig viele,
+  keine Obergrenze
+  (`GET`/`POST /api/round-photos`, `PATCH`/`DELETE /api/round-photos/<id>`).
+  Beim Hochladen eines Rundenfotos wird, falls vorhanden, die
+  GPS-Position aus den Bilddaten (EXIF) automatisch ins Positionsfeld
+  übernommen (`POST /api/round-photos/exif-location`); sie lässt sich
+  danach weiterhin frei ändern. Alle Fotos werden im Konfigurationsmenü
+  zunächst unscharf/verborgen dargestellt und erst nach einem Klick
+  angezeigt, damit auf einem geteilten Bildschirm nichts versehentlich
+  verraten wird.
+
+Alle Änderungen werden serverseitig gespeichert und gelten dadurch sofort
+für alle Geräte, die die Seite (neu) laden.
 
 ## App starten
 

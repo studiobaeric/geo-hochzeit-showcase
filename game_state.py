@@ -23,6 +23,8 @@ import time
 
 from flask import Blueprint, Response, jsonify, request, stream_with_context
 
+import photo_storage
+
 bp = Blueprint("api", __name__, url_prefix="/api")
 
 logger = logging.getLogger(__name__)
@@ -37,12 +39,18 @@ _DEFAULT_GAMESTATE = {
     "player2_locked": False,
 }
 
-# Display names shown in the UI, editable at runtime via the config menu
-# (/config -> PATCH /api/player-config). The "player1"/"player2" role keys
-# themselves stay fixed - only the human-readable labels change.
+# Display names + profile photos shown in the UI, editable at runtime via
+# the config menu (/config -> PATCH /api/player-config, POST
+# /api/player-config/photo/<role>). The "player1"/"player2" role keys
+# themselves stay fixed - only the human-readable labels and photo
+# filenames change. An empty photo string means "no custom photo uploaded
+# yet" - the frontend then falls back to static/config/players.js's
+# PHOTO_1/PHOTO_2.
 _DEFAULT_PLAYER_CONFIG = {
     "player1_name": "player1",
     "player2_name": "player2",
+    "player1_photo": "",
+    "player2_photo": "",
 }
 
 _MAX_PLAYER_NAME_LENGTH = 40
@@ -237,13 +245,18 @@ def load_state_from_disk():
     if isinstance(loaded_player_config, dict):
         known_config = {k: v for k, v in loaded_player_config.items() if k in _DEFAULT_PLAYER_CONFIG}
         error = _validate_player_config_updates(known_config)
-        if error is None and _DEFAULT_PLAYER_CONFIG.keys() == known_config.keys():
-            _player_config = dict(known_config)
+        if error is None:
+            # Missing fields (e.g. player1_photo/player2_photo in a state
+            # file written before photo uploads existed) fall back to their
+            # default rather than discarding the whole record - an older
+            # file must not silently reset player names that were already
+            # customized.
+            _player_config = {**_DEFAULT_PLAYER_CONFIG, **known_config}
         else:
             logger.warning(
                 "Ignoring corrupted persisted player_config in %s: %s",
                 STATE_FILE,
-                error or "missing fields",
+                error or "invalid fields",
             )
 
     loaded_round_config = payload.get("round_config")
@@ -364,14 +377,22 @@ def patch_gamestate():
     return jsonify(record)
 
 
+_PLAYER_NAME_FIELDS = ("player1_name", "player2_name")
+_PLAYER_PHOTO_FIELDS = ("player1_photo", "player2_photo")
+
+
 def _validate_player_config_updates(updates):
-    for field in ("player1_name", "player2_name"):
+    for field in _PLAYER_NAME_FIELDS:
         if field in updates:
             value = updates[field]
             if not isinstance(value, str) or not value.strip():
                 return f"{field} must be a non-empty string"
             if len(value.strip()) > _MAX_PLAYER_NAME_LENGTH:
                 return f"{field} must be at most {_MAX_PLAYER_NAME_LENGTH} characters"
+
+    for field in _PLAYER_PHOTO_FIELDS:
+        if field in updates and not isinstance(updates[field], str):
+            return f"{field} must be a string"
 
     return None
 
@@ -392,12 +413,32 @@ def patch_player_config():
 
     with _lock:
         for key, value in updates.items():
-            if key in _DEFAULT_PLAYER_CONFIG:
+            if key in _PLAYER_NAME_FIELDS:
                 _player_config[key] = value.strip()
+            elif key in _PLAYER_PHOTO_FIELDS:
+                _player_config[key] = value
         record = dict(_player_config)
         _persist_locked()
     _broadcast("player_config", record)
     return jsonify(record)
+
+
+@bp.route("/player-config/photo/<role>", methods=["POST"])
+def upload_player_photo(role):
+    if role not in _PLAYER_ROLES:
+        return jsonify({"error": f"role must be one of: {', '.join(sorted(_PLAYER_ROLES))}"}), 400
+
+    try:
+        filename = photo_storage.save_upload(request.files.get("photo"), prefix=role)
+    except photo_storage.UploadError as e:
+        return jsonify({"error": str(e)}), 400
+
+    with _lock:
+        _player_config[f"{role}_photo"] = filename
+        record = dict(_player_config)
+        _persist_locked()
+    _broadcast("player_config", record)
+    return jsonify(record), 201
 
 
 def _validate_round_config_updates(updates):

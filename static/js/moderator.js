@@ -3,7 +3,7 @@ import {
     initSubscriptions, getPlacedPoints, getRoundResults, postRoundResult,
     getTimerState, startTimer, pauseTimer, resumeTimer, extendTimer, stopTimer
 } from './multiplayer.js';
-import { photoFilenames } from '../config/players.js';
+import { getPhotoFilenames, loadPhotoFilenames } from './player-photos.js';
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { loadRoundConfig } from './round-config.js';
@@ -116,6 +116,7 @@ async function hydratePlacedPoints() {
 
 function applyDisplayNames() {
     const names = getDisplayNames();
+    const photoFilenames = getPhotoFilenames();
 
     const player1ScoreName = document.getElementById('player1ScoreName');
     if (player1ScoreName) player1ScoreName.textContent = names.player1;
@@ -146,6 +147,7 @@ function applyDisplayNames() {
 }
 
 await loadDisplayNames();
+await loadPhotoFilenames();
 applyDisplayNames();
 
 let pointByName = {

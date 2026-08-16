@@ -45,8 +45,12 @@
     --color-success-hover: #16a34a;
     --color-disabled: #555555;
     --color-disabled-hover: #6b6b6b;
-    --color-glass-bg: rgba(255, 255, 255, 0.08);
-    --color-glass-bg-hover: rgba(255, 255, 255, 0.14);
+    /* Solid enough to read as clearly dark regardless of what's behind it -
+       this backs .credits-container, which floats over the (always light)
+       end-of-game map, so a subtle translucent tint here would let enough
+       of the light map show through to look like it ignored dark mode. */
+    --color-glass-bg: rgba(17, 17, 20, 0.9);
+    --color-glass-bg-hover: rgba(17, 17, 20, 0.96);
     --color-glass-border: rgba(255, 255, 255, 0.14);
     --color-glass-item-bg: rgba(255, 255, 255, 0.06);
     --color-glass-item-bg-hover: rgba(255, 255, 255, 0.12);

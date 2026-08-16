@@ -1,0 +1,216 @@
+"""Round-photo management (upload, position, description), exposed via the
+web config UI.
+
+static/config/photos.json is the single source of truth for round photos -
+it's also read directly by static/js/game.js, static/js/moderator.js and
+static/js/end_of_game.js (to show a round's photo / look one up by round
+number) and by map_build.py (to widen the downloaded map so it covers every
+photo location). This module is just the API that lets /config create,
+update and delete entries in that same file, instead of hand-editing it.
+
+No in-memory cache: the file is read fresh on every request and rewritten
+whole on every change, guarded by `_lock` for read-modify-write safety -
+mirrors game_state.py's / map_build.py's persistence conventions. There is
+intentionally no cap on how many photos can be added.
+"""
+
+import json
+import logging
+import os
+import tempfile
+import threading
+
+from flask import Blueprint, jsonify, request
+
+import photo_storage
+
+bp = Blueprint("photos", __name__, url_prefix="/api")
+
+logger = logging.getLogger(__name__)
+
+_lock = threading.Lock()
+
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+# Overridable via env var (and directly in tests), same convention as
+# map_build.MAP_CONFIG_FILE / game_state.STATE_FILE.
+PHOTOS_FILE = os.environ.get(
+    "ROUND_PHOTOS_FILE", os.path.join(PROJECT_ROOT, "static", "config", "photos.json")
+)
+
+_MAX_DESCRIPTION_LENGTH = 200
+
+
+def _load_locked():
+    """Read PHOTOS_FILE. Caller must hold `_lock`.
+
+    A missing/unreadable/malformed file is treated as "no photos yet"
+    rather than an error, same as the other config modules' load helpers.
+    """
+    if not os.path.isfile(PHOTOS_FILE):
+        return []
+    try:
+        with open(PHOTOS_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning("Could not read %s: %s", PHOTOS_FILE, e)
+        return []
+    return data if isinstance(data, list) else []
+
+
+def _save_locked(photos):
+    """Write `photos` to PHOTOS_FILE. Caller must hold `_lock`.
+
+    Best-effort like the other config modules' persistence: a write
+    failure is logged but never allowed to break the request that
+    triggered it.
+    """
+    directory = os.path.dirname(PHOTOS_FILE) or "."
+    tmp_path = None
+    try:
+        os.makedirs(directory, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(prefix=".photos_", dir=directory)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(photos, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, PHOTOS_FILE)
+    except OSError as e:
+        logger.warning("Could not persist %s: %s", PHOTOS_FILE, e)
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+
+def _with_url(photo):
+    record = dict(photo)
+    record["url"] = f"/static/photos/{photo['filename']}"
+    return record
+
+
+def _validate_lat_lng(lat, lng):
+    if isinstance(lat, bool) or not isinstance(lat, (int, float)) or not (-90 <= lat <= 90):
+        return "lat must be a number between -90 and 90"
+    if isinstance(lng, bool) or not isinstance(lng, (int, float)) or not (-180 <= lng <= 180):
+        return "lng must be a number between -180 and 180"
+    return None
+
+
+def _validate_description(description):
+    if not isinstance(description, str) or len(description) > _MAX_DESCRIPTION_LENGTH:
+        return f"description must be a string of at most {_MAX_DESCRIPTION_LENGTH} characters"
+    return None
+
+
+@bp.route("/round-photos", methods=["GET"])
+def list_round_photos():
+    with _lock:
+        photos = _load_locked()
+    return jsonify([_with_url(p) for p in photos])
+
+
+@bp.route("/round-photos/exif-location", methods=["POST"])
+def round_photo_exif_location():
+    """Sniff GPS coordinates out of an in-flight upload's EXIF data, without
+    persisting anything. Called from the "add photo" form as soon as a file
+    is picked, so the position field can be prefilled before the user
+    actually submits it - which may still edit it freely either way."""
+    photo_file = request.files.get("photo")
+    if photo_file is None or not photo_file.filename:
+        return jsonify({"error": "no photo file was uploaded"}), 400
+
+    location = photo_storage.extract_gps_location(photo_file)
+    if location is None:
+        return jsonify({"lat": None, "lng": None})
+    lat, lng = location
+    return jsonify({"lat": lat, "lng": lng})
+
+
+@bp.route("/round-photos", methods=["POST"])
+def create_round_photo():
+    photo_file = request.files.get("photo")
+    description = (request.form.get("description") or "").strip()
+
+    try:
+        lat = float(request.form.get("lat"))
+        lng = float(request.form.get("lng"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "lat and lng are required numbers"}), 400
+
+    error = _validate_lat_lng(lat, lng) or _validate_description(description)
+    if error:
+        return jsonify({"error": error}), 400
+
+    try:
+        filename = photo_storage.save_upload(photo_file, prefix="round")
+    except photo_storage.UploadError as e:
+        return jsonify({"error": str(e)}), 400
+
+    with _lock:
+        photos = _load_locked()
+        next_id = max((p.get("id", 0) for p in photos), default=0) + 1
+        record = {
+            "id": next_id,
+            "filename": filename,
+            "location": {"lat": lat, "lng": lng},
+            "description": description,
+        }
+        photos.append(record)
+        _save_locked(photos)
+
+    return jsonify(_with_url(record)), 201
+
+
+@bp.route("/round-photos/<int:photo_id>", methods=["PATCH"])
+def update_round_photo(photo_id):
+    updates = request.get_json(force=True) or {}
+
+    description = updates.get("description")
+    if description is not None:
+        error = _validate_description(description)
+        if error:
+            return jsonify({"error": error}), 400
+
+    location = updates.get("location")
+    if location is not None:
+        if not isinstance(location, dict) or "lat" not in location or "lng" not in location:
+            return jsonify({"error": "location must be an object with lat and lng"}), 400
+        error = _validate_lat_lng(location.get("lat"), location.get("lng"))
+        if error:
+            return jsonify({"error": error}), 400
+
+    with _lock:
+        photos = _load_locked()
+        record = next((p for p in photos if p.get("id") == photo_id), None)
+        if record is None:
+            return jsonify({"error": "photo not found"}), 404
+
+        if description is not None:
+            record["description"] = description.strip()
+        if location is not None:
+            record["location"] = {"lat": location["lat"], "lng": location["lng"]}
+
+        _save_locked(photos)
+        result = dict(record)
+
+    return jsonify(_with_url(result))
+
+
+@bp.route("/round-photos/<int:photo_id>", methods=["DELETE"])
+def delete_round_photo(photo_id):
+    with _lock:
+        photos = _load_locked()
+        record = next((p for p in photos if p.get("id") == photo_id), None)
+        if record is None:
+            return jsonify({"error": "photo not found"}), 404
+
+        photos = [p for p in photos if p.get("id") != photo_id]
+        _save_locked(photos)
+
+    photo_path = os.path.join(photo_storage.PHOTOS_DIR, record["filename"])
+    try:
+        os.remove(photo_path)
+    except OSError as e:
+        logger.warning("Could not remove photo file %s: %s", photo_path, e)
+
+    return jsonify({"deleted": True, "id": photo_id})

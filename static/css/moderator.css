@@ -165,16 +165,14 @@ body {
     font-weight: 700;
 }
 
-/* Current round photo - always a black backdrop regardless of theme
-   (letterboxing, like a camera/gallery app - see style.css's #photoView),
-   so .photo-fallback below stays a fixed light color too. */
+/* Current round photo */
 .current-photo-stage {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: #000;
+    background: var(--color-bg);
 }
 
 .current-photo {
@@ -194,9 +192,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px dashed rgba(255, 255, 255, 0.25);
+    border: 2px dashed var(--color-border);
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--color-text-muted);
     font-size: clamp(16px, 2vw, 24px);
     font-weight: 700;
 }
