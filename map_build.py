@@ -28,7 +28,6 @@ import json
 import logging
 import os
 import re
-import subprocess
 import sys
 import tempfile
 import threading
@@ -36,13 +35,22 @@ import time
 
 from flask import Blueprint, jsonify, request
 
+from tools import build_basemap
+
 bp = Blueprint("map", __name__, url_prefix="/api/map")
 
 logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+# Released binaries (see tools/build_release.py) ship this module frozen
+# into the executable, so __file__ resolves inside PyInstaller's onefile
+# temp extraction dir rather than next to the actual executable - mirrors
+# app.py's frozen-path handling (see there for details).
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = os.path.dirname(sys.executable)
+else:
+    PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 MAP_CONFIG_FILE = os.environ.get(
     "MAP_CONFIG_FILE", os.path.join(PROJECT_ROOT, "data", "map_config.json")
@@ -360,14 +368,6 @@ def patch_map_config():
 # --- basemap build: runner, background execution, API -------------------
 
 
-def _script_path():
-    """tools/build_basemap.py - one script, works identically on every OS
-    (see its own module docstring for why the old per-platform bash/
-    PowerShell scripts were replaced)."""
-    path = os.path.join(PROJECT_ROOT, "tools", "build_basemap.py")
-    return path if os.path.isfile(path) else None
-
-
 def _write_regions_file(regions):
     """Write `name<TAB>effective_bbox<TAB>maxzoom` lines for the build script."""
     fd, path = tempfile.mkstemp(prefix="map_regions_", suffix=".tsv")
@@ -382,45 +382,35 @@ def _write_regions_file(regions):
     return path
 
 
-def _build_command(script):
-    # Run with the same interpreter Flask itself is running under, so there's
-    # no dependency on a "python"/"python3" launcher being on PATH, and no
-    # ambiguity about which installed Python version gets used.
-    return [sys.executable, script]
-
-
 def _default_runner(config, log_callback):
-    """Run tools/build_basemap.py as a subprocess.
+    """Run tools/build_basemap.py's `build()` in-process.
 
-    Writes the configured regions to a temp TSV file, streams the script's
-    combined stdout/stderr line by line to `log_callback`, and returns the
-    process exit code (1 if the script is missing, without spawning
-    anything - this shouldn't normally happen since it ships with the repo).
+    This used to shell out to the script via `[sys.executable, script]`,
+    but a released binary (see tools/build_release.py) is a PyInstaller
+    onefile executable with no standalone Python interpreter bundled -
+    `sys.executable` there just points back at the packaged app itself, so
+    re-invoking it with a script path would only relaunch the whole Flask
+    app (and immediately fail to rebind its own port) instead of running
+    the build. Calling `build_basemap.build()` directly, in the same
+    background thread this runs on (see _run_build), works identically
+    whether frozen or not and needs no script file to exist on disk at
+    runtime - `tools/build_basemap.py` is simply bundled in as a normal
+    import.
+
+    Writes the configured regions to a temp TSV file exactly as
+    build_basemap.build() expects via REGIONS_FILE, streams its log lines
+    to `log_callback`, and returns 0 on success or 1 on a BuildError.
     """
-    script = _script_path()
-    if script is None:
-        log_callback("Build-Skript tools/build_basemap.py wurde nicht gefunden.")
-        return 1
-
     regions_file = _write_regions_file(config["regions"])
     try:
         env = os.environ.copy()
         env["REGIONS_FILE"] = regions_file
         env["BUILD_DATE"] = config["build_date"]
-
-        process = subprocess.Popen(
-            _build_command(script),
-            cwd=PROJECT_ROOT,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
-        for line in process.stdout:
-            log_callback(line.rstrip("\n"))
-        process.wait()
-        return process.returncode
+        build_basemap.build(env, log_callback)
+        return 0
+    except build_basemap.BuildError as e:
+        log_callback(f"ERROR: {e}")
+        return 1
     finally:
         try:
             os.remove(regions_file)

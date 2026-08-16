@@ -228,33 +228,35 @@ def test_build_effective_bbox_covers_out_of_range_photo(client, monkeypatch, tmp
     assert status["config_used"]["regions"][1]["effective_bbox"] == detail_region["effective_bbox"]
 
 
-# --- script resolution + regions file --------------------------------------
+# --- default runner (in-process build_basemap.build() call) + regions file -
 
 
-def test_script_path_resolves_to_the_one_cross_platform_script():
-    # No more per-OS branching (see tools/build_basemap.py's docstring for
-    # why the old bash/PowerShell scripts were replaced with one Python
-    # script) - the same path is used regardless of platform.system().
-    path = map_build._script_path()
+def test_default_runner_calls_build_basemap_in_process(monkeypatch):
+    captured = {}
 
-    assert path is not None
-    assert path.endswith("build_basemap.py")
-    assert os.path.isfile(path)
+    def fake_build(env, log):
+        captured["env"] = env
+        log("a line from the build")
+
+    monkeypatch.setattr(map_build.build_basemap, "build", fake_build)
+    lines = []
+
+    exit_code = map_build._default_runner(
+        {"regions": [{"name": "Welt", "bbox": "1,1,2,2", "effective_bbox": "1,1,2,2", "maxzoom": 5}], "build_date": "20260101"},
+        lines.append,
+    )
+
+    assert exit_code == 0
+    assert lines == ["a line from the build"]
+    assert captured["env"]["BUILD_DATE"] == "20260101"
+    assert os.path.isfile(captured["env"]["REGIONS_FILE"]) is False  # cleaned up after the call
 
 
-def test_script_path_returns_none_if_missing(monkeypatch):
-    monkeypatch.setattr(map_build.os.path, "isfile", lambda path: False)
-    assert map_build._script_path() is None
+def test_default_runner_returns_error_on_build_error(monkeypatch):
+    def broken_build(env, log):
+        raise map_build.build_basemap.BuildError("something went wrong")
 
-
-def test_build_command_runs_the_script_with_the_current_interpreter():
-    command = map_build._build_command("/repo/tools/build_basemap.py")
-
-    assert command == [map_build.sys.executable, "/repo/tools/build_basemap.py"]
-
-
-def test_default_runner_returns_error_without_crashing_when_script_missing(monkeypatch):
-    monkeypatch.setattr(map_build, "_script_path", lambda: None)
+    monkeypatch.setattr(map_build.build_basemap, "build", broken_build)
     lines = []
 
     exit_code = map_build._default_runner(
@@ -263,7 +265,7 @@ def test_default_runner_returns_error_without_crashing_when_script_missing(monke
     )
 
     assert exit_code == 1
-    assert lines and "build_basemap.py" in lines[0]
+    assert lines and "something went wrong" in lines[0]
 
 
 def test_write_regions_file_produces_tsv_lines(tmp_path):

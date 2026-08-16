@@ -65,7 +65,17 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+
+# Packaged binaries (see tools/build_release.py) run this module in-process
+# from map_build.py (imported as `tools.build_basemap`) rather than as a
+# standalone script - there, __file__ resolves inside PyInstaller's onefile
+# temp extraction dir, not next to the actual executable. Mirror app.py's
+# frozen-path handling so the basemap still lands beside the real static/
+# folder instead of a directory that vanishes when the process exits.
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys.executable).resolve().parent
+else:
+    PROJECT_ROOT = SCRIPT_DIR.parent
 
 DEFAULT_PMTILES_VERSION = "1.30.3"
 DEFAULT_MAXZOOM = 13
