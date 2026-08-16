@@ -7,11 +7,21 @@ GPS extraction live in exactly one place.
 
 import os
 import re
+import sys
 import uuid
 
 from PIL import ExifTags, Image
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+# Released binaries (see tools/build_release.py) ship this module frozen
+# into the executable, so __file__ resolves inside PyInstaller's onefile
+# temp extraction dir rather than next to the actual executable - mirrors
+# app.py's frozen-path handling (see there for details). Without this,
+# uploaded photos would be saved into the temp extraction dir instead of
+# next to the static/ folder Flask actually serves, so they'd never show up.
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = os.path.dirname(sys.executable)
+else:
+    PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # Overridable via env var (and directly in tests) so test runs don't touch
 # the real project's static/photos/ folder - same convention as

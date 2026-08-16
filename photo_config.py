@@ -17,6 +17,7 @@ intentionally no cap on how many photos can be added.
 import json
 import logging
 import os
+import sys
 import tempfile
 import threading
 
@@ -30,7 +31,14 @@ logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+# Released binaries (see tools/build_release.py) ship this module frozen
+# into the executable, so __file__ resolves inside PyInstaller's onefile
+# temp extraction dir rather than next to the actual executable - mirrors
+# app.py's frozen-path handling (see there for details).
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = os.path.dirname(sys.executable)
+else:
+    PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # Overridable via env var (and directly in tests), same convention as
 # map_build.MAP_CONFIG_FILE / game_state.STATE_FILE.
