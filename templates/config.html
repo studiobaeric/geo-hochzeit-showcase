@@ -475,12 +475,6 @@
             text-align: left;
         }
 
-        .photo-subheading {
-            color: var(--color-accent);
-            font-size: 0.95em;
-            margin: 18px 0 10px;
-        }
-
         .player-photo-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -499,6 +493,12 @@
             border-radius: 10px;
             padding: 12px;
             text-align: center;
+        }
+
+        .player-slot-label {
+            margin: 0 0 10px;
+            color: var(--color-accent);
+            font-size: 0.95em;
         }
 
         /* Whole photo section is spoiler-protected (see .section-spoiler
@@ -766,14 +766,36 @@
 
     <form id="configForm">
         <div class="config-section">
-            <h2>Nutzernamen</h2>
-            <div class="field">
-                <label for="player1Name">Name Spieler 1</label>
-                <input type="text" id="player1Name" name="player1Name" maxlength="40" required>
-            </div>
-            <div class="field">
-                <label for="player2Name">Name Spieler 2</label>
-                <input type="text" id="player2Name" name="player2Name" maxlength="40" required>
+            <h2>Spieler</h2>
+            <div class="player-photo-grid">
+                <div class="player-photo-slot">
+                    <h3 class="player-slot-label">Spieler 1</h3>
+                    <div class="photo-frame" id="player1PhotoFrame">
+                        <img alt="Spielerfoto 1">
+                    </div>
+                    <label class="upload-button">
+                        📷 Foto ändern
+                        <input type="file" accept="image/*" id="player1PhotoInput" hidden>
+                    </label>
+                    <p class="photo-upload-status" id="player1PhotoStatus"></p>
+                    <div class="field">
+                        <input type="text" id="player1Name" name="player1Name" maxlength="40" required aria-label="Name Spieler 1" placeholder="Name">
+                    </div>
+                </div>
+                <div class="player-photo-slot">
+                    <h3 class="player-slot-label">Spieler 2</h3>
+                    <div class="photo-frame" id="player2PhotoFrame">
+                        <img alt="Spielerfoto 2">
+                    </div>
+                    <label class="upload-button">
+                        📷 Foto ändern
+                        <input type="file" accept="image/*" id="player2PhotoInput" hidden>
+                    </label>
+                    <p class="photo-upload-status" id="player2PhotoStatus"></p>
+                    <div class="field">
+                        <input type="text" id="player2Name" name="player2Name" maxlength="40" required aria-label="Name Spieler 2" placeholder="Name">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -850,37 +872,7 @@
         </div>
 
         <div class="config-section">
-            <h2>Bilder</h2>
-            <p class="field-hint">
-                Profilfotos der Spieler und die Rundenfotos mit den zu
-                erratenden Orten.
-            </p>
-
-            <h3 class="photo-subheading">Spielerfotos</h3>
-            <div class="player-photo-grid">
-                <div class="player-photo-slot">
-                    <div class="photo-frame" id="player1PhotoFrame">
-                        <img alt="Spielerfoto 1">
-                    </div>
-                    <label class="upload-button">
-                        📷 Foto ändern
-                        <input type="file" accept="image/*" id="player1PhotoInput" hidden>
-                    </label>
-                    <p class="photo-upload-status" id="player1PhotoStatus"></p>
-                </div>
-                <div class="player-photo-slot">
-                    <div class="photo-frame" id="player2PhotoFrame">
-                        <img alt="Spielerfoto 2">
-                    </div>
-                    <label class="upload-button">
-                        📷 Foto ändern
-                        <input type="file" accept="image/*" id="player2PhotoInput" hidden>
-                    </label>
-                    <p class="photo-upload-status" id="player2PhotoStatus"></p>
-                </div>
-            </div>
-
-            <h3 class="photo-subheading">Rundenfotos</h3>
+            <h2>Rundenfotos</h2>
             <p class="field-hint">
                 Beliebig viele Fotos mit dem zu erratenden Ort - keine
                 Obergrenze. Beim Auswählen einer Datei wird, falls
@@ -1383,8 +1375,8 @@
             try {
                 await uploadPlayerPhoto(role, file);
                 applyPlayerPhoto(role);
-                statusEl.textContent = '✅ Hochgeladen.';
-                statusEl.className = 'photo-upload-status success';
+                statusEl.textContent = '';
+                statusEl.className = 'photo-upload-status';
             } catch (error) {
                 statusEl.textContent = error.message || 'Hochladen fehlgeschlagen.';
                 statusEl.className = 'photo-upload-status error';
