@@ -13,6 +13,8 @@
     <title>Konfiguration – Hochzeits Geoguesser</title>
     <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.css') }}"/>
     <style>
         body {
             display: flex;
@@ -271,6 +273,197 @@
 
         .field-hint a {
             color: var(--color-accent);
+        }
+
+        .map-pick-button {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 8px;
+            border: 2px dashed var(--color-border);
+            background: none;
+            color: var(--color-accent);
+            border-radius: 8px;
+            padding: 9px 12px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: inherit;
+            text-align: center;
+        }
+
+        .map-pick-button:hover {
+            background: var(--color-bg-muted);
+        }
+
+        .region-bbox-field .map-pick-button {
+            margin-top: 10px;
+        }
+
+        .bbox-display-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 0 0 8px;
+        }
+
+        @media (max-width: 480px) {
+            .bbox-display-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .bbox-display-item {
+            background: var(--color-bg-muted);
+            border-radius: 8px;
+            padding: 8px 10px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .bbox-display-item .bbox-display-label {
+            display: block;
+            font-size: 0.68em;
+            color: var(--color-text-muted);
+            margin-bottom: 3px;
+        }
+
+        .bbox-display-item .bbox-display-value {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.82em;
+            color: var(--color-text);
+        }
+
+        .bbox-display-item.is-empty .bbox-display-value {
+            color: var(--color-text-muted);
+            font-style: italic;
+        }
+
+        .position-picker-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(3px);
+        }
+
+        .position-picker-overlay.is-active {
+            display: flex;
+        }
+
+        .position-picker-dialog {
+            background: var(--color-bg-elevated);
+            border-radius: 16px;
+            padding: 22px;
+            width: min(640px, 100%);
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px var(--shadow-color);
+            box-sizing: border-box;
+        }
+
+        .position-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .position-picker-title {
+            margin: 0;
+            color: var(--color-text);
+            font-size: 1.15em;
+        }
+
+        .position-picker-close {
+            border: none;
+            background: var(--color-bg-muted);
+            color: var(--color-text);
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .position-picker-hint {
+            color: var(--color-text-muted);
+            font-size: 0.85em;
+            margin: 10px 0 0;
+        }
+
+        .position-picker-notice {
+            background: var(--color-bg-muted);
+            color: var(--color-text-muted);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.82em;
+            margin: 10px 0 0;
+        }
+
+        .position-picker-map {
+            width: 100%;
+            height: min(48vh, 420px);
+            min-height: 240px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 14px;
+            border: 1px solid var(--color-border);
+        }
+
+        .position-picker-handle {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4f46e5;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+            cursor: grab;
+        }
+
+        .position-picker-manual-point,
+        .position-picker-manual-bbox {
+            margin-top: 14px;
+        }
+
+        /* .field-row's own `display: grid` (an author rule) otherwise beats
+           the `hidden` attribute's UA-stylesheet `display: none`, since
+           author styles always win over UA styles regardless of
+           specificity - so both manual-entry blocks would show at once. */
+        .position-picker-manual-point[hidden] {
+            display: none;
+        }
+
+        .position-picker-manual-point .field,
+        .position-picker-manual-bbox .field {
+            margin-bottom: 0;
+        }
+
+        .position-picker-manual-bbox-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .position-picker-manual-bbox .map-pick-button {
+            margin-top: 10px;
+        }
+
+        .position-picker-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .position-picker-actions .config-button {
+            width: auto;
         }
 
         .future-config-note {
@@ -699,16 +892,9 @@
                         <label for="newRoundPhotoDescription">Beschreibung</label>
                         <input type="text" id="newRoundPhotoDescription" maxlength="200">
                     </div>
-                    <div class="field-row">
-                        <div class="field">
-                            <label for="newRoundPhotoLat">Breitengrad (lat)</label>
-                            <input type="number" id="newRoundPhotoLat" step="any" min="-90" max="90">
-                        </div>
-                        <div class="field">
-                            <label for="newRoundPhotoLng">Längengrad (lng)</label>
-                            <input type="number" id="newRoundPhotoLng" step="any" min="-180" max="180">
-                        </div>
-                    </div>
+                    <input type="hidden" id="newRoundPhotoLat">
+                    <input type="hidden" id="newRoundPhotoLng">
+                    <button type="button" class="map-pick-button" id="newRoundPhotoPickButton">📍 Position auf Karte wählen</button>
                     <p class="field-hint" id="newRoundPhotoGpsHint"></p>
                     <button type="button" class="config-button build" id="addRoundPhotoButton">Foto hinzufügen</button>
                     <p class="status-message" id="newRoundPhotoStatus"></p>
@@ -729,6 +915,10 @@
     </form>
 </div>
 
+<script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
 <script type="module">
     import { getDisplayNames, loadDisplayNames, saveDisplayNames } from "{{ url_for('static', filename='js/player-names.js') }}";
     import { getRoundConfig, loadRoundConfig, saveRoundConfig } from "{{ url_for('static', filename='js/round-config.js') }}";
@@ -740,6 +930,7 @@
     import {
         loadRoundPhotos, fetchExifLocation, uploadRoundPhoto, updateRoundPhoto, deleteRoundPhoto
     } from "{{ url_for('static', filename='js/photo-config.js') }}";
+    import { pickPoint, pickBBox } from "{{ url_for('static', filename='js/position-picker.js') }}";
 
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
@@ -896,15 +1087,54 @@
             });
             fields.appendChild(fieldWithLabel('Detailgrad', zoomSelect));
 
-            const bboxInput = document.createElement('input');
-            bboxInput.type = 'text';
-            bboxInput.required = true;
-            bboxInput.placeholder = 'min_lon,min_lat,max_lon,max_lat';
-            bboxInput.value = region.bbox;
-            bboxInput.addEventListener('input', () => { region.bbox = bboxInput.value; });
-            fields.appendChild(fieldWithLabel(
-                'Kartenausschnitt (min_lon,min_lat,max_lon,max_lat)', bboxInput, 'region-bbox-field'
-            ));
+            const bboxField = document.createElement('div');
+            bboxField.className = 'field region-bbox-field';
+            const bboxLabel = document.createElement('label');
+            bboxLabel.textContent = 'Kartenausschnitt';
+            bboxField.appendChild(bboxLabel);
+
+            const bboxGrid = document.createElement('div');
+            bboxGrid.className = 'bbox-display-grid';
+            const bboxCoordEls = ['Min. Lon', 'Min. Lat', 'Max. Lon', 'Max. Lat'].map((labelText) => {
+                const item = document.createElement('div');
+                item.className = 'bbox-display-item';
+                const label = document.createElement('span');
+                label.className = 'bbox-display-label';
+                label.textContent = labelText;
+                const value = document.createElement('span');
+                value.className = 'bbox-display-value';
+                item.appendChild(label);
+                item.appendChild(value);
+                bboxGrid.appendChild(item);
+                return { item, value };
+            });
+            function updateBboxDisplay() {
+                const parts = region.bbox ? region.bbox.split(',') : [];
+                bboxCoordEls.forEach(({ item, value }, i) => {
+                    const raw = parts[i] ? parts[i].trim() : '';
+                    value.textContent = raw || '–';
+                    item.classList.toggle('is-empty', !raw);
+                });
+            }
+            updateBboxDisplay();
+            bboxField.appendChild(bboxGrid);
+
+            const bboxPickButton = document.createElement('button');
+            bboxPickButton.type = 'button';
+            bboxPickButton.className = 'map-pick-button';
+            bboxPickButton.textContent = '🗺️ Auf Karte auswählen';
+            bboxPickButton.addEventListener('click', async () => {
+                const result = await pickBBox({
+                    bbox: region.bbox,
+                    title: region.name || `Kartenausschnitt ${index + 1}`
+                });
+                if (result) {
+                    region.bbox = result.bbox;
+                    updateBboxDisplay();
+                }
+            });
+            bboxField.appendChild(bboxPickButton);
+            fields.appendChild(bboxField);
 
             row.appendChild(fields);
 
@@ -1174,24 +1404,33 @@
         fields.appendChild(fieldWithLabel('Beschreibung', descriptionInput));
 
         const latInput = document.createElement('input');
-        latInput.type = 'number';
-        latInput.step = 'any';
-        latInput.min = '-90';
-        latInput.max = '90';
+        latInput.type = 'hidden';
         latInput.value = photo.location ? photo.location.lat : '';
 
         const lngInput = document.createElement('input');
-        lngInput.type = 'number';
-        lngInput.step = 'any';
-        lngInput.min = '-180';
-        lngInput.max = '180';
+        lngInput.type = 'hidden';
         lngInput.value = photo.location ? photo.location.lng : '';
+        fields.appendChild(latInput);
+        fields.appendChild(lngInput);
 
-        const fieldRow = document.createElement('div');
-        fieldRow.className = 'field-row';
-        fieldRow.appendChild(fieldWithLabel('Breitengrad (lat)', latInput));
-        fieldRow.appendChild(fieldWithLabel('Längengrad (lng)', lngInput));
-        fields.appendChild(fieldRow);
+        const rowPickButton = document.createElement('button');
+        rowPickButton.type = 'button';
+        rowPickButton.className = 'map-pick-button';
+        rowPickButton.textContent = '📍 Auf Karte wählen';
+        rowPickButton.addEventListener('click', async () => {
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            const result = await pickPoint({
+                lat: Number.isNaN(lat) ? undefined : lat,
+                lng: Number.isNaN(lng) ? undefined : lng,
+                title: descriptionInput.value.trim() || 'Rundenfoto'
+            });
+            if (result) {
+                latInput.value = result.lat;
+                lngInput.value = result.lng;
+            }
+        });
+        fields.appendChild(rowPickButton);
 
         const statusEl = document.createElement('p');
         statusEl.className = 'round-photo-row-status';
@@ -1209,7 +1448,7 @@
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
             if (Number.isNaN(lat) || Number.isNaN(lng)) {
-                statusEl.textContent = 'Breiten- und Längengrad sind erforderlich.';
+                statusEl.textContent = 'Bitte eine Position über die Karte auswählen.';
                 statusEl.className = 'round-photo-row-status error';
                 return;
             }
@@ -1271,8 +1510,24 @@
     const newRoundPhotoLat = document.getElementById('newRoundPhotoLat');
     const newRoundPhotoLng = document.getElementById('newRoundPhotoLng');
     const newRoundPhotoGpsHint = document.getElementById('newRoundPhotoGpsHint');
+    const newRoundPhotoPickButton = document.getElementById('newRoundPhotoPickButton');
     const addRoundPhotoButton = document.getElementById('addRoundPhotoButton');
     const newRoundPhotoStatus = document.getElementById('newRoundPhotoStatus');
+
+    newRoundPhotoPickButton.addEventListener('click', async () => {
+        const lat = parseFloat(newRoundPhotoLat.value);
+        const lng = parseFloat(newRoundPhotoLng.value);
+        const result = await pickPoint({
+            lat: Number.isNaN(lat) ? undefined : lat,
+            lng: Number.isNaN(lng) ? undefined : lng,
+            title: newRoundPhotoDescription.value.trim() || 'Neues Rundenfoto'
+        });
+        if (result) {
+            newRoundPhotoLat.value = result.lat;
+            newRoundPhotoLng.value = result.lng;
+            newRoundPhotoGpsHint.textContent = '📍 Position auf der Karte gewählt – kann bei Bedarf weiter angepasst werden.';
+        }
+    });
 
     let pendingRoundPhotoFile = null;
     let pendingRoundPhotoPreviewUrl = null;
@@ -1293,17 +1548,18 @@
         newRoundPhotoStatus.textContent = '';
         newRoundPhotoStatus.className = 'status-message';
 
+        newRoundPhotoLat.value = '';
+        newRoundPhotoLng.value = '';
+
         newRoundPhotoGpsHint.textContent = 'Suche Position in den Bilddaten …';
         const location = await fetchExifLocation(file);
         if (location.lat !== null && location.lng !== null) {
             newRoundPhotoLat.value = location.lat;
             newRoundPhotoLng.value = location.lng;
             newRoundPhotoGpsHint.textContent =
-                '📍 Position aus den Bilddaten übernommen – kann bei Bedarf angepasst werden.';
+                '📍 Position aus den Bilddaten übernommen – kann bei Bedarf über die Karte angepasst werden.';
         } else {
-            newRoundPhotoLat.value = '';
-            newRoundPhotoLng.value = '';
-            newRoundPhotoGpsHint.textContent = 'Keine Position in den Bilddaten gefunden – bitte manuell eintragen.';
+            newRoundPhotoGpsHint.textContent = 'Keine Position in den Bilddaten gefunden – bitte über die Karte auswählen.';
         }
     });
 
@@ -1313,7 +1569,7 @@
         const lat = parseFloat(newRoundPhotoLat.value);
         const lng = parseFloat(newRoundPhotoLng.value);
         if (Number.isNaN(lat) || Number.isNaN(lng)) {
-            newRoundPhotoStatus.textContent = 'Bitte Breiten- und Längengrad eintragen.';
+            newRoundPhotoStatus.textContent = 'Bitte eine Position über die Karte auswählen.';
             newRoundPhotoStatus.className = 'status-message error';
             return;
         }
