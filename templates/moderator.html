@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/moderator.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/confirm-dialog.css') }}">
 </head>
 <body>
 <main id="moderatorApp" class="moderator-app">
@@ -62,7 +63,7 @@
             </div>
 
             <button type="button" id="mainControlButton" class="control-button">Auflösung</button>
-            <button type="button" id="resetGameButton" class="control-button">Spiel Zurücksetzen</button>
+            <button type="button" id="resetGameButton" class="control-button is-danger">Spiel Zurücksetzen</button>
         </section>
 
         <section class="map-panel map-panel-right" aria-label="Karte Spieler rechts">

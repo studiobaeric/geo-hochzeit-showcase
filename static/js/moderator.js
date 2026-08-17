@@ -8,6 +8,7 @@ import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { loadRoundConfig } from './round-config.js';
 import { loadThemeConfig } from './theme.js';
+import { confirmDialog } from './confirm-dialog.js';
 
 // Live updates arrive over multiplayer.js's shared /api/events connection
 // (see its 'theme_config' listener) rather than a second one here - see
@@ -723,6 +724,12 @@ function initEventListeners() {
 
 
     resetGameButton?.addEventListener('click', async () => {
+        const confirmed = await confirmDialog(
+            'Spiel wirklich zurücksetzen? Der aktuelle Spielstand geht dabei verloren.',
+            { confirmLabel: 'Zurücksetzen' }
+        );
+        if (!confirmed) return;
+
         await resetGameState();
         clearRoundRecords();
 

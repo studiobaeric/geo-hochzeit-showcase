@@ -310,6 +310,16 @@ body {
     opacity: 0.7;
 }
 
+/* .is-danger alone loses to .control-button on specificity ties, since
+   .control-button is declared later - this compound selector wins instead. */
+.control-button.is-danger {
+    background: var(--color-danger);
+}
+
+.control-button.is-danger:hover {
+    background: #dc2626;
+}
+
 /* Resolution map view */
 .resolution-view {
     display: none;
