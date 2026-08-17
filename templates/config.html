@@ -624,19 +624,59 @@
             border-radius: 10px;
             padding: 12px;
             display: grid;
-            grid-template-columns: 110px 1fr;
+            grid-template-columns: auto 110px 1fr;
             gap: 12px;
         }
 
         @media (max-width: 480px) {
             .round-photo-row {
-                grid-template-columns: 1fr;
+                grid-template-columns: auto 1fr;
+            }
+
+            .round-photo-row .photo-frame {
+                grid-column: 2;
+            }
+
+            .round-photo-row .round-photo-fields {
+                grid-column: 1 / -1;
             }
         }
 
         .round-photo-row .photo-frame {
             aspect-ratio: 1;
             margin-bottom: 0;
+        }
+
+        .round-photo-order {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .round-photo-order-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+            margin-bottom: 2px;
+        }
+
+        .round-photo-move-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 2px solid var(--color-border);
+            background: var(--color-bg-muted);
+            color: var(--color-text);
+            font-size: 1em;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .round-photo-move-button:disabled {
+            opacity: 0.35;
+            cursor: default;
         }
 
         .round-photo-row-buttons {
@@ -878,7 +918,9 @@
                 Obergrenze. Beim Auswählen einer Datei wird, falls
                 vorhanden, die GPS-Position aus den Bilddaten automatisch
                 ins Positionsfeld übernommen; sie lässt sich danach
-                trotzdem frei ändern. Der Bereich ist standardmäßig
+                trotzdem frei ändern. Die Reihenfolge der Fotos legt die
+                Rundenreihenfolge im Spiel fest - mit den ↑/↓-Pfeilen lässt
+                sie sich jederzeit ändern. Der Bereich ist standardmäßig
                 verborgen und wird erst nach Klick auf die
                 Spoiler-Warnung sichtbar, damit auf einem geteilten
                 Bildschirm nichts versehentlich verraten wird.
@@ -946,7 +988,8 @@
     import { getThemeConfig, loadThemeConfig, saveThemeConfig } from "{{ url_for('static', filename='js/theme.js') }}";
     import { getPhotoFilenames, loadPhotoFilenames, uploadPlayerPhoto } from "{{ url_for('static', filename='js/player-photos.js') }}";
     import {
-        loadRoundPhotos, fetchExifLocation, uploadRoundPhoto, updateRoundPhoto, deleteRoundPhoto
+        loadRoundPhotos, fetchExifLocation, uploadRoundPhoto, updateRoundPhoto, deleteRoundPhoto,
+        reorderRoundPhotos
     } from "{{ url_for('static', filename='js/photo-config.js') }}";
     import { pickPoint, pickBBox } from "{{ url_for('static', filename='js/position-picker.js') }}";
 
@@ -1398,9 +1441,37 @@
         return wrapper;
     }
 
-    function renderRoundPhotoRow(photo) {
+    function renderRoundPhotoRow(photo, index, total) {
         const row = document.createElement('div');
         row.className = 'round-photo-row';
+
+        const orderColumn = document.createElement('div');
+        orderColumn.className = 'round-photo-order';
+
+        const orderLabel = document.createElement('span');
+        orderLabel.className = 'round-photo-order-label';
+        orderLabel.textContent = `Runde ${index + 1}`;
+        orderColumn.appendChild(orderLabel);
+
+        const moveUpButton = document.createElement('button');
+        moveUpButton.type = 'button';
+        moveUpButton.className = 'round-photo-move-button';
+        moveUpButton.textContent = '↑';
+        moveUpButton.setAttribute('aria-label', 'Nach oben verschieben');
+        moveUpButton.disabled = index === 0;
+        moveUpButton.addEventListener('click', () => moveRoundPhoto(index, index - 1));
+        orderColumn.appendChild(moveUpButton);
+
+        const moveDownButton = document.createElement('button');
+        moveDownButton.type = 'button';
+        moveDownButton.className = 'round-photo-move-button';
+        moveDownButton.textContent = '↓';
+        moveDownButton.setAttribute('aria-label', 'Nach unten verschieben');
+        moveDownButton.disabled = index === total - 1;
+        moveDownButton.addEventListener('click', () => moveRoundPhoto(index, index + 1));
+        orderColumn.appendChild(moveDownButton);
+
+        row.appendChild(orderColumn);
         row.appendChild(createPhotoFrame(photo.url, photo.description || 'Rundenfoto'));
 
         const fields = document.createElement('div');
@@ -1499,13 +1570,37 @@
         return row;
     }
 
-    async function refreshRoundPhotoList() {
+    function renderRoundPhotoList(photos) {
         roundPhotoListEl.innerHTML = '';
+        photos.forEach((photo, index) => {
+            roundPhotoListEl.appendChild(renderRoundPhotoRow(photo, index, photos.length));
+        });
+    }
+
+    async function refreshRoundPhotoList() {
         try {
-            const photos = await loadRoundPhotos();
-            photos.forEach((photo) => roundPhotoListEl.appendChild(renderRoundPhotoRow(photo)));
+            renderRoundPhotoList(await loadRoundPhotos());
         } catch (error) {
             console.error('Konnte Rundenfotos nicht laden:', error);
+        }
+    }
+
+    // Swaps the photos at `fromIndex` and `toIndex` (used by a row's ↑/↓
+    // buttons) and persists the new order - the order in photos.json *is*
+    // the round order, see photo_config.reorder_round_photos.
+    async function moveRoundPhoto(fromIndex, toIndex) {
+        const photos = await loadRoundPhotos();
+        if (toIndex < 0 || toIndex >= photos.length) return;
+
+        [photos[fromIndex], photos[toIndex]] = [photos[toIndex], photos[fromIndex]];
+        renderRoundPhotoList(photos);
+
+        try {
+            const reordered = await reorderRoundPhotos(photos.map((photo) => photo.id));
+            renderRoundPhotoList(reordered);
+        } catch (error) {
+            console.error('Konnte Rundenfotos nicht sortieren:', error);
+            await refreshRoundPhotoList();
         }
     }
 

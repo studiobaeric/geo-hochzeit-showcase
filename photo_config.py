@@ -117,6 +117,28 @@ def list_round_photos():
     return jsonify([_with_url(p) for p in photos])
 
 
+@bp.route("/round-photos/reorder", methods=["POST"])
+def reorder_round_photos():
+    """Persist a new round order. `game.js` picks round N's photo by array
+    index (allPhotos[round - 1]), so reordering this list is what actually
+    reorders the rounds - there's no separate "round number" field."""
+    payload = request.get_json(force=True) or {}
+    order = payload.get("order")
+    if not isinstance(order, list) or any(isinstance(i, bool) or not isinstance(i, int) for i in order):
+        return jsonify({"error": "order must be a list of photo ids"}), 400
+
+    with _lock:
+        photos = _load_locked()
+        by_id = {p.get("id"): p for p in photos}
+        if set(order) != set(by_id.keys()) or len(order) != len(photos):
+            return jsonify({"error": "order must contain exactly the existing photo ids"}), 400
+
+        photos = [by_id[photo_id] for photo_id in order]
+        _save_locked(photos)
+
+    return jsonify([_with_url(p) for p in photos])
+
+
 @bp.route("/round-photos/exif-location", methods=["POST"])
 def round_photo_exif_location():
     """Sniff GPS coordinates out of an in-flight upload's EXIF data, without

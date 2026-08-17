@@ -5,6 +5,7 @@
 // static/js/end_of_game.js load directly to run the actual game.
 const LIST_ENDPOINT = '/api/round-photos';
 const EXIF_ENDPOINT = '/api/round-photos/exif-location';
+const REORDER_ENDPOINT = '/api/round-photos/reorder';
 
 export async function loadRoundPhotos() {
     const response = await fetch(LIST_ENDPOINT);
@@ -49,6 +50,19 @@ export async function updateRoundPhoto(id, { description, lat, lng }) {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
         throw new Error(data.error || `Speichern fehlgeschlagen (${response.status})`);
+    }
+    return data;
+}
+
+export async function reorderRoundPhotos(order) {
+    const response = await fetch(REORDER_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.error || `Sortieren fehlgeschlagen (${response.status})`);
     }
     return data;
 }

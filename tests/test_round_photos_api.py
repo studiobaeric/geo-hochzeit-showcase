@@ -301,3 +301,66 @@ def test_exif_location_without_file_is_rejected(client):
     )
 
     assert response.status_code == 400
+
+
+def test_reorder_persists_new_order(client):
+    first = _upload(client, description="Erstes").get_json()
+    second = _upload(client, description="Zweites").get_json()
+    third = _upload(client, description="Drittes").get_json()
+
+    response = client.post(
+        "/api/round-photos/reorder",
+        json={"order": [third["id"], first["id"], second["id"]]},
+    )
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert [p["id"] for p in data] == [third["id"], first["id"], second["id"]]
+
+    listed = client.get("/api/round-photos").get_json()
+    assert [p["id"] for p in listed] == [third["id"], first["id"], second["id"]]
+
+    with open(photo_config.PHOTOS_FILE, encoding="utf-8") as f:
+        on_disk = json.load(f)
+    assert [p["id"] for p in on_disk] == [third["id"], first["id"], second["id"]]
+
+
+def test_reorder_rejects_missing_id(client):
+    first = _upload(client).get_json()
+    _upload(client)
+
+    response = client.post("/api/round-photos/reorder", json={"order": [first["id"]]})
+
+    assert response.status_code == 400
+    listed = client.get("/api/round-photos").get_json()
+    assert [p["id"] for p in listed] == [first["id"], listed[1]["id"]]
+
+
+def test_reorder_rejects_unknown_id(client):
+    first = _upload(client).get_json()
+    second = _upload(client).get_json()
+
+    response = client.post(
+        "/api/round-photos/reorder", json={"order": [first["id"], second["id"], 999]}
+    )
+
+    assert response.status_code == 400
+
+
+def test_reorder_rejects_non_list_order(client):
+    _upload(client)
+
+    response = client.post("/api/round-photos/reorder", json={"order": "not-a-list"})
+
+    assert response.status_code == 400
+
+
+def test_reorder_rejects_duplicate_ids(client):
+    first = _upload(client).get_json()
+    _upload(client)
+
+    response = client.post(
+        "/api/round-photos/reorder", json={"order": [first["id"], first["id"]]}
+    )
+
+    assert response.status_code == 400
