@@ -1,3 +1,3 @@
 Flask==2.3.3
 flask-compress
-Pillow>=10.0
+Pillow>=12.3.0
