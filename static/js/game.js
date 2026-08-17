@@ -1,5 +1,5 @@
 // Spielzustand
-import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation} from "./multiplayer.js";
+import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation, serverNow} from "./multiplayer.js";
 import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./basemap.js";
 import {PhotoZoom} from "./photo.js";
 import {loadDisplayNames} from "./player-names.js";
@@ -96,7 +96,7 @@ function formatSeconds(totalSeconds) {
 
 function computeRemainingSeconds() {
     if (timerState.paused) return timerState.remaining_seconds ?? 0;
-    if (timerState.running) return Math.max(0, (timerState.ends_at ?? 0) - (Date.now() / 1000));
+    if (timerState.running) return Math.max(0, (timerState.ends_at ?? 0) - serverNow());
     return roundConfig.duration_seconds;
 }
 

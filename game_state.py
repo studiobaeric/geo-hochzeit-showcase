@@ -384,7 +384,7 @@ def patch_gamestate():
         timer_record = None
         if round_changed:
             _timer_state.update(dict(_DEFAULT_TIMER_STATE))
-            timer_record = dict(_timer_state)
+            timer_record = _timer_record_locked()
 
         _persist_locked()
     _broadcast("gamestate", record)
@@ -602,10 +602,28 @@ def get_round_results():
     return jsonify(records)
 
 
+def _timer_record_locked():
+    """Snapshot of `_timer_state` plus the server's current clock reading.
+
+    `ends_at`/`remaining_seconds` are only meaningful relative to the
+    server's own clock. Clients compute their own countdown display from
+    them, so without a shared reference point a client whose system clock
+    drifts from the server's - or a phone that's just plain wrong - shows a
+    countdown that starts already off and disagrees with when the
+    moderator (who drives round-end off their own clock) actually ends the
+    round (#71). Sending `server_time` with every timer record lets each
+    client compute its own offset and correct for it. Caller must hold
+    `_lock`.
+    """
+    record = dict(_timer_state)
+    record["server_time"] = time.time()
+    return record
+
+
 @bp.route("/timer", methods=["GET"])
 def get_timer_state():
     with _lock:
-        return jsonify(_timer_state)
+        return jsonify(_timer_record_locked())
 
 
 @bp.route("/timer/start", methods=["POST"])
@@ -622,7 +640,7 @@ def start_timer():
                 "remaining_seconds": None,
             }
         )
-        record = dict(_timer_state)
+        record = _timer_record_locked()
         _persist_locked()
     _broadcast("timer", record)
     return jsonify(record)
@@ -636,7 +654,7 @@ def pause_timer():
 
         remaining = max(0.0, _timer_state["ends_at"] - time.time())
         _timer_state.update({"paused": True, "ends_at": None, "remaining_seconds": remaining})
-        record = dict(_timer_state)
+        record = _timer_record_locked()
         _persist_locked()
     _broadcast("timer", record)
     return jsonify(record)
@@ -655,7 +673,7 @@ def resume_timer():
                 "remaining_seconds": None,
             }
         )
-        record = dict(_timer_state)
+        record = _timer_record_locked()
         _persist_locked()
     _broadcast("timer", record)
     return jsonify(record)
@@ -692,7 +710,7 @@ def extend_timer():
             _timer_state["remaining_seconds"] = (_timer_state["remaining_seconds"] or 0) + seconds
         else:
             _timer_state["ends_at"] = (_timer_state["ends_at"] or time.time()) + seconds
-        record = dict(_timer_state)
+        record = _timer_record_locked()
         _persist_locked()
     _broadcast("timer", record)
     return jsonify(record)
@@ -702,7 +720,7 @@ def extend_timer():
 def stop_timer():
     with _lock:
         _timer_state.update(dict(_DEFAULT_TIMER_STATE))
-        record = dict(_timer_state)
+        record = _timer_record_locked()
         _persist_locked()
     _broadcast("timer", record)
     return jsonify(record)
@@ -723,7 +741,7 @@ def reset():
         _round_results.clear()
         _timer_state.update(dict(_DEFAULT_TIMER_STATE))
         record = dict(_gamestate)
-        timer_record = dict(_timer_state)
+        timer_record = _timer_record_locked()
         _persist_locked()
     _broadcast("gamestate", record)
     _broadcast("timer", timer_record)
@@ -742,7 +760,7 @@ def events():
                 snapshot = dict(_gamestate)
                 config_snapshot = dict(_player_config)
                 round_config_snapshot = dict(_round_config)
-                timer_snapshot = dict(_timer_state)
+                timer_snapshot = _timer_record_locked()
                 theme_snapshot = dict(_theme_config)
             yield f"event: gamestate\ndata: {json.dumps(snapshot)}\n\n"
             yield f"event: player_config\ndata: {json.dumps(config_snapshot)}\n\n"

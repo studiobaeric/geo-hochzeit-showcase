@@ -21,6 +21,16 @@ entries here turn into a tagged release with downloadable binaries.
   shown blurred behind a click-to-reveal spoiler to avoid accidentally
   exposing round locations on a shared screen.
 
+### Fixed
+
+- Countdown timer (`/api/timer`) now sends the server's clock reading with
+  every update, and the moderator's and players' browsers use it to correct
+  for their own clock drift instead of trusting their own `Date.now()`
+  outright. Previously a device whose system clock was off by even a couple
+  of seconds would show the round countdown starting already wrong and
+  disagreeing with when the moderator's browser actually ends the round
+  (#71).
+
 ### Changed
 
 - Renamed the project to "Kartenquiz" (previously "Hochzeits-Geoguesser"),
