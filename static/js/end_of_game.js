@@ -69,11 +69,22 @@ async function loadResultCollection() {
 
     const photoById = new Map(photos.map((photo) => [photo.id, photo]));
 
+    // photos.json ids are assigned once and never reused/renumbered (see
+    // photo_config.py), so they drift out of sequence as soon as an earlier
+    // picture is removed (e.g. deleting the first photo leaves ids starting
+    // at 2). round_number - persisted server-side and equal to the photo's
+    // id - inherits that drift, so it can't be used as the round's display
+    // number. Look up each photo's current position in photos.json instead,
+    // which is the same 1-based numbering players see during the game (see
+    // game.js's loadPhoto/updateRoundDisplay).
+    const positionById = new Map(photos.map((photo, index) => [photo.id, index + 1]));
+
     const resultCollection = {};
     roundResults.forEach((roundResult) => {
         resultCollection[roundResult.round_number] = {
             photo: photoById.get(roundResult.round_number) ?? null,
-            players: roundResult.players
+            players: roundResult.players,
+            position: positionById.get(roundResult.round_number) ?? roundResult.round_number
         };
     });
 
@@ -197,7 +208,7 @@ function renderRoundMap(roundResult) {
 
 function getSortedResults(resultCollection) {
     return Object.entries(resultCollection)
-        .sort(([firstId], [secondId]) => Number(firstId) - Number(secondId));
+        .sort(([, first], [, second]) => first.position - second.position);
 }
 
 function updateTotals(resultCollection) {
@@ -232,7 +243,7 @@ function renderRoundList(resultCollection) {
         roundButton.className = 'round-card';
         roundButton.innerHTML = `
             <div class="round-title">
-                <span>Runde ${roundId}</span>
+                <span>Runde ${roundResult.position}</span>
                 <span>${roundResult.photo?.description || ''}</span>
             </div>
             ${renderPlayerRow('player1', roundResult.players?.player1)}
