@@ -29,3 +29,11 @@ entries here turn into a tagged release with downloadable binaries.
   `actions/upload-artifact@v7`, `actions/download-artifact@v8`, and
   `softprops/action-gh-release@v3`, all of which run on Node.js 24 instead
   of the deprecated Node.js 20.
+- The `pytest` CI job now also tests Python 3.13, plus a "latest" entry
+  pinned to `setup-python`'s bare `"3"` version spec, which always resolves
+  to the newest available stable CPython 3.x release - so each new Python
+  version starts getting tested automatically, without a workflow edit,
+  the day it's released. A failure on that entry is a normal, visible,
+  blocking CI failure like any other version. The end-to-end smoke test
+  job now runs on that same rolling latest version too, instead of a
+  fixed `3.12`.

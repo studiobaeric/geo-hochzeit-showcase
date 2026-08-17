@@ -6,6 +6,7 @@ API calls actually write through to disk.
 """
 
 import json
+import os
 
 import game_state
 
@@ -272,3 +273,27 @@ def test_persist_does_not_leave_temp_files_behind(client, tmp_path):
 
     leftovers = [p for p in tmp_path.iterdir() if p.name != "game_state.json"]
     assert leftovers == []
+
+
+def test_persist_write_failure_does_not_break_the_request(client, tmp_path, monkeypatch):
+    # Simulates a disk-full/read-only-filesystem write failure: the atomic
+    # write's final os.replace() into place fails after the temp file was
+    # already created, and _persist_locked must swallow that (log + clean up
+    # the temp file) rather than 500 the request - the in-memory state stays
+    # authoritative either way.
+    game_state.STATE_FILE = str(tmp_path / "game_state.json")
+    real_replace = os.replace
+
+    def failing_replace(src, dst):
+        if dst == game_state.STATE_FILE:
+            raise OSError("disk full (simulated)")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(game_state.os, "replace", failing_replace)
+
+    response = client.patch("/api/gamestate", json={"round": 2})
+
+    assert response.status_code == 200
+    assert response.get_json()["round"] == 2
+    assert not os.path.exists(game_state.STATE_FILE)
+    assert list(tmp_path.iterdir()) == []

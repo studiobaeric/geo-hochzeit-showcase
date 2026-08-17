@@ -18,6 +18,9 @@ tools/bin/
 __pycache__/
 *.pyc
 
+# pytest-cov artifact
+.coverage
+
 # Lokale Release-Builds (siehe tools/build_release.py / RELEASING.md)
 /dist/
 /build/

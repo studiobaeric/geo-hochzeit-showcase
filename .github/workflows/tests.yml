@@ -8,11 +8,23 @@ on:
 
 jobs:
   pytest:
+    name: pytest (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
     strategy:
+      # Default fail-fast (cancel the other versions on the first failure):
+      # a failing test is far more likely to be a real bug that fails on
+      # every version alike than something specific to one Python version,
+      # so there's little value in letting the rest run to completion.
       matrix:
-        python-version: ["3.11", "3.12"]
+        # Concrete, currently-supported CPython versions we guarantee work,
+        # plus "3" - setup-python resolves that bare spec to whatever the
+        # newest available stable CPython 3.x release is at the time the
+        # workflow runs, so new Python releases start getting tested the
+        # day they're out, with no workflow edit needed. A failure here is
+        # a real, visible, blocking failure like any other version - bump
+        # the pinned list below once a new release is confirmed to work.
+        python-version: ["3.11", "3.12", "3.13", "3"]
 
     steps:
       - uses: actions/checkout@v7
@@ -40,7 +52,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          # "3" = newest available stable CPython 3.x, kept in sync with the
+          # pytest job's rolling "3" matrix entry above.
+          python-version: "3"
           cache: pip
           cache-dependency-path: requirements-e2e.txt
 

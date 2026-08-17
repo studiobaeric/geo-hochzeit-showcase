@@ -7,6 +7,7 @@ static/config/photos.json, regardless of what the admin configured.
 """
 
 import json
+import os
 
 import pytest
 
@@ -185,6 +186,32 @@ def test_patch_persists_to_disk(client):
         on_disk = json.load(f)
 
     assert on_disk["regions"] == [{"name": "Solo", "bbox": "5,47,15,55", "maxzoom": 11}]
+
+
+def test_persist_write_failure_does_not_break_the_request(client, tmp_path, monkeypatch):
+    # Simulates a disk-full/read-only-filesystem write failure: the atomic
+    # write's final os.replace() into place fails after the temp file was
+    # already created, and _persist_map_config_locked must swallow that
+    # (log + clean up the temp file) rather than 500 the request - the
+    # in-memory config stays authoritative either way.
+    real_replace = os.replace
+
+    def failing_replace(src, dst):
+        if dst == map_build.MAP_CONFIG_FILE:
+            raise OSError("disk full (simulated)")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(map_build.os, "replace", failing_replace)
+
+    response = client.patch(
+        "/api/map/config",
+        json={"regions": [{"name": "Solo", "bbox": "5,47,15,55", "maxzoom": 11}]},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["regions"][0]["name"] == "Solo"
+    assert not os.path.exists(map_build.MAP_CONFIG_FILE)
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_load_map_config_from_disk_restores_persisted_values(client, tmp_path):

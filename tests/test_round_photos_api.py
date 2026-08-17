@@ -3,6 +3,7 @@ EXIF-location sniffing)."""
 
 import io
 import json
+import os
 import struct
 
 import pytest
@@ -139,6 +140,29 @@ def test_upload_writes_to_photos_json(client):
     assert on_disk[0]["description"] == "Erstes Bild"
 
 
+def test_persist_write_failure_does_not_break_the_upload(client, tmp_path, monkeypatch):
+    # Simulates a disk-full/read-only-filesystem write failure: the atomic
+    # write's final os.replace() into place fails after the temp file was
+    # already created, and _save_locked must swallow that (log + clean up
+    # the temp file) rather than 500 the request - the response still
+    # reflects the upload even though it couldn't be persisted to disk.
+    real_replace = os.replace
+
+    def failing_replace(src, dst):
+        if dst == photo_config.PHOTOS_FILE:
+            raise OSError("disk full (simulated)")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(photo_config.os, "replace", failing_replace)
+
+    response = _upload(client, description="Erstes Bild")
+
+    assert response.status_code == 201
+    assert response.get_json()["description"] == "Erstes Bild"
+    assert not os.path.exists(photo_config.PHOTOS_FILE)
+    assert [p for p in tmp_path.iterdir() if p.name != "photos"] == []
+
+
 def test_ids_increment_across_uploads(client):
     first = _upload(client).get_json()
     second = _upload(client).get_json()
@@ -260,9 +284,6 @@ def test_delete_removes_entry_and_file(client):
     assert response.status_code == 200
     assert response.get_json() == {"deleted": True, "id": created["id"]}
     assert client.get("/api/round-photos").get_json() == []
-
-    import os
-
     assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, filename))
 
 
@@ -286,6 +307,34 @@ def test_exif_location_extracts_gps_from_photo(client):
 
 def test_exif_location_returns_nulls_when_no_gps_present(client):
     data = {"photo": (io.BytesIO(_make_jpeg_bytes()), "no-gps.jpg")}
+    response = client.post(
+        "/api/round-photos/exif-location", data=data, content_type="multipart/form-data"
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload == {"lat": None, "lng": None}
+
+
+def test_exif_location_handles_southern_and_western_hemispheres(client):
+    # N/E are already covered above; this exercises the S/W sign-flip
+    # branches (GPSLatitudeRef == "S" / GPSLongitudeRef == "W").
+    data = {"photo": (io.BytesIO(_make_jpeg_bytes(gps=(-33.8688, -70.6483))), "gps-sw.jpg")}
+    response = client.post(
+        "/api/round-photos/exif-location", data=data, content_type="multipart/form-data"
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["lat"] == pytest.approx(-33.8688, abs=1e-3)
+    assert payload["lng"] == pytest.approx(-70.6483, abs=1e-3)
+
+
+def test_exif_location_rejects_out_of_range_coordinates(client):
+    # A malformed/bogus EXIF GPS block (e.g. from a buggy camera) can encode
+    # a magnitude outside the valid lat/lng range - that must be treated the
+    # same as "no usable GPS data" rather than surfacing a nonsense location.
+    data = {"photo": (io.BytesIO(_make_jpeg_bytes(gps=(95.0, 9.5436))), "gps-invalid.jpg")}
     response = client.post(
         "/api/round-photos/exif-location", data=data, content_type="multipart/form-data"
     )

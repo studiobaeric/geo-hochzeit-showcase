@@ -50,7 +50,14 @@ def version():
 
 @app.after_request
 def add_cache_headers(response):
-    if response.content_type in ('text/css', 'application/javascript'):
+    # response.content_type includes a "; charset=..." suffix for text
+    # responses (added by Flask/Werkzeug), so it never equals a bare
+    # mimetype - response.mimetype is the same value with that stripped.
+    # Both 'application/javascript' (legacy) and 'text/javascript' (what
+    # Python's mimetypes module actually guesses for .js on most current
+    # platforms) are checked since either can show up depending on the
+    # platform's mimetypes database.
+    if response.mimetype in ('text/css', 'application/javascript', 'text/javascript'):
         response.headers['Cache-Control'] = 'no-cache'
     return response
 
