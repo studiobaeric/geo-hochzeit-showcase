@@ -41,8 +41,8 @@ Versioning follows [Semantic Versioning](https://semver.org/)
    [Release workflow run](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/release.yml)
    it triggers. Once it finishes, `v1.2.0` appears under
    [Releases](https://github.com/n1c01/Geo_Hochzeit/releases) with three
-   attached archives (`hochzeits-geoguesser-linux.tar.gz`,
-   `hochzeits-geoguesser-macos.tar.gz`, `hochzeits-geoguesser-windows.zip`)
+   attached archives (`kartenquiz-linux.tar.gz`,
+   `kartenquiz-macos.tar.gz`, `kartenquiz-windows.zip`)
    plus auto-generated release notes (commits since the previous tag).
 
 If the workflow fails partway (e.g. a flaky build), fix the problem, delete
@@ -55,7 +55,7 @@ created), and start again from step 3 once the fix is on `master`.
 Each archive is produced by [`tools/build_release.py`](tools/build_release.py)
 and unpacks to a single folder containing:
 
-- the platform executable (`hochzeits-geoguesser` / `.exe`), built with
+- the platform executable (`kartenquiz` / `.exe`), built with
   [PyInstaller](https://pyinstaller.org/);
 - `templates/` and `static/` (everything checked into git under those
   paths - UI, config, checked-in wedding photos, etc.);

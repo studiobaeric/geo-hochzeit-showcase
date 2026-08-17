@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the offline vector basemap (PMTiles) for the Geoguesser.
+"""Build the offline vector basemap (PMTiles) for Kartenquiz.
 
 One cross-platform script instead of separate bash/PowerShell copies -
 the platform-specific parts (three earlier scripts: build_basemap_linux.sh,

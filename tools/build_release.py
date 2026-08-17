@@ -25,13 +25,13 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-APP_NAME = "hochzeits-geoguesser"
+APP_NAME = "kartenquiz"
 
 OS_NAMES = {"Linux": "linux", "Darwin": "macos", "Windows": "windows"}
 
 PACKAGE_README = """\
-Hochzeits-Geoguesser {version} ({os_name})
-=======================================
+Kartenquiz {version} ({os_name})
+=================================
 
 Start:
   - Windows: Doppelklick auf {exe_name}

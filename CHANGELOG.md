@@ -23,6 +23,8 @@ entries here turn into a tagged release with downloadable binaries.
 
 ### Changed
 
+- Renamed the project to "Kartenquiz" (previously "Hochzeits-Geoguesser"),
+  updating page titles, the README, and release artifact/binary names.
 - CI workflows now use `actions/checkout@v7`, `actions/setup-python@v7`,
   `actions/upload-artifact@v7`, `actions/download-artifact@v8`, and
   `softprops/action-gh-release@v3`, all of which run on Node.js 24 instead

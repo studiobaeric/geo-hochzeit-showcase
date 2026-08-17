@@ -1,4 +1,4 @@
-# Hochzeits-Geoguesser
+# Kartenquiz
 
 [![Tests](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml/badge.svg)](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/tests.yml)
 [![Release](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/release.yml/badge.svg)](https://github.com/n1c01/Geo_Hochzeit/actions/workflows/release.yml)
