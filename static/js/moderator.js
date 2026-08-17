@@ -325,10 +325,18 @@ function getPlayerRole(record) {
     return role === 'player1' || role === 'player2' ? role : undefined;
 }
 
+// Guesses (placed_points) are keyed by round_number = the 1-based position
+// in photos.json (see multiplayer.js's pushLocation, which sends
+// gamestateRecord.round). That is NOT the same number space as
+// currentPhoto.id: ids are assigned once and never reused/renumbered (see
+// photo_config.py), so they drift out of sync with position as soon as a
+// photo is deleted or the round order is changed (/config's up/down
+// sorting, #51) - comparing against currentPhoto.id here would silently
+// discard every guess for a round with reordered/renumbered photos.
 function isCurrentPhotoRecord(record) {
-    if (!currentPhoto?.id) return true;
+    if (!round) return true;
 
-    return Number(record?.round_number) === Number(currentPhoto.id);
+    return Number(record?.round_number) === Number(round);
 }
 
 function updateResolutionDistanceDisplay(role, distanceMeters) {

@@ -165,6 +165,94 @@ def test_full_round_reload_and_reset_flow(live_server):
         browser.close()
 
 
+def test_moderator_still_records_guesses_after_a_photo_id_position_drift(live_server):
+    """Regression test: players' guesses were silently dropped from the
+    moderator's view (and the round scored 0 for everyone) as soon as a
+    round's photo id stopped matching its 1-based position in
+    photos.json - which happens as soon as /config's round reordering
+    (#51) is used (or an earlier photo is deleted).
+
+    Guesses (placed_points) are keyed by round_number = position (see
+    multiplayer.js's pushLocation), but moderator.js's isCurrentPhotoRecord
+    used to compare that against currentPhoto.id instead - a different
+    number space that drifts from position the moment photo ids stop
+    matching their array index. Reordering round 1 and round 2 here
+    reproduces exactly that drift: round 1 now shows the photo whose id
+    is 2, not 1.
+
+    This mutates the real static/config/photos.json via the same
+    /api/round-photos/reorder endpoint /config uses (the same file
+    game.js/moderator.js fetch directly, so a redirected ROUND_PHOTOS_FILE
+    wouldn't be visible to the browser) - the original order is restored
+    in `finally` regardless of outcome.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        try:
+            context = browser.new_context()
+
+            original_photos = context.request.get(f"{live_server}/api/round-photos").json()
+            original_order = [photo["id"] for photo in original_photos]
+            swapped_order = [original_order[1], original_order[0], *original_order[2:]]
+
+            reorder_response = context.request.post(
+                f"{live_server}/api/round-photos/reorder", data={"order": swapped_order}
+            )
+            assert reorder_response.ok
+
+            try:
+                moderator_page = context.new_page()
+                moderator_page.goto(live_server)
+                moderator_page.click("button[data-name='Moderator']")
+                moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+                player1 = context.new_page()
+                player1.goto(live_server)
+                player1.click("#player1Button")
+
+                player2 = context.new_page()
+                player2.goto(live_server)
+                player2.click("#player2Button")
+
+                # Unlock round 1 (now showing the photo that used to be round
+                # 2, whose id is 2, not 1) and have both players place a
+                # guess, exactly like test_full_round_reload_and_reset_flow.
+                moderator_page.click("#lockPlayerInputButton")
+                context.request.post(
+                    f"{live_server}/api/points",
+                    data={"round_number": 1, "placed_by": "player1", "coordinates": {"lat": 49.37, "lng": 9.54}},
+                )
+                context.request.post(
+                    f"{live_server}/api/points",
+                    data={"round_number": 1, "placed_by": "player2", "coordinates": {"lat": 50.0, "lng": 10.0}},
+                )
+                moderator_page.wait_for_timeout(500)
+
+                moderator_page.click("#mainControlButton")
+                moderator_page.wait_for_selector("#continueButton.is-active")
+                moderator_page.click("#continueButton")
+                moderator_page.wait_for_selector("#roundResultView.is-active")
+
+                round_results = context.request.get(f"{live_server}/api/round_results").json()
+                assert len(round_results) == 1
+                players = round_results[0]["players"]
+
+                # Before the fix both guesses were rejected by
+                # isCurrentPhotoRecord (round_number 1 != currentPhoto.id
+                # 2), so latestPlayerRecords stayed empty and both players
+                # scored 0 despite having placed a guess.
+                assert players["player1"]["points"] > 0
+                assert players["player2"]["points"] > 0
+                assert players["player1"]["markerLocation"] is not None
+                assert players["player2"]["markerLocation"] is not None
+            finally:
+                context.request.post(
+                    f"{live_server}/api/round-photos/reorder", data={"order": original_order}
+                )
+        finally:
+            browser.close()
+
+
 def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
     """Regression test for a reported bug: the "Kartendaten" region editor's
     zoom <select> (long, descriptive option text) wasn't covered by the
