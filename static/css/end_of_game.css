@@ -221,7 +221,11 @@ body {
     left: 0;
     right: auto;
     width: auto;
-    max-width: 80vw;
+    /* The panel column never shrinks below 460px (see .end-page), so the
+       map column can never be wider than 100vw - 460px. Capping the
+       overlay at that width keeps it from ever reaching into the panel,
+       regardless of how the grid splits the remaining space. */
+    max-width: min(80vw, calc(100vw - 460px - 8px));
     display: block;
     padding: 0 28px;
     box-sizing: border-box;
@@ -253,8 +257,10 @@ body {
 }
 
 .contributors-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow: hidden;
     gap: 20px;
     margin: 10px 0;
     max-width: 100%;
@@ -264,6 +270,7 @@ body {
 
 .contributor {
     display: flex;
+    flex: 0 0 auto;
     flex-direction: column;
     align-items: center;
     gap: 10px;
@@ -285,6 +292,7 @@ body {
     border-radius: 999px;
 }
 
+.contributor-dot-nico { background: #ef4444; }
 .contributor-dot-1 { background: #3b82f6; }
 .contributor-dot-2 { background: #8b5cf6; }
 .contributor-dot-3 { background: #ec4899; }
@@ -341,6 +349,7 @@ body {
         left: auto;
         right: auto;
         width: 100%;
+        max-width: 100%;
         display: block;
         padding: 34px 28px 20px;
         z-index: auto;
@@ -354,7 +363,6 @@ body {
     }
 
     .contributors-grid {
-        grid-template-columns: repeat(3, 1fr);
         gap: 12px;
         margin: 20px 0;
     }
