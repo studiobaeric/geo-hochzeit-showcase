@@ -253,6 +253,54 @@ def test_moderator_still_records_guesses_after_a_photo_id_position_drift(live_se
             browser.close()
 
 
+def test_auflosung_keeps_player_input_locked_even_if_already_locked(live_server):
+    """Regression test for #66: pressing "Auflösung" toggled the lock state
+    instead of unconditionally locking it. If the moderator had already
+    locked player input manually (clicking "Spieler Input Erlauben"/
+    "Verbieten" a second time) before pressing "Auflösung", the toggle
+    flipped the state back to "playing" - re-enabling the players to guess
+    on the round that was supposed to be finished.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+        player1.wait_for_selector("#waitView.active")
+
+        # Unlock round 1 via the UI, then lock it again manually before
+        # resolving - this is the sequence that used to make "Auflösung"
+        # re-unlock input. The second lock is done via the same API call the
+        # button itself makes (rather than a second click on
+        # #lockPlayerInputButton) so moderator_page's own gamestate SSE
+        # subscription - the thing that actually drives triggerResolution()'s
+        # playerInputLocked - is what's being exercised here, not Chromium's
+        # click-actionability timing for two clicks on one element.
+        moderator_page.click("#lockPlayerInputButton")
+        player1.wait_for_selector("#photoView.active")
+        moderator_page.wait_for_selector("#lockPlayerInputButton:has-text('Input Verbieten')")
+
+        context.request.patch(f"{live_server}/api/gamestate", data={"state": "waiting"})
+        player1.wait_for_selector("#waitView.active")
+        moderator_page.wait_for_selector("#lockPlayerInputButton:has-text('Input Erlauben')")
+
+        moderator_page.click("#mainControlButton")
+        moderator_page.wait_for_selector("#continueButton.is-active")
+
+        gamestate = context.request.get(f"{live_server}/api/gamestate").json()
+        assert gamestate["state"] == "waiting"
+        player1.wait_for_selector("#waitView.active")
+
+        browser.close()
+
+
 def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
     """Regression test for a reported bug: the "Kartendaten" region editor's
     zoom <select> (long, descriptive option text) wasn't covered by the

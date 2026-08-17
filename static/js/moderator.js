@@ -249,7 +249,10 @@ function renderTimeControlPanel() {
 // overlapping ticks can't fire it twice for the same round.
 async function triggerResolution() {
     showResolutionView();
-    await toggleLockPlayerScreen();
+    // Always lock, never toggle - if the moderator had already locked player
+    // input manually before pressing "Auflösung", toggling would flip it back
+    // to unlocked and let players guess again on the round being resolved (#66).
+    await lockPlayerInput();
 
     if (roundConfig.mode === 'countdown') {
         try {
