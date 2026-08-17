@@ -639,6 +639,8 @@ async function calculatePoints() {
     } catch (error) {
         console.error('Could not persist round result to server:', error);
     }
+
+    return players;
 }
 
 function updateCurrentPointDisplay() {
@@ -650,11 +652,11 @@ function updateCurrentPointDisplay() {
     });
 }
 
-function showRoundResult() {
-    const sortedResults = Object.entries(pointByName)
-        .map(([role, points]) => ({
+function showRoundResult(roundPlayers) {
+    const sortedResults = Object.entries(roundPlayers ?? {})
+        .map(([role, result]) => ({
             name: getDisplayNames()[role] ?? role,
-            points
+            points: result.points
         }))
         .sort((a, b) => b.points - a.points);
 
@@ -726,8 +728,8 @@ function initEventListeners() {
         continueButton.disabled = true;
         try {
             await lockPlayerInput();
-            await calculatePoints();
-            showRoundResult();
+            const roundPlayers = await calculatePoints();
+            showRoundResult(roundPlayers);
             continueButton.classList.remove('is-active');
         } finally {
             continueButton.disabled = false;
