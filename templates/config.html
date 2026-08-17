@@ -870,6 +870,10 @@
                 <label for="roundDuration">Zeitlimit pro Runde (Sekunden)</label>
                 <input type="number" id="roundDuration" name="roundDuration" min="5" max="3600" step="1" required>
             </div>
+            <div class="field" id="roundExtendField">
+                <label for="roundExtend">Verlängerung pro Klick (Sekunden)</label>
+                <input type="number" id="roundExtend" name="roundExtend" min="1" max="600" step="1" required>
+            </div>
         </div>
 
         <div class="config-section">
@@ -1022,9 +1026,12 @@
     const roundModeCountdownInput = document.getElementById('roundModeCountdown');
     const roundDurationField = document.getElementById('roundDurationField');
     const roundDurationInput = document.getElementById('roundDuration');
+    const roundExtendField = document.getElementById('roundExtendField');
+    const roundExtendInput = document.getElementById('roundExtend');
 
     function updateRoundDurationVisibility() {
         roundDurationField.classList.toggle('is-hidden', !roundModeCountdownInput.checked);
+        roundExtendField.classList.toggle('is-hidden', !roundModeCountdownInput.checked);
     }
 
     document.querySelectorAll('input[name="roundMode"]').forEach((input) => {
@@ -1041,6 +1048,7 @@
     roundModeManualInput.checked = currentRoundConfig.mode === 'manual';
     roundModeCountdownInput.checked = currentRoundConfig.mode === 'countdown';
     roundDurationInput.value = currentRoundConfig.duration_seconds;
+    roundExtendInput.value = currentRoundConfig.extend_seconds;
     updateRoundDurationVisibility();
 
     const mapBuildDateInput = document.getElementById('mapBuildDate');
@@ -1720,7 +1728,8 @@
             });
             await saveRoundConfig({
                 mode: roundModeCountdownInput.checked ? 'countdown' : 'manual',
-                duration_seconds: parseInt(roundDurationInput.value, 10)
+                duration_seconds: parseInt(roundDurationInput.value, 10),
+                extend_seconds: parseInt(roundExtendInput.value, 10)
             });
             await saveMapConfig({
                 regions: collectRegionsPayload(),

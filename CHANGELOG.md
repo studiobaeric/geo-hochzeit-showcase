@@ -10,6 +10,9 @@ entries here turn into a tagged release with downloadable binaries.
 ## [Unreleased]
 
 ### Added
+- Config menu (`/config`) now has a "Verlängerung pro Klick (Sekunden)" field
+  for countdown mode, so the amount of time the moderator's timer "+Xs"
+  button adds per click is editable instead of a fixed 30 seconds (#42).
 - Config menu (`/config`) can now upload player profile photos and manage
   round photos (add/edit/delete, unlimited count) directly in the browser,
   instead of hand-editing `static/config/players.js` / `photos.json`.

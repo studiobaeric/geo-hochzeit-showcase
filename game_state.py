@@ -60,9 +60,12 @@ _MAX_PLAYER_NAME_LENGTH = 40
 # (/config -> PATCH /api/round-config). "manual" leaves round timing
 # entirely to the moderator (the pre-existing behavior); "countdown" turns
 # on the moderator's time-control panel and the synced player countdown.
+# extend_seconds is how much the moderator's "+Xs" button on the timer
+# panel adds per click (see /api/timer/extend).
 _DEFAULT_ROUND_CONFIG = {
     "mode": "manual",
     "duration_seconds": 60,
+    "extend_seconds": 30,
 }
 
 _ROUND_MODES = {"manual", "countdown"}
@@ -469,6 +472,19 @@ def _validate_round_config_updates(updates):
             return (
                 f"duration_seconds must be an integer between "
                 f"{_MIN_ROUND_DURATION} and {_MAX_ROUND_DURATION}"
+            )
+
+    if "extend_seconds" in updates:
+        value = updates["extend_seconds"]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value < _MIN_EXTEND_SECONDS
+            or value > _MAX_EXTEND_SECONDS
+        ):
+            return (
+                f"extend_seconds must be an integer between "
+                f"{_MIN_EXTEND_SECONDS} and {_MAX_EXTEND_SECONDS}"
             )
 
     return None

@@ -67,7 +67,7 @@ let playerInputLocked = false;
 let photos = {};
 let currentGameState = 'waiting';
 
-let roundConfig = { mode: 'manual', duration_seconds: 60 };
+let roundConfig = { mode: 'manual', duration_seconds: 60, extend_seconds: 30 };
 let timerState = { running: false, paused: false, ends_at: null, remaining_seconds: null };
 let autoResolvedForRound = false;
 
@@ -240,6 +240,7 @@ function renderTimeControlPanel() {
     timerPauseButton?.classList.toggle('is-hidden', !timerState.running);
     timerExtendButton?.classList.toggle('is-hidden', !timerState.running);
     if (timerPauseButton) timerPauseButton.textContent = timerState.paused ? 'Fortsetzen' : 'Pause';
+    if (timerExtendButton) timerExtendButton.textContent = `+${roundConfig.extend_seconds}s`;
 }
 
 // Ends the round the same way a manual "Auflösung" click would, but
@@ -782,7 +783,7 @@ function initEventListeners() {
 
     timerExtendButton?.addEventListener('click', async () => {
         try {
-            await extendTimer(30);
+            await extendTimer(roundConfig.extend_seconds);
         } catch (error) {
             console.error('Could not extend timer:', error);
         }

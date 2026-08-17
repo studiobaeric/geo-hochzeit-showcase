@@ -8,7 +8,7 @@ def test_get_round_config_has_default_shape(client):
     data = response.get_json()
 
     assert response.status_code == 200
-    assert data == {"mode": "manual", "duration_seconds": 60}
+    assert data == {"mode": "manual", "duration_seconds": 60, "extend_seconds": 30}
 
 
 def test_patch_updates_mode(client):
@@ -16,7 +16,7 @@ def test_patch_updates_mode(client):
     data = response.get_json()
 
     assert response.status_code == 200
-    assert data == {"mode": "countdown", "duration_seconds": 60}
+    assert data == {"mode": "countdown", "duration_seconds": 60, "extend_seconds": 30}
 
     follow_up = client.get("/api/round-config").get_json()
     assert follow_up["mode"] == "countdown"
@@ -26,16 +26,24 @@ def test_patch_updates_duration(client):
     response = client.patch("/api/round-config", json={"duration_seconds": 90})
     data = response.get_json()
 
-    assert data == {"mode": "manual", "duration_seconds": 90}
+    assert data == {"mode": "manual", "duration_seconds": 90, "extend_seconds": 30}
 
 
-def test_patch_updates_both_fields(client):
+def test_patch_updates_extend_seconds(client):
+    response = client.patch("/api/round-config", json={"extend_seconds": 45})
+    data = response.get_json()
+
+    assert data == {"mode": "manual", "duration_seconds": 60, "extend_seconds": 45}
+
+
+def test_patch_updates_all_fields(client):
     response = client.patch(
-        "/api/round-config", json={"mode": "countdown", "duration_seconds": 120}
+        "/api/round-config",
+        json={"mode": "countdown", "duration_seconds": 120, "extend_seconds": 45},
     )
     data = response.get_json()
 
-    assert data == {"mode": "countdown", "duration_seconds": 120}
+    assert data == {"mode": "countdown", "duration_seconds": 120, "extend_seconds": 45}
 
 
 def test_patch_ignores_unknown_fields(client):
@@ -64,6 +72,11 @@ def test_patch_with_empty_body_does_not_error(client):
         {"duration_seconds": "60"},
         {"duration_seconds": True},
         {"duration_seconds": 12.5},
+        {"extend_seconds": 0},
+        {"extend_seconds": 601},
+        {"extend_seconds": "30"},
+        {"extend_seconds": True},
+        {"extend_seconds": 12.5},
     ],
 )
 def test_patch_rejects_invalid_field_values(client, bad_payload):
@@ -74,7 +87,7 @@ def test_patch_rejects_invalid_field_values(client, bad_payload):
 
     # Rejected updates must not partially apply.
     unchanged = client.get("/api/round-config").get_json()
-    assert unchanged == {"mode": "manual", "duration_seconds": 60}
+    assert unchanged == {"mode": "manual", "duration_seconds": 60, "extend_seconds": 30}
 
 
 def test_patch_persists_to_disk(client):
@@ -82,18 +95,28 @@ def test_patch_persists_to_disk(client):
 
     import game_state
 
-    client.patch("/api/round-config", json={"mode": "countdown", "duration_seconds": 45})
+    client.patch(
+        "/api/round-config",
+        json={"mode": "countdown", "duration_seconds": 45, "extend_seconds": 20},
+    )
 
     with open(game_state.STATE_FILE) as f:
         on_disk = json.load(f)
 
-    assert on_disk["round_config"] == {"mode": "countdown", "duration_seconds": 45}
+    assert on_disk["round_config"] == {
+        "mode": "countdown",
+        "duration_seconds": 45,
+        "extend_seconds": 20,
+    }
 
 
 def test_reset_does_not_clear_round_config(client):
-    client.patch("/api/round-config", json={"mode": "countdown", "duration_seconds": 45})
+    client.patch(
+        "/api/round-config",
+        json={"mode": "countdown", "duration_seconds": 45, "extend_seconds": 20},
+    )
 
     client.post("/api/reset")
 
     data = client.get("/api/round-config").get_json()
-    assert data == {"mode": "countdown", "duration_seconds": 45}
+    assert data == {"mode": "countdown", "duration_seconds": 45, "extend_seconds": 20}

@@ -3,7 +3,7 @@
 // other device that (re)loads a page afterwards.
 const CONFIG_ENDPOINT = '/api/round-config';
 
-const DEFAULTS = { mode: 'manual', duration_seconds: 60 };
+const DEFAULTS = { mode: 'manual', duration_seconds: 60, extend_seconds: 30 };
 
 let cache = { ...DEFAULTS };
 
@@ -23,11 +23,11 @@ export async function loadRoundConfig() {
     return cache;
 }
 
-export async function saveRoundConfig({ mode, duration_seconds }) {
+export async function saveRoundConfig({ mode, duration_seconds, extend_seconds }) {
     const response = await fetch(CONFIG_ENDPOINT, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, duration_seconds })
+        body: JSON.stringify({ mode, duration_seconds, extend_seconds })
     });
 
     if (!response.ok) {
