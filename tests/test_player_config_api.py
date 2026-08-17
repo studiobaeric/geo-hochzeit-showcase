@@ -17,37 +17,37 @@ def test_get_player_config_has_default_shape(client):
 
 
 def test_patch_updates_a_single_name(client):
-    response = client.patch("/api/player-config", json={"player1_name": "Jana"})
+    response = client.patch("/api/player-config", json={"player1_name": "Alice"})
     data = response.get_json()
 
     assert response.status_code == 200
-    assert data["player1_name"] == "Jana"
+    assert data["player1_name"] == "Alice"
     assert data["player2_name"] == "player2"
 
     # Change should be visible on a subsequent GET, not just the response.
     follow_up = client.get("/api/player-config").get_json()
-    assert follow_up["player1_name"] == "Jana"
+    assert follow_up["player1_name"] == "Alice"
 
 
 def test_patch_updates_both_names(client):
     response = client.patch(
-        "/api/player-config", json={"player1_name": "Jana", "player2_name": "Tobias"}
+        "/api/player-config", json={"player1_name": "Alice", "player2_name": "Bob"}
     )
     data = response.get_json()
 
     assert data == {
-        "player1_name": "Jana",
-        "player2_name": "Tobias",
+        "player1_name": "Alice",
+        "player2_name": "Bob",
         "player1_photo": "",
         "player2_photo": "",
     }
 
 
 def test_patch_trims_whitespace(client):
-    response = client.patch("/api/player-config", json={"player1_name": "  Jana  "})
+    response = client.patch("/api/player-config", json={"player1_name": "  Alice  "})
     data = response.get_json()
 
-    assert data["player1_name"] == "Jana"
+    assert data["player1_name"] == "Alice"
 
 
 def test_patch_ignores_unknown_fields(client):
@@ -95,18 +95,18 @@ def test_patch_persists_to_disk(client):
 
     import game_state
 
-    client.patch("/api/player-config", json={"player1_name": "Jana"})
+    client.patch("/api/player-config", json={"player1_name": "Alice"})
 
     with open(game_state.STATE_FILE) as f:
         on_disk = json.load(f)
 
-    assert on_disk["player_config"]["player1_name"] == "Jana"
+    assert on_disk["player_config"]["player1_name"] == "Alice"
 
 
 def test_reset_does_not_clear_player_names(client):
-    client.patch("/api/player-config", json={"player1_name": "Jana"})
+    client.patch("/api/player-config", json={"player1_name": "Alice"})
 
     client.post("/api/reset")
 
     data = client.get("/api/player-config").get_json()
-    assert data["player1_name"] == "Jana"
+    assert data["player1_name"] == "Alice"
