@@ -10,7 +10,7 @@ import re
 import sys
 import uuid
 
-from PIL import ExifTags, Image
+from PIL import ExifTags, Image, ImageOps
 
 # Released binaries (see tools/build_release.py) ship this module frozen
 # into the executable, so __file__ resolves inside PyInstaller's onefile
@@ -30,6 +30,13 @@ PHOTOS_DIR = os.environ.get("PHOTOS_DIR", os.path.join(PROJECT_ROOT, "static", "
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # generous for straight-off-the-camera wedding photos
+
+# Uploads land as full-resolution phone camera photos (several MB, thousands
+# of pixels per side) but are only ever displayed in small in-game photo/badge
+# containers - downscale + recompress on upload so every later page load
+# doesn't ship the original multi-MB file to the browser.
+MAX_DIMENSION = 1600
+JPEG_QUALITY = 80
 
 _SAFE_CHARS_RE = re.compile(r"[^a-zA-Z0-9_-]+")
 
@@ -75,8 +82,46 @@ def save_upload(file_storage, prefix):
     filename = f"{safe_prefix}_{uuid.uuid4().hex}.{ext}"
 
     os.makedirs(PHOTOS_DIR, exist_ok=True)
-    file_storage.save(os.path.join(PHOTOS_DIR, filename))
+    path = os.path.join(PHOTOS_DIR, filename)
+    file_storage.save(path)
+    _downscale_and_recompress(path, ext)
     return filename
+
+
+def _downscale_and_recompress(path, ext):
+    """Shrink an oversized upload in place and recompress it.
+
+    Best-effort: if anything goes wrong (unexpected pixel data, an animated
+    GIF, etc.) the original upload written by save_upload() above is left
+    untouched rather than losing the photo.
+    """
+    if ext == "gif":
+        # Animated GIFs would lose their frames if reopened/resaved through
+        # a single-frame Image - leave them as uploaded.
+        return
+
+    try:
+        with Image.open(path) as image:
+            image = ImageOps.exif_transpose(image)
+            image.load()
+
+            width, height = image.size
+            longest_side = max(width, height)
+            if longest_side > MAX_DIMENSION:
+                scale = MAX_DIMENSION / longest_side
+                new_size = (max(1, round(width * scale)), max(1, round(height * scale)))
+                image = image.resize(new_size, Image.LANCZOS)
+
+            if ext in ("jpg", "jpeg"):
+                if image.mode not in ("RGB", "L"):
+                    image = image.convert("RGB")
+                image.save(path, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+            elif ext == "png":
+                image.save(path, format="PNG", optimize=True)
+            elif ext == "webp":
+                image.save(path, format="WEBP", quality=JPEG_QUALITY)
+    except Exception:
+        pass
 
 
 def _to_degrees(value):
