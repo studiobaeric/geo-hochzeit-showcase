@@ -61,6 +61,29 @@ def test_upload_also_keeps_a_full_resolution_copy(client):
     assert follow_up["player1_photo_hq"] == data["player1_photo_hq"]
 
 
+def test_replacing_a_photo_deletes_the_previous_files(client):
+    first = _upload(client, "player1").get_json()
+    first_filename = first["player1_photo"]
+    first_filename_hq = first["player1_photo_hq"]
+
+    second = _upload(client, "player1").get_json()
+
+    assert second["player1_photo"] != first_filename
+    assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, first_filename))
+    assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, first_filename_hq))
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, second["player1_photo"]))
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, second["player1_photo_hq"]))
+
+
+def test_uploading_one_role_does_not_delete_the_other_roles_files(client):
+    player1 = _upload(client, "player1").get_json()
+
+    _upload(client, "player2")
+
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, player1["player1_photo"]))
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, player1["player1_photo_hq"]))
+
+
 def test_upload_rejects_unknown_role(client):
     response = _upload(client, "player3")
 
@@ -100,3 +123,12 @@ def test_patch_can_reset_photo_to_empty(client):
 
     assert data["player1_photo"] == ""
     assert data["player1_photo_hq"] == ""
+
+
+def test_patch_reset_deletes_the_photo_files(client):
+    uploaded = _upload(client, "player1").get_json()
+
+    client.patch("/api/player-config", json={"player1_photo": ""})
+
+    assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, uploaded["player1_photo"]))
+    assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, uploaded["player1_photo_hq"]))
