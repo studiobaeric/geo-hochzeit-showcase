@@ -446,12 +446,18 @@ export async function updateMapPosition(record) {
     target.map.setView(latLng, Math.max(target.map.getZoom(), 8));
 }
 
+// Germany overview - what each player map starts at, and what it should
+// return to once a round's guess marker is cleared (see
+// showModPageNextRound()), rather than staying zoomed in on the last guess.
+const INITIAL_PLAYER_MAP_CENTER = [49.3690, 9.5436];
+const INITIAL_PLAYER_MAP_ZOOM = 5;
+
 function createPlayerMap(elementId) {
     return L.map(elementId, {
         minZoom: 1,
         maxZoom: 18,
         zoomControl: true
-    }).setView([49.3690, 9.5436], 5);
+    }).setView(INITIAL_PLAYER_MAP_CENTER, INITIAL_PLAYER_MAP_ZOOM);
 }
 
 async function initModeratorMaps() {
@@ -546,6 +552,10 @@ async function showModPageNextRound() {
     leftPlayerMarker = null;
     rightPlayerMarker = null;
 
+    // Otherwise each map stays zoomed in on wherever the last round's guess
+    // landed instead of showing the overview the next round should start from.
+    leftPlayerMap?.setView(INITIAL_PLAYER_MAP_CENTER, INITIAL_PLAYER_MAP_ZOOM);
+    rightPlayerMap?.setView(INITIAL_PLAYER_MAP_CENTER, INITIAL_PLAYER_MAP_ZOOM);
 }
 
 function distanceCalculator(playerLatLng, targetLatLng){

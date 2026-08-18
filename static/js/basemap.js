@@ -12,9 +12,25 @@ export function ensurePmtilesProtocol() {
     isPmtilesProtocolRegistered = true;
 }
 
+// basemap-style.json is ~260KB. moderator.js alone creates three maps
+// (left/right player + resolution) from it, so without caching the raw
+// fetch+parse happened three times over on the moderator's device. Fetched
+// (and parsed) once per page load and reused from then on.
+let stylePromise = null;
+
+function fetchBaseStyle() {
+    if (!stylePromise) {
+        stylePromise = fetch('/static/data/basemap-style.json').then((response) => response.json());
+    }
+    return stylePromise;
+}
+
 export async function createBaseMapLayer(extraOptions = {}) {
-    const response = await fetch('/static/data/basemap-style.json');
-    const style = await response.json();
+    const cachedStyle = await fetchBaseStyle();
+    // Each caller rewrites sprite/glyphs/source URLs (and MapLibre mutates
+    // the object further once it's handed off), so every map needs its own
+    // copy rather than sharing the cached one.
+    const style = JSON.parse(JSON.stringify(cachedStyle));
     const origin = window.location.origin;
 
     style.sprite = origin + style.sprite;

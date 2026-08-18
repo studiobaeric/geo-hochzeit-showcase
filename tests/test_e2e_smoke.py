@@ -378,6 +378,181 @@ def test_auflosung_keeps_player_input_locked_even_if_already_locked(live_server)
         browser.close()
 
 
+def test_basemap_style_is_fetched_once_across_all_moderator_maps(live_server):
+    """Regression test for optimization #1 from #79: moderator.js creates
+    three MapLibre maps from the same ~260KB static/data/basemap-style.json
+    - the left player map and right player map as soon as the moderator
+    view loads, then a third (resolutionMap) the first time a round is
+    resolved. Before basemap.js cached the parsed style (see its
+    fetchBaseStyle()), every one of those calls did its own fetch +
+    JSON.parse of that file, so this single page load network-fetched the
+    same 260KB three times.
+
+    This drives the moderator through exactly that sequence - page load,
+    then Auflösung - and asserts the moderator's page only ever issues ONE
+    network request for basemap-style.json, no matter how many maps get
+    created. Request *count* is used rather than wall-clock timing, since
+    page-load timing is too noisy/flaky to assert on reliably in CI - the
+    number of times the same resource is fetched is the direct,
+    deterministic signature of the fix.
+
+    The listener is attached to moderator_page specifically, not the
+    browser context: each page/tab is its own JS module realm with its own
+    independent copy of basemap.js's cache, so player1/player2 (opened
+    below, and each loading their own single map via game.js) legitimately
+    add one fetch apiece in their own tab - that's expected and unrelated
+    to what's being tested here, which is fetch reuse *within* one page.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        style_requests = []
+
+        moderator_page = context.new_page()
+        moderator_page.on(
+            "request",
+            lambda request: style_requests.append(request.url)
+            if request.url.endswith("/static/data/basemap-style.json")
+            else None,
+        )
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+        # initModeratorMaps() (left + right player maps) runs fire-and-forget
+        # right after the moderator view loads - wait for both to actually
+        # render before moving on, so their fetches have already happened.
+        moderator_page.wait_for_function(
+            "document.querySelectorAll('#leftPlayerMap .maplibregl-canvas, "
+            "#rightPlayerMap .maplibregl-canvas').length === 2"
+        )
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+
+        moderator_page.click("#lockPlayerInputButton")
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player1", "coordinates": {"lat": 49.37, "lng": 9.54}},
+        )
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player2", "coordinates": {"lat": 50.0, "lng": 10.0}},
+        )
+        moderator_page.wait_for_timeout(500)
+
+        # Auflösung creates the third map (resolutionMap) - previously a
+        # third, separate fetch of the same style JSON.
+        moderator_page.click("#mainControlButton")
+        moderator_page.wait_for_selector("#continueButton.is-active")
+        moderator_page.wait_for_selector("#resolutionMap .maplibregl-canvas")
+
+        assert len(style_requests) == 1, (
+            f"expected exactly 1 request for basemap-style.json across the moderator's "
+            f"3 maps, got {len(style_requests)}: {style_requests}"
+        )
+
+        browser.close()
+
+
+def test_player_maps_reset_view_for_the_next_round(live_server):
+    """Regression test reported against PR #83's review: placing a guess
+    zooms that player's map in on the guessed location (updateMapPosition()
+    setView-ing to at least zoom 8), but advancing past a round's Auflösung
+    used to only clear the guess marker (showModPageNextRound()) - the map
+    itself stayed zoomed in on the previous round's guess instead of
+    returning to the initial Germany overview the next round should start
+    from.
+
+    moderator.js doesn't expose the maps' center/zoom to the page for
+    assertions, so this instead patches L.Map.prototype.setView (via an
+    init script, before any page script runs) to record every call made on
+    the left player map, then checks the *last* recorded zoom once round 2
+    starts: it must be back to the initial zoom (5), not left at the
+    zoomed-in level a guess sets (>= 8). This needs no production code
+    changes - it only observes calls the app already makes.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.add_init_script(
+            """
+            window.__leftMapSetViewCalls = [];
+            let _L;
+            Object.defineProperty(window, 'L', {
+                configurable: true,
+                get() { return _L; },
+                set(value) {
+                    _L = value;
+                    if (value?.Map?.prototype && !value.Map.prototype.__setViewPatched) {
+                        const original = value.Map.prototype.setView;
+                        value.Map.prototype.setView = function (center, zoom, options) {
+                            if (this._container?.id === 'leftPlayerMap') {
+                                window.__leftMapSetViewCalls.push(zoom);
+                            }
+                            return original.call(this, center, zoom, options);
+                        };
+                        value.Map.prototype.__setViewPatched = true;
+                    }
+                },
+            });
+            """
+        )
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+        moderator_page.wait_for_selector("#leftPlayerMap .maplibregl-canvas")
+
+        # createPlayerMap()'s own setView (zoom 5) must have already been
+        # recorded by now.
+        initial_calls = moderator_page.evaluate("window.__leftMapSetViewCalls")
+        assert initial_calls == [5], f"expected only the initial zoom-5 setView, got {initial_calls}"
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+
+        moderator_page.click("#lockPlayerInputButton")
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player1", "coordinates": {"lat": 49.37, "lng": 9.54}},
+        )
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player2", "coordinates": {"lat": 50.0, "lng": 10.0}},
+        )
+        moderator_page.wait_for_timeout(500)
+
+        zoomed_calls = moderator_page.evaluate("window.__leftMapSetViewCalls")
+        assert zoomed_calls[-1] >= 8, f"expected the guess to zoom in to >= 8, got {zoomed_calls}"
+
+        moderator_page.click("#mainControlButton")
+        moderator_page.wait_for_selector("#continueButton.is-active")
+        moderator_page.click("#continueButton")
+        moderator_page.wait_for_selector("#roundResultView.is-active")
+        moderator_page.click("#resultContinueButton")
+        moderator_page.wait_for_selector("#moderatorApp:not(.is-hidden)")
+
+        final_calls = moderator_page.evaluate("window.__leftMapSetViewCalls")
+        assert final_calls[-1] == 5, (
+            f"left player map should have reset to the initial zoom (5) for round 2, "
+            f"got setView call history {final_calls}"
+        )
+
+        browser.close()
+
+
 def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
     """Regression test for a reported bug: the "Kartendaten" region editor's
     zoom <select> (long, descriptive option text) wasn't covered by the
