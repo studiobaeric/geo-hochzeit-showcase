@@ -37,8 +37,8 @@ body {
     padding: 6px 10px;
     border: 1px solid rgba(17, 24, 39, 0.18);
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.05);
-    color: #000000;
+    background: rgba(255, 255, 255, 0.96);
+    color: #111827;
     font-size: 18px;
     font-weight: 900;
     box-shadow: 0 5px 16px rgba(0, 0, 0, 0.22);
