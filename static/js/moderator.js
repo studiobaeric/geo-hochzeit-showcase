@@ -186,7 +186,11 @@ async function loadCurrentPhoto(photo=round) {
 
         if (!currentPhoto) return;
 
-        currentPhotoImage.src = `/static/photos/${currentPhoto.filename}`;
+        // Prefer the untouched full-resolution copy for the beamer-projected
+        // display - the default `filename` is downscaled for players/tablets
+        // and would look soft blown up on a projector. Older photos.json
+        // entries (from before filename_hq existed) fall back to it.
+        currentPhotoImage.src = `/static/photos/${currentPhoto.filename_hq || currentPhoto.filename}`;
     } catch (error) {
         console.error('Moderator photo could not be loaded:', error);
     } finally {

@@ -95,6 +95,36 @@ def test_animated_gif_is_left_untouched():
         assert saved.n_frames == 2
 
 
+def test_save_upload_with_hq_keeps_an_untouched_original():
+    image = Image.new("RGB", (3000, 2000), color="red")
+    upload = _file_storage(image, "big.jpg", format="JPEG", quality=100)
+
+    filename, filename_hq = photo_storage.save_upload_with_hq(upload, prefix="round")
+
+    assert filename != filename_hq
+    with _saved_image(filename) as small:
+        assert max(small.size) == photo_storage.MAX_DIMENSION
+    with _saved_image(filename_hq) as hq:
+        assert hq.size == (3000, 2000)
+
+
+def test_save_upload_with_hq_on_animated_gif_keeps_both_files_playable():
+    frame1 = Image.new("RGB", (10, 10), color="red")
+    frame2 = Image.new("RGB", (10, 10), color="blue")
+    buffer = io.BytesIO()
+    frame1.save(buffer, format="GIF", save_all=True, append_images=[frame2])
+    buffer.seek(0)
+    upload = FileStorage(stream=buffer, filename="anim.gif")
+
+    filename, filename_hq = photo_storage.save_upload_with_hq(upload, prefix="round")
+
+    assert filename != filename_hq
+    with _saved_image(filename) as small:
+        assert small.n_frames == 2
+    with _saved_image(filename_hq) as hq:
+        assert hq.n_frames == 2
+
+
 def test_exif_orientation_is_baked_in_and_stripped():
     # Orientation 6 = rotate 270 (i.e. the pixel data is stored sideways and
     # a viewer must rotate 90 CW to display it upright).

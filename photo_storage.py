@@ -7,6 +7,7 @@ GPS extraction live in exactly one place.
 
 import os
 import re
+import shutil
 import sys
 import uuid
 
@@ -56,12 +57,12 @@ def _extension(filename):
     return ext if ext in ALLOWED_EXTENSIONS else None
 
 
-def save_upload(file_storage, prefix):
-    """Validate and persist an uploaded image to PHOTOS_DIR.
+def _validate_upload(file_storage, prefix):
+    """Validate an upload and return (ext, filename) - the extension and a
+    unique, sanitized filename to save it under (not yet written to disk).
 
-    Returns the saved (unique, sanitized) filename. Raises UploadError if
-    the upload is missing, not an allowed image type, or too large - the
-    caller can turn that straight into a 400 response.
+    Raises UploadError if the upload is missing, not an allowed image type,
+    or too large - the caller can turn that straight into a 400 response.
     """
     if file_storage is None or not file_storage.filename:
         raise UploadError("no photo file was uploaded")
@@ -80,6 +81,16 @@ def save_upload(file_storage, prefix):
 
     safe_prefix = _SAFE_CHARS_RE.sub("_", prefix).strip("_") or "photo"
     filename = f"{safe_prefix}_{uuid.uuid4().hex}.{ext}"
+    return ext, filename
+
+
+def save_upload(file_storage, prefix):
+    """Validate and persist an uploaded image to PHOTOS_DIR.
+
+    Returns the saved (unique, sanitized) filename. See _validate_upload()
+    for the errors this can raise.
+    """
+    ext, filename = _validate_upload(file_storage, prefix)
 
     os.makedirs(PHOTOS_DIR, exist_ok=True)
     path = os.path.join(PHOTOS_DIR, filename)
@@ -88,12 +99,39 @@ def save_upload(file_storage, prefix):
     return filename
 
 
+def save_upload_with_hq(file_storage, prefix):
+    """Like save_upload(), but also keeps an unmodified full-resolution copy.
+
+    Round photos are shown small almost everywhere (players' photo view, the
+    config UI's thumbnail list) but also get projected full-screen on the
+    moderator's beamer during a round, where the downscaled copy would look
+    soft - so this keeps both: an untouched original for that one place, and
+    the downscaled/recompressed copy save_upload() would have produced for
+    everywhere else.
+
+    Returns (filename, filename_hq) - `filename` is the downscaled copy
+    (same as save_upload()'s return value), `filename_hq` is the untouched
+    original upload. See _validate_upload() for the errors this can raise.
+    """
+    ext, filename = _validate_upload(file_storage, prefix)
+
+    os.makedirs(PHOTOS_DIR, exist_ok=True)
+    hq_filename = f"{filename.rsplit('.', 1)[0]}_full.{ext}"
+    hq_path = os.path.join(PHOTOS_DIR, hq_filename)
+    file_storage.save(hq_path)
+
+    path = os.path.join(PHOTOS_DIR, filename)
+    shutil.copyfile(hq_path, path)
+    _downscale_and_recompress(path, ext)
+    return filename, hq_filename
+
+
 def _downscale_and_recompress(path, ext):
-    """Shrink an oversized upload in place and recompress it.
+    """Shrink an oversized image in place and recompress it.
 
     Best-effort: if anything goes wrong (unexpected pixel data, an animated
-    GIF, etc.) the original upload written by save_upload() above is left
-    untouched rather than losing the photo.
+    GIF, etc.) the file at `path` is left untouched rather than losing the
+    photo.
     """
     if ext == "gif":
         # Animated GIFs would lose their frames if reopened/resaved through

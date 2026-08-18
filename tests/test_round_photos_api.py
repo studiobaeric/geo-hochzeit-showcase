@@ -130,6 +130,18 @@ def test_upload_writes_the_file_to_disk(client):
     assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, filename))
 
 
+def test_upload_also_keeps_a_full_resolution_copy(client):
+    data = _upload(client).get_json()
+
+    assert data["filename_hq"] != data["filename"]
+    assert data["hq_url"] == f"/static/photos/{data['filename_hq']}"
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, data["filename_hq"]))
+
+    with open(photo_config.PHOTOS_FILE, encoding="utf-8") as f:
+        on_disk = json.load(f)
+    assert on_disk[0]["filename_hq"] == data["filename_hq"]
+
+
 def test_upload_writes_to_photos_json(client):
     _upload(client, description="Erstes Bild")
 
@@ -278,6 +290,7 @@ def test_patch_rejects_invalid_location(client):
 def test_delete_removes_entry_and_file(client):
     created = _upload(client).get_json()
     filename = created["filename"]
+    filename_hq = created["filename_hq"]
 
     response = client.delete(f"/api/round-photos/{created['id']}")
 
@@ -285,6 +298,7 @@ def test_delete_removes_entry_and_file(client):
     assert response.get_json() == {"deleted": True, "id": created["id"]}
     assert client.get("/api/round-photos").get_json() == []
     assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, filename))
+    assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, filename_hq))
 
 
 def test_delete_unknown_id_returns_404(client):
