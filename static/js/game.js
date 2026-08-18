@@ -86,6 +86,14 @@ async function loadPhoto(round) {
     }
 }
 
+function waitForImageLoad(img) {
+    if (img.complete) return Promise.resolve();
+    return new Promise((resolve) => {
+        img.addEventListener('load', resolve, {once: true});
+        img.addEventListener('error', resolve, {once: true});
+    });
+}
+
 function updateRoundDisplay(round) {
     const totalRounds = allPhotos?.length;
     document.getElementById('roundInfo').textContent = totalRounds
@@ -185,6 +193,14 @@ async function initGame() {
     console.log("Gamestate: ", gamestateRecord);
     await loadNextRound(gamestateRecord.round);
     updateView(gamestateRecord.state)
+
+    // Das Foto soll zuerst fertig geladen und angezeigt werden, bevor die
+    // netzwerk-/GPU-lastige Karteninitialisierung startet (WebGL-Kontext,
+    // Basemap-Style, Vektor-Tiles) - die beiden würden sonst um Bandbreite
+    // konkurrieren, gerade auf langsamem Venue-WLAN. Die Karte lädt danach
+    // aber sofort im Hintergrund vor, statt erst beim Klick auf
+    // "Tipp abgeben" (siehe Issue #79).
+    await waitForImageLoad(document.getElementById('photoImage'));
 
     map = L.map('map', {minZoom: 1, maxZoom: 18})
         .setView([49.3690, 9.5436], 6);
