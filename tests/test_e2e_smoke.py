@@ -245,6 +245,67 @@ def test_locked_in_guess_survives_reload(live_server):
         browser.close()
 
 
+def test_unlocked_guess_survives_reload(live_server):
+    """Follow-up to #85: a placed-but-not-locked-in guess used to vanish on
+    reload (guessMarker is a plain module variable, reset fresh on load),
+    even though the point was already persisted server-side via /api/points.
+    Reloading must restore the marker, and the guess must still be movable
+    and lockable afterwards since it was never locked in.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+        player1.wait_for_selector("#waitView.active")
+
+        moderator_page.click("#lockPlayerInputButton")
+        player1.wait_for_selector("#photoView.active")
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+        player1.wait_for_timeout(600)  # let Leaflet finish invalidateSize()
+
+        # Place a guess but do NOT lock it in.
+        player1.click("#map")
+        player1.wait_for_selector("#lockButton:not(:disabled)")
+
+        gamestate = context.request.get(f"{live_server}/api/gamestate").json()
+        assert gamestate["player1_locked"] is False
+
+        player1.reload()
+        player1.wait_for_selector("#photoView.active")
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+
+        # The unlocked guess must reappear on its own, and the lock button
+        # must reflect "a guess exists, not yet locked in" - enabled, not
+        # showing the locked-in label.
+        player1.wait_for_function("document.querySelectorAll('.leaflet-marker-icon').length === 1")
+        assert not player1.is_disabled("#lockButton")
+        assert player1.text_content("#lockButton") == 'Tipp abgeben'
+
+        # It must still be possible to move the restored guess and lock it
+        # in afterwards - restoring the marker must not accidentally lock it.
+        player1.wait_for_timeout(600)
+        player1.click("#map", position={"x": 20, "y": 20})
+        player1.wait_for_timeout(300)
+        assert player1.query_selector_all(".leaflet-marker-icon").__len__() == 1
+
+        player1.click("#lockButton")
+        player1.wait_for_selector("#lockButton:disabled")
+        gamestate = context.request.get(f"{live_server}/api/gamestate").json()
+        assert gamestate["player1_locked"] is True
+
+        browser.close()
+
+
 def test_finishing_the_last_round_sends_players_to_their_own_results_screen(live_server):
     """Regression test for #80: nothing in the app used to navigate to
     /results, so it was dead code. Playing through every configured round

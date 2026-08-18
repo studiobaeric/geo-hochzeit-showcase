@@ -167,32 +167,38 @@ function showView(viewName) {
 }
 
 
-// Re-applies a lock-in that already happened on the server (gamestate's
-// `${role}_locked`) after a page reload - without this, isLocked always
-// starts false and a reloaded player could overwrite their locked guess
-// even though the moderator screen still shows them as locked in (#85).
-async function restoreLockState(round, gamestateRecord) {
+// Re-applies a guess (and, if it was locked in, the lock itself) that
+// already happened on the server before a page reload. Without this,
+// guessMarker/isLocked always started fresh on load - a reloaded player
+// lost sight of an unlocked guess they'd already placed (#85's follow-up),
+// and could overwrite a locked-in one even though the moderator screen
+// still showed them as locked in (#85).
+async function restoreGuessState(round, gamestateRecord) {
     const role = sessionStorage.getItem("name");
     if (role !== 'player1' && role !== 'player2') return;
-    if (!gamestateRecord[`${role}_locked`]) return;
 
-    isLocked = true;
-    document.getElementById('lockButton').disabled = true;
-    document.getElementById('lockButton').textContent = 'Tipp abgegeben!';
-    document.getElementById('backToPhotoButton').style.display = 'none';
-
+    let myPoint;
     try {
         const points = await getPlacedPoints(round);
-        const myPoint = points.find((point) => point.placed_by === role);
-        if (myPoint) {
-            const {lat, lon} = myPoint.coordinates;
-            guessMarker = L.marker([lat, lon], {
-                icon: createMarkerIcon('/static/img/marker-icon-2x-blue.png')
-            }).addTo(map);
-            guessMarker.bindPopup('Dein Tipp');
-        }
+        myPoint = points.find((point) => point.placed_by === role);
     } catch (err) {
-        console.error("Failed to restore locked-in location:", err);
+        console.error("Failed to restore placed location:", err);
+        return;
+    }
+    if (!myPoint) return;
+
+    const {lat, lon} = myPoint.coordinates;
+    guessMarker = L.marker([lat, lon], {
+        icon: createMarkerIcon('/static/img/marker-icon-2x-blue.png')
+    }).addTo(map);
+    guessMarker.bindPopup('Dein Tipp');
+    document.getElementById('lockButton').disabled = false;
+
+    if (gamestateRecord[`${role}_locked`]) {
+        isLocked = true;
+        document.getElementById('lockButton').disabled = true;
+        document.getElementById('lockButton').textContent = 'Tipp abgegeben!';
+        document.getElementById('backToPhotoButton').style.display = 'none';
     }
 }
 
@@ -307,7 +313,7 @@ async function initGame() {
         document.getElementById('backToPhotoButton').style.display = 'none';
     });
 
-    await restoreLockState(gamestateRecord.round, gamestateRecord);
+    await restoreGuessState(gamestateRecord.round, gamestateRecord);
 }
 
 if (!(sessionStorage.getItem("name") === "Moderator")) {
