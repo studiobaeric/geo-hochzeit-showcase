@@ -13,369 +13,54 @@
     <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            background: var(--gradient-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .results-container {
-            background: var(--color-bg-elevated);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 40px var(--shadow-color);
-            max-width: 600px;
-            width: 100%;
-        }
-
-        .results-container h1 {
-            color: var(--color-text);
-            margin-top: 0;
-            font-size: 2.5em;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .results-container p {
-            color: var(--color-text-muted);
-            text-align: center;
-            font-size: 1.1em;
-            margin-bottom: 30px;
-        }
-
-        .score-summary {
-            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .score-summary h2 {
-            margin: 0 0 15px 0;
-            font-size: 1.3em;
-            font-weight: normal;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .total-score {
-            font-size: 3.5em;
-            font-weight: bold;
-            margin: 0;
-            color: #ffffff;
-        }
-
-        .scoreboard {
-            background: var(--color-surface);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .score-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--color-border);
-            transition: background 0.2s;
-        }
-
-        .score-row:last-child {
-            border-bottom: none;
-        }
-
-        .score-row:hover {
-            background: var(--color-bg-muted);
-        }
-
-        .round-number {
-            font-weight: bold;
-            color: var(--color-accent);
-            flex: 1;
-            cursor: pointer;
-            transition: color 0.2s, text-decoration 0.2s;
-            text-decoration: underline;
-            text-decoration-color: transparent;
-        }
-
-        .round-number:hover {
-            color: var(--color-accent-2);
-            text-decoration-color: var(--color-accent-2);
-        }
-
-        .distance {
-            font-weight: bold;
-            color: var(--color-text);
-            min-width: 100px;
-            text-align: right;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            flex: 1;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--color-bg-muted);
-            color: var(--color-text);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px var(--shadow-color);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        @media (max-width: 600px) {
-            .results-container {
-                padding: 25px;
-            }
-
-            .results-container h1 {
-                font-size: 2em;
-            }
-
-            .score-row {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 10px 15px;
-            }
-
-            .distance {
-                width: 100%;
-                text-align: left;
-                margin-top: 8px;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
-        }
-
-        .empty-state {
-            text-align: center;
-            color: var(--color-text-muted);
-            padding: 40px 20px;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--color-bg-elevated);
-            border-radius: 15px;
-            padding: 20px;
-            max-width: 90vw;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .modal-image {
-            max-width: 100%;
-            max-height: 70vh;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            border-radius: 10px;
-        }
-
-        .modal-title {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: var(--color-text);
-            margin: 0;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 24px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .modal-close:hover {
-            background: rgba(0, 0, 0, 0.8);
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/results.css') }}">
 </head>
 <body>
     <div class="results-container">
         <h1>🎉 Spiel beendet!</h1>
-        <p>Hier sind deine Ergebnisse:</p>
+        <p class="subtitle">Hier sind deine Ergebnisse:</p>
 
         <div class="score-summary">
-            <h2>Gesamtergebnis</h2>
-            <p class="total-score" id="totalScore">0 km</p>
+            <div class="score-card" id="player1Card">
+                <span class="score-name" id="player1Name">player1</span>
+                <span class="score-points" id="player1Total">0 Punkte</span>
+                <span class="score-badge" id="player1Badge" aria-label="Sieger">🏆</span>
+            </div>
+            <div class="score-card" id="player2Card">
+                <span class="score-name" id="player2Name">player2</span>
+                <span class="score-points" id="player2Total">0 Punkte</span>
+                <span class="score-badge" id="player2Badge" aria-label="Sieger">🏆</span>
+            </div>
         </div>
 
-        <div class="scoreboard" id="scoreboard">
+        <div class="stats-grid">
+            <div class="stat-tile">
+                <span class="stat-label">Ø Distanz</span>
+                <span class="stat-value" id="avgDistance">–</span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Nächster Tipp</span>
+                <span class="stat-value" id="closestGuess">–</span>
+                <span class="stat-caption" id="closestGuessCaption"></span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Weitester Tipp</span>
+                <span class="stat-value" id="furthestGuess">–</span>
+                <span class="stat-caption" id="furthestGuessCaption"></span>
+            </div>
+        </div>
+
+        <div class="round-list" id="roundList">
             <div class="empty-state">
                 <p>Keine Ergebnisse verfügbar</p>
             </div>
         </div>
 
         <div class="button-group">
-            <button class="btn btn-secondary" onclick="goHome()">Zur Startseite</button>
+            <button class="btn-secondary" id="goHomeButton">Zur Startseite</button>
         </div>
     </div>
 
-    <!-- Modal für Bildanzeige -->
-    <div id="photoModal" class="modal">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closePhotoModal()">&times;</button>
-            <h3 class="modal-title" id="modalTitle"></h3>
-            <img id="modalImage" class="modal-image" src="" alt="Hochzeitsfoto">
-        </div>
-    </div>
-
-    <script type="module">
-        import { loadThemeConfig, subscribeThemeUpdates } from "{{ url_for('static', filename='js/theme.js') }}";
-        loadThemeConfig();
-        subscribeThemeUpdates();
-    </script>
-    <script>
-        function displayResults() {
-            const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": [], "totalDistance": 0}');
-
-            const scoreboard = document.getElementById('scoreboard');
-            const totalScoreElement = document.getElementById('totalScore');
-
-            if (resultsData.rounds && resultsData.rounds.length > 0) {
-                scoreboard.innerHTML = '';
-
-                resultsData.rounds.forEach((round, index) => {
-                    const row = document.createElement('div');
-                    row.className = 'score-row';
-
-                    const roundNum = document.createElement('div');
-                    roundNum.className = 'round-number';
-                    roundNum.textContent = round.description || 'Unbekannt';
-                    roundNum.onclick = () => showPhotoModal(index, round.description);
-
-                    const distance = document.createElement('div');
-                    distance.className = 'distance';
-                    distance.textContent = round.distance;
-
-                    row.appendChild(roundNum);
-                    row.appendChild(distance);
-                    scoreboard.appendChild(row);
-                });
-
-                const totalDistance = resultsData.totalDistance;
-                const totalText = totalDistance < 1
-                    ? `${Math.round(totalDistance * 1000)} Meter`
-                    : `${totalDistance.toFixed(2)} km`;
-                totalScoreElement.textContent = totalText;
-            }
-        }
-
-        function showPhotoModal(index, description) {
-            // Baue den Dateinamen basierend auf den Spieltaten auf
-            const resultsData = JSON.parse(sessionStorage.getItem('gameResults') || '{"rounds": []}');
-            const round = resultsData.rounds[index];
-
-            if (round) {
-                // Extrahiere Dateinamen aus sessionStorage oder nutze index
-                // Wir müssen den Dateinamen kennen - das wird vom game.js gespeichert
-                const filename = round.filename || `photo_${index}.jpg`;
-
-                const modal = document.getElementById('photoModal');
-                const modalImage = document.getElementById('modalImage');
-                const modalTitle = document.getElementById('modalTitle');
-
-                modalTitle.textContent = description || 'Foto';
-                modalImage.src = `/static/photos/${filename}`;
-                modal.classList.add('active');
-            }
-        }
-
-        function closePhotoModal() {
-            const modal = document.getElementById('photoModal');
-            modal.classList.remove('active');
-        }
-
-        // Schließe Modal wenn außerhalb geklickt
-        document.getElementById('photoModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePhotoModal();
-            }
-        });
-
-        function goHome() {
-            sessionStorage.removeItem('gameResults');
-            window.location.href = '/';
-        }
-
-        // Zeige Ergebnisse beim Laden
-        displayResults();
-    </script>
+    <script type="module" src="{{ url_for('static', filename='js/results.js') }}"></script>
 </body>
 </html>
-

@@ -1,7 +1,7 @@
 import {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
     initSubscriptions, getPlacedPoints, getRoundResults, postRoundResult,
-    getTimerState, startTimer, pauseTimer, resumeTimer, extendTimer, stopTimer, serverNow
+    getTimerState, startTimer, pauseTimer, resumeTimer, extendTimer, stopTimer, serverNow, finishGame
 } from './multiplayer.js';
 import { getPhotoFilenames, loadPhotoFilenames } from './player-photos.js';
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
@@ -805,10 +805,15 @@ function initEventListeners() {
 
             const currentRound = (await getGamestateRecord()).round;
 
-            if (currentRound >= photos.length)
+            if (currentRound >= photos.length) {
+                // Broadcasts "finished" so player devices navigate to their
+                // own /results screen (see game.js's updateView) before this
+                // browser leaves for the moderator's own /end_of_game view.
+                await finishGame();
                 window.location.href = "/end_of_game";
-            else
+            } else {
                 await showModPageNextRound();
+            }
         } finally {
             resultContinueButton.disabled = false;
         }

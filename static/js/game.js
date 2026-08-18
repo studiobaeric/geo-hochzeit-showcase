@@ -41,6 +41,12 @@ export function updateView(state) {
         showView('photoView');
     } else if (state === "waiting") {
         showView('waitView')
+    } else if (state === "finished") {
+        // The moderator has advanced past the last round (see moderator.js's
+        // resultContinueButton handler / multiplayer.js's finishGame) - send
+        // this player to their own results screen instead of leaving them on
+        // whatever view they were last in.
+        window.location.href = '/results';
     }
 }
 

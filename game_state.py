@@ -130,7 +130,10 @@ _placed_points = {}
 _round_results = {}
 
 _GAMESTATE_FIELDS = {"state", "round", "player1_locked", "player2_locked"}
-_VALID_STATES = {"waiting", "playing"}
+# "finished" is broadcast once the moderator advances past the last round -
+# see multiplayer.js's finishGame() - so players' /game pages know to
+# navigate to /results instead of waiting for a round that never comes.
+_VALID_STATES = {"waiting", "playing", "finished"}
 _PLAYER_ROLES = {"player1", "player2"}
 
 

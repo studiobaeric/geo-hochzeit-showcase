@@ -195,6 +195,19 @@ export async function lockPlayerInput() {
     }
 }
 
+// Broadcasts the "finished" state so player devices (see game.js's
+// updateView) navigate themselves to /results once the moderator advances
+// past the last round, instead of being left on a waiting screen forever.
+export async function finishGame() {
+    if (sessionStorage.getItem("name") !== "Moderator") return;
+
+    try {
+        await apiRequest('/gamestate', {method: 'PATCH', body: JSON.stringify({state: "finished"})});
+    } catch (e) {
+        console.error(e)
+    }
+}
+
 export async function startNextRound() {
 
     if (sessionStorage.getItem("name") !== "Moderator") return;

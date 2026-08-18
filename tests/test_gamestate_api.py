@@ -31,6 +31,14 @@ def test_patch_updates_known_fields(client):
     assert follow_up["state"] == "playing"
 
 
+def test_patch_accepts_finished_state(client):
+    response = client.patch("/api/gamestate", json={"state": "finished"})
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert data["state"] == "finished"
+
+
 def test_patch_locks_individual_players(client):
     client.patch("/api/gamestate", json={"player1_locked": True})
     data = client.get("/api/gamestate").get_json()

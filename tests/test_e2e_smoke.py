@@ -165,6 +165,83 @@ def test_full_round_reload_and_reset_flow(live_server):
         browser.close()
 
 
+def test_finishing_the_last_round_sends_players_to_their_own_results_screen(live_server):
+    """Regression test for #80: nothing in the app used to navigate to
+    /results, so it was dead code. Playing through every configured round
+    must now broadcast the "finished" gamestate (see moderator.js's
+    resultContinueButton handler / multiplayer.js's finishGame()), which
+    sends each player's own device to /results - distinct from the
+    moderator's shared /end_of_game screen - showing their own totals.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        photos = context.request.get(f"{live_server}/api/round-photos").json()
+        num_rounds = len(photos)
+        assert num_rounds > 0
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+
+        for round_number in range(1, num_rounds + 1):
+            moderator_page.click("#lockPlayerInputButton")
+            context.request.post(
+                f"{live_server}/api/points",
+                data={
+                    "round_number": round_number,
+                    "placed_by": "player1",
+                    "coordinates": {"lat": 49.37, "lng": 9.54},
+                },
+            )
+            context.request.post(
+                f"{live_server}/api/points",
+                data={
+                    "round_number": round_number,
+                    "placed_by": "player2",
+                    "coordinates": {"lat": 50.0, "lng": 10.0},
+                },
+            )
+            moderator_page.wait_for_timeout(500)
+
+            moderator_page.click("#mainControlButton")
+            moderator_page.wait_for_selector("#continueButton.is-active")
+            moderator_page.click("#continueButton")
+            moderator_page.wait_for_selector("#roundResultView.is-active")
+            moderator_page.click("#resultContinueButton")
+
+        # The moderator lands on their own shared screen...
+        moderator_page.wait_for_url(f"{live_server}/end_of_game")
+
+        # ...while both players are sent to their own per-player screen.
+        player1.wait_for_url(f"{live_server}/results")
+        player2.wait_for_url(f"{live_server}/results")
+
+        round_results = context.request.get(f"{live_server}/api/round_results").json()
+        assert len(round_results) == num_rounds
+        player1_total = sum(r["players"]["player1"]["points"] for r in round_results)
+
+        player1.wait_for_function(
+            f"document.querySelector('#player1Total')?.textContent.includes('{player1_total}')"
+        )
+        # Every round played must show up in the per-round breakdown.
+        player1.wait_for_function(
+            f"document.querySelectorAll('#roundList .round-row').length === {num_rounds}"
+        )
+
+        browser.close()
+
+
 def test_moderator_still_records_guesses_after_a_photo_id_position_drift(live_server):
     """Regression test: players' guesses were silently dropped from the
     moderator's view (and the round scored 0 for everyone) as soon as a

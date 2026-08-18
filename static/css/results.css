@@ -1,0 +1,238 @@
+/* style.css (loaded before this file, reused here for .btn-secondary) locks
+   html/body to a fixed height: 100vh with overflow: hidden for the app-like
+   game views - fine there since those screens are exactly one viewport
+   tall, but this page's content (a variable number of rounds) can be
+   taller than the screen, so it needs to scroll like a normal page instead
+   of silently clipping. */
+html {
+    height: auto;
+    overflow-y: auto;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    background: var(--gradient-bg);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.results-container {
+    background: var(--color-bg-elevated);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 10px 40px var(--shadow-color);
+    max-width: 640px;
+    width: 100%;
+}
+
+.results-container h1 {
+    color: var(--color-text);
+    margin-top: 0;
+    font-size: 2.2em;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.subtitle {
+    color: var(--color-text-muted);
+    text-align: center;
+    font-size: 1.05em;
+    margin: 0 0 24px;
+}
+
+.score-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.score-card {
+    position: relative;
+    border-radius: 15px;
+    padding: 18px;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
+.score-card--self {
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
+    border: none;
+}
+
+.score-card .score-name {
+    display: block;
+    font-size: 1.3em;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.score-card--self .score-name {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.score-card .score-points {
+    display: block;
+    font-size: 1.7em;
+    font-weight: bold;
+    color: var(--color-text);
+}
+
+.score-card--self .score-points {
+    color: #ffffff;
+}
+
+/* A small corner icon rather than a text line, so it doesn't take up its
+   own row and reads as part of the card rather than a label. Solid-ish
+   background (rather than a faint tint) so the icon stays legible against
+   the self card's accent-colored gradient. */
+.score-badge {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 1.3em;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.score-badge.is-visible {
+    display: flex;
+}
+
+.score-card:not(.score-card--self) .score-badge {
+    background: var(--color-bg-elevated);
+    box-shadow: 0 1px 4px var(--shadow-color);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.stat-tile {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 10px 6px;
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.7em;
+    color: var(--color-text-muted);
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    display: block;
+    font-size: clamp(0.95em, 4vw, 1.3em);
+    font-weight: bold;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+.stat-caption {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.68em;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.round-list {
+    background: var(--color-surface);
+    border-radius: 15px;
+    padding: 8px 16px;
+    margin-bottom: 28px;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.round-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.round-row:last-child {
+    border-bottom: none;
+}
+
+.round-row-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: var(--color-accent);
+}
+
+.round-row-player {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+    color: var(--color-text-muted);
+    font-size: 0.95em;
+}
+
+.round-row-player-self {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.button-group {
+    display: flex;
+    justify-content: center;
+}
+
+.button-group .btn-secondary {
+    flex: 1;
+    max-width: 260px;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: 30px 20px;
+}
+
+@media (max-width: 480px) {
+    .results-container {
+        padding: 18px;
+    }
+
+    .stats-grid {
+        gap: 6px;
+        margin-bottom: 18px;
+    }
+
+    .round-row-title {
+        flex-direction: column;
+        gap: 2px;
+    }
+}
