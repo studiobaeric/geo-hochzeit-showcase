@@ -50,6 +50,17 @@ def test_upload_writes_file_to_disk(client):
     assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, filename))
 
 
+def test_upload_also_keeps_a_full_resolution_copy(client):
+    data = _upload(client, "player1").get_json()
+
+    assert data["player1_photo_hq"]
+    assert data["player1_photo_hq"] != data["player1_photo"]
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, data["player1_photo_hq"]))
+
+    follow_up = client.get("/api/player-config").get_json()
+    assert follow_up["player1_photo_hq"] == data["player1_photo_hq"]
+
+
 def test_upload_rejects_unknown_role(client):
     response = _upload(client, "player3")
 
@@ -88,3 +99,4 @@ def test_patch_can_reset_photo_to_empty(client):
     data = response.get_json()
 
     assert data["player1_photo"] == ""
+    assert data["player1_photo_hq"] == ""

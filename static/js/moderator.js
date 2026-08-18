@@ -125,16 +125,18 @@ function applyDisplayNames() {
     const player2ScoreName = document.getElementById('player2ScoreName');
     if (player2ScoreName) player2ScoreName.textContent = names.player2;
 
+    // Full resolution here too - this is the moderator's beamer-projected
+    // screen, not a player's tablet, so the downscaled copy would look soft.
     const player1Photo = document.getElementById('player1Photo');
     if (player1Photo) {
         player1Photo.alt = `Bild_${names.player1}`;
-        player1Photo.src = `/static/photos/${photoFilenames.player1}`;
+        player1Photo.src = `/static/photos/${photoFilenames.player1_hq}`;
     }
 
     const player2Photo = document.getElementById('player2Photo');
     if (player2Photo) {
         player2Photo.alt = `Bild_${names.player2}`;
-        player2Photo.src = `/static/photos/${photoFilenames.player2}`;
+        player2Photo.src = `/static/photos/${photoFilenames.player2_hq}`;
     }
 
     if (resolutionDistanceElements.player1) resolutionDistanceElements.player1.textContent = `${names.player1}: -`;
