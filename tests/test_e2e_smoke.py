@@ -165,6 +165,86 @@ def test_full_round_reload_and_reset_flow(live_server):
         browser.close()
 
 
+def test_locked_in_guess_survives_reload(live_server):
+    """Regression test for #85: a player who locked in a guess and then
+    reloaded the page lost the lock (game.js's `isLocked` is a plain module
+    variable, so it always started false again), letting them place a new
+    guess even though the moderator screen still showed them as locked in.
+    Reloading must restore the lock from the server's gamestate record
+    instead.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+        # Wait for the player's own SSE subscription to be live before the
+        # moderator broadcasts the unlock, or the broadcast can race ahead
+        # of EventSource's connection and never reach this page.
+        player1.wait_for_selector("#waitView.active")
+
+        # Unlock round 1 so the player sees the photo, then walk them
+        # through the real guess -> lock-in flow (not the API directly),
+        # so this exercises the same click handlers a real player hits.
+        moderator_page.click("#lockPlayerInputButton")
+        player1.wait_for_selector("#photoView.active")
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+        player1.wait_for_timeout(600)  # let Leaflet finish invalidateSize()
+
+        player1.click("#map")
+        player1.wait_for_selector("#lockButton:not(:disabled)")
+        player1.click("#lockButton")
+        player1.wait_for_selector("#lockButton:disabled")
+        player1.wait_for_function(
+            "document.querySelector('#lockButton')?.textContent === 'Tipp abgegeben!'"
+        )
+
+        gamestate = context.request.get(f"{live_server}/api/gamestate").json()
+        assert gamestate["player1_locked"] is True
+
+        player1.reload()
+        player1.wait_for_selector("#photoView.active")
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+
+        # The lock must already be restored, without the player doing
+        # anything - and there must be exactly the one restored marker, not
+        # a fresh empty map waiting for a new guess.
+        player1.wait_for_selector("#lockButton:disabled")
+        player1.wait_for_function(
+            "document.querySelector('#lockButton')?.textContent === 'Tipp abgegeben!'"
+        )
+        player1.wait_for_function("document.querySelectorAll('.leaflet-marker-icon').length === 1")
+
+        # Let the map's own invalidateSize()-triggered re-centering settle
+        # before taking a "before" snapshot, or its animation - not the
+        # click below - would explain a changed marker position.
+        player1.wait_for_timeout(600)
+        marker_position_before = player1.eval_on_selector(
+            ".leaflet-marker-icon", "el => el.style.transform"
+        )
+
+        # Clicking the map must be a no-op post-lock: no second marker, no
+        # move of the existing one.
+        player1.click("#map", position={"x": 20, "y": 20})
+        player1.wait_for_timeout(300)
+        assert player1.query_selector_all(".leaflet-marker-icon").__len__() == 1
+        assert (
+            player1.eval_on_selector(".leaflet-marker-icon", "el => el.style.transform")
+            == marker_position_before
+        )
+
+        browser.close()
+
+
 def test_finishing_the_last_round_sends_players_to_their_own_results_screen(live_server):
     """Regression test for #80: nothing in the app used to navigate to
     /results, so it was dead code. Playing through every configured round

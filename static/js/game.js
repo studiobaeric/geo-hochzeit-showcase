@@ -1,5 +1,5 @@
 // Spielzustand
-import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation, serverNow} from "./multiplayer.js";
+import {getGamestateRecord, getPlacedPoints, initSubscriptions, lockInSolution, pushLocation, serverNow} from "./multiplayer.js";
 import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./basemap.js";
 import {PhotoZoom} from "./photo.js";
 import {loadDisplayNames} from "./player-names.js";
@@ -167,6 +167,35 @@ function showView(viewName) {
 }
 
 
+// Re-applies a lock-in that already happened on the server (gamestate's
+// `${role}_locked`) after a page reload - without this, isLocked always
+// starts false and a reloaded player could overwrite their locked guess
+// even though the moderator screen still shows them as locked in (#85).
+async function restoreLockState(round, gamestateRecord) {
+    const role = sessionStorage.getItem("name");
+    if (role !== 'player1' && role !== 'player2') return;
+    if (!gamestateRecord[`${role}_locked`]) return;
+
+    isLocked = true;
+    document.getElementById('lockButton').disabled = true;
+    document.getElementById('lockButton').textContent = 'Tipp abgegeben!';
+    document.getElementById('backToPhotoButton').style.display = 'none';
+
+    try {
+        const points = await getPlacedPoints(round);
+        const myPoint = points.find((point) => point.placed_by === role);
+        if (myPoint) {
+            const {lat, lon} = myPoint.coordinates;
+            guessMarker = L.marker([lat, lon], {
+                icon: createMarkerIcon('/static/img/marker-icon-2x-blue.png')
+            }).addTo(map);
+            guessMarker.bindPopup('Dein Tipp');
+        }
+    } catch (err) {
+        console.error("Failed to restore locked-in location:", err);
+    }
+}
+
 async function initGame() {
     if (sessionStorage.getItem("name") === null) {
         window.location.href = "/";
@@ -277,6 +306,8 @@ async function initGame() {
         // Verstecke "Zurück zum Foto" Button
         document.getElementById('backToPhotoButton').style.display = 'none';
     });
+
+    await restoreLockState(gamestateRecord.round, gamestateRecord);
 }
 
 if (!(sessionStorage.getItem("name") === "Moderator")) {
