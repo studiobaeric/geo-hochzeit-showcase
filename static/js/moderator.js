@@ -8,12 +8,14 @@ import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { loadRoundConfig } from './round-config.js';
 import { loadThemeConfig } from './theme.js';
+import { loadMapLabelsConfig } from './map-labels-config.js';
 import { confirmDialog } from './confirm-dialog.js';
 
 // Live updates arrive over multiplayer.js's shared /api/events connection
-// (see its 'theme_config' listener) rather than a second one here - see
-// theme.js's onThemeConfigEvent for why that matters.
+// (see its 'theme_config'/'map_labels_config' listeners) rather than a
+// second one here - see theme.js's onThemeConfigEvent for why that matters.
 loadThemeConfig();
+loadMapLabelsConfig();
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');

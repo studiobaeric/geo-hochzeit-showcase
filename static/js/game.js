@@ -5,11 +5,13 @@ import {PhotoZoom} from "./photo.js";
 import {loadDisplayNames} from "./player-names.js";
 import {loadRoundConfig} from "./round-config.js";
 import {loadThemeConfig} from "./theme.js";
+import {loadMapLabelsConfig} from "./map-labels-config.js";
 
 // Live updates arrive over multiplayer.js's shared /api/events connection
-// (see its 'theme_config' listener) rather than a second one here - see
-// theme.js's onThemeConfigEvent for why that matters.
+// (see its 'theme_config'/'map_labels_config' listeners) rather than a
+// second one here - see theme.js's onThemeConfigEvent for why that matters.
 loadThemeConfig();
+loadMapLabelsConfig();
 
 let guessMarker = null;
 let isLocked = false;
