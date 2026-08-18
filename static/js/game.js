@@ -15,6 +15,7 @@ let guessMarker = null;
 let isLocked = false;
 let currentPhoto = null;
 let map = null;
+let baseMapLayer = null;
 let allPhotos = null;
 
 let roundConfig = { mode: 'manual', duration_seconds: 60 };
@@ -162,6 +163,12 @@ function showView(viewName) {
         // invalidateSize muss nach DOM-Paint und nach Address-Bar-Anpassung aufgerufen werden
         setTimeout(() => {
             map.invalidateSize(true);  // true = Animate Pan/Zoom
+            // invalidateSize() resized nur Leaflets eigene Panes/den umschließenden
+            // div, nicht den WebGL-Canvas von MapLibre GL selbst. Wurde die Karte
+            // initial erzeugt während #mapView noch display:none war (siehe
+            // initGame), hat MapLibre seinen Canvas mit Größe 0x0 angelegt - ohne
+            // dieses explizite resize() bleibt die Karte dann leer (Issue #90).
+            baseMapLayer?.getMaplibreMap()?.resize();
         }, 200);
     }
 }
@@ -214,7 +221,8 @@ async function initGame() {
     // setzt sie zur Laufzeit aus location.origin zusammen, damit die App auf jedem
     // Host/Port (und damit komplett offline) funktioniert, ohne hartkodierte Adresse.
     createBaseMapLayer({interactive: true})
-        .then((baseMapLayer) => {
+        .then((layer) => {
+            baseMapLayer = layer;
             baseMapLayer.addTo(map);
             map.getContainer().style.pointerEvents = 'auto';
             setTimeout(() => {
@@ -223,6 +231,13 @@ async function initGame() {
                     canvas.style.pointerEvents = 'none';
                 }
             }, 0);
+            // Falls der Spieler die Kartenansicht schon geöffnet hat, bevor die
+            // Basemap fertig geladen war, kannte MapLibre beim Anlegen des
+            // WebGL-Canvas bereits die richtige (sichtbare) Containergröße nicht
+            // zwangsläufig - hier zur Sicherheit ebenfalls resizen (Issue #90).
+            if (document.getElementById('mapView').classList.contains('active')) {
+                baseMapLayer.getMaplibreMap()?.resize();
+            }
         })
         .catch((error) => console.error('Fehler beim Laden der Karten-Basemap:', error));
 
