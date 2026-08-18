@@ -19,8 +19,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
             background: var(--gradient-bg);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -33,6 +36,36 @@
             box-shadow: 0 10px 40px var(--shadow-color);
             max-width: 500px;
             width: 90%;
+            margin: auto;
+        }
+
+        @media (max-height: 700px) {
+            .start-container {
+                padding: 24px;
+            }
+
+            .start-container h1 {
+                font-size: 1.8em;
+                margin-bottom: 6px;
+            }
+
+            .start-container p {
+                margin-bottom: 16px;
+            }
+
+            .info-box {
+                padding: 14px;
+                margin: 12px 0;
+            }
+
+            .role-buttons {
+                margin-top: 16px;
+                gap: 8px;
+            }
+
+            .start-button {
+                padding: 10px 50px;
+            }
         }
 
         .start-container h1 {
