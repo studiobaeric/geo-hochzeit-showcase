@@ -1,5 +1,5 @@
 // Spielzustand
-import {getGamestateRecord, initSubscriptions, lockInSolution, pushLocation, serverNow} from "./multiplayer.js";
+import {getGamestateRecord, getPlacedPoints, initSubscriptions, lockInSolution, pushLocation, serverNow} from "./multiplayer.js";
 import {ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon} from "./basemap.js";
 import {PhotoZoom} from "./photo.js";
 import {loadDisplayNames} from "./player-names.js";
@@ -174,6 +174,41 @@ function showView(viewName) {
 }
 
 
+// Re-applies a guess (and, if it was locked in, the lock itself) that
+// already happened on the server before a page reload. Without this,
+// guessMarker/isLocked always started fresh on load - a reloaded player
+// lost sight of an unlocked guess they'd already placed (#85's follow-up),
+// and could overwrite a locked-in one even though the moderator screen
+// still showed them as locked in (#85).
+async function restoreGuessState(round, gamestateRecord) {
+    const role = sessionStorage.getItem("name");
+    if (role !== 'player1' && role !== 'player2') return;
+
+    let myPoint;
+    try {
+        const points = await getPlacedPoints(round);
+        myPoint = points.find((point) => point.placed_by === role);
+    } catch (err) {
+        console.error("Failed to restore placed location:", err);
+        return;
+    }
+    if (!myPoint) return;
+
+    const {lat, lon} = myPoint.coordinates;
+    guessMarker = L.marker([lat, lon], {
+        icon: createMarkerIcon('/static/img/marker-icon-2x-blue.png')
+    }).addTo(map);
+    guessMarker.bindPopup('Dein Tipp');
+    document.getElementById('lockButton').disabled = false;
+
+    if (gamestateRecord[`${role}_locked`]) {
+        isLocked = true;
+        document.getElementById('lockButton').disabled = true;
+        document.getElementById('lockButton').textContent = 'Tipp abgegeben!';
+        document.getElementById('backToPhotoButton').style.display = 'none';
+    }
+}
+
 async function initGame() {
     if (sessionStorage.getItem("name") === null) {
         window.location.href = "/";
@@ -292,6 +327,8 @@ async function initGame() {
         // Verstecke "Zurück zum Foto" Button
         document.getElementById('backToPhotoButton').style.display = 'none';
     });
+
+    await restoreGuessState(gamestateRecord.round, gamestateRecord);
 }
 
 if (!(sessionStorage.getItem("name") === "Moderator")) {
