@@ -14,16 +14,19 @@ def _enable_countdown_mode(client, duration_seconds=60):
 
 
 def test_get_timer_state_has_default_shape(client):
+    before = time.time()
     response = client.get("/api/timer")
     data = response.get_json()
 
     assert response.status_code == 200
+    server_time = data.pop("server_time")
     assert data == {
         "running": False,
         "paused": False,
         "ends_at": None,
         "remaining_seconds": None,
     }
+    assert before <= server_time <= time.time()
 
 
 def test_start_requires_countdown_mode(client):
@@ -46,6 +49,22 @@ def test_start_sets_running_state(client):
     assert data["paused"] is False
     assert data["remaining_seconds"] is None
     assert before + 60 <= data["ends_at"] <= time.time() + 60
+    assert before <= data["server_time"] <= time.time()
+
+
+def test_timer_record_carries_server_time_for_clock_sync(client, monkeypatch):
+    # Every timer record includes the server's own clock reading alongside
+    # ends_at/remaining_seconds, so clients can correct for their own clock
+    # drift instead of trusting their local Date.now() outright (#71).
+    _enable_countdown_mode(client, duration_seconds=60)
+
+    monkeypatch.setattr(game_state.time, "time", lambda: 1000.0)
+    data = client.post("/api/timer/start").get_json()
+    assert data["server_time"] == pytest.approx(1000.0)
+
+    monkeypatch.setattr(game_state.time, "time", lambda: 1010.0)
+    data = client.get("/api/timer").get_json()
+    assert data["server_time"] == pytest.approx(1010.0)
 
 
 def test_pause_requires_running_timer(client):
@@ -185,6 +204,7 @@ def test_stop_resets_to_default(client):
 
     response = client.post("/api/timer/stop")
     data = response.get_json()
+    data.pop("server_time")
 
     assert data == {
         "running": False,
@@ -202,6 +222,7 @@ def test_advancing_round_resets_the_timer(client):
     client.patch("/api/gamestate", json={"round": 2})
 
     data = client.get("/api/timer").get_json()
+    data.pop("server_time")
     assert data == {
         "running": False,
         "paused": False,
@@ -226,6 +247,7 @@ def test_reset_clears_running_timer(client):
     client.post("/api/reset")
 
     data = client.get("/api/timer").get_json()
+    data.pop("server_time")
     assert data == {
         "running": False,
         "paused": False,

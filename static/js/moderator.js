@@ -1,7 +1,7 @@
 import {
     unlockPlayerInput, startNextRound, lockPlayerInput, resetGameState, getGamestateRecord,
     initSubscriptions, getPlacedPoints, getRoundResults, postRoundResult,
-    getTimerState, startTimer, pauseTimer, resumeTimer, extendTimer, stopTimer
+    getTimerState, startTimer, pauseTimer, resumeTimer, extendTimer, stopTimer, serverNow
 } from './multiplayer.js';
 import { getPhotoFilenames, loadPhotoFilenames } from './player-photos.js';
 import { getDisplayNames, loadDisplayNames } from './player-names.js';
@@ -219,7 +219,7 @@ function formatSeconds(totalSeconds) {
 
 function computeRemainingSeconds() {
     if (timerState.paused) return timerState.remaining_seconds ?? 0;
-    if (timerState.running) return Math.max(0, (timerState.ends_at ?? 0) - (Date.now() / 1000));
+    if (timerState.running) return Math.max(0, (timerState.ends_at ?? 0) - serverNow());
     return roundConfig.duration_seconds;
 }
 

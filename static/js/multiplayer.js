@@ -7,6 +7,25 @@ const API_BASE = '/api';
 let gamestateRecord = null;
 let eventSource = null;
 
+// Offset (seconds) to add to this browser's Date.now()-based clock to get
+// the server's clock. Countdown displays are computed from a server epoch
+// timestamp (timer.ends_at), so a client whose system clock is off - even
+// by a couple of seconds, which is common on phones/tablets - would
+// otherwise show a countdown that starts wrong and disagrees with when the
+// moderator (who ends the round) sees it hit zero (#71). Updated from the
+// `server_time` field the backend attaches to every timer record.
+let clockOffsetSeconds = 0;
+
+function updateClockOffset(record) {
+    if (!record || typeof record.server_time !== 'number') return;
+    clockOffsetSeconds = record.server_time - Date.now() / 1000;
+}
+
+// Best-effort estimate of the server's current time, in epoch seconds.
+export function serverNow() {
+    return Date.now() / 1000 + clockOffsetSeconds;
+}
+
 async function apiRequest(path, options = {}) {
     const response = await fetch(`${API_BASE}${path}`, {
         headers: {'Content-Type': 'application/json'},
@@ -88,6 +107,8 @@ function initEventStream() {
     eventSource.addEventListener('timer', (event) => {
         const record = JSON.parse(event.data);
         const name = sessionStorage.getItem("name");
+
+        updateClockOffset(record);
 
         if (name === "Moderator") {
             onModeratorTimerUpdate(record);
@@ -224,30 +245,42 @@ export async function lockInSolution() {
 }
 
 export async function getTimerState() {
-    return apiRequest('/timer');
+    const record = await apiRequest('/timer');
+    updateClockOffset(record);
+    return record;
 }
 
 export async function startTimer() {
     if (sessionStorage.getItem("name") !== "Moderator") return;
-    return apiRequest('/timer/start', {method: 'POST'});
+    const record = await apiRequest('/timer/start', {method: 'POST'});
+    updateClockOffset(record);
+    return record;
 }
 
 export async function pauseTimer() {
     if (sessionStorage.getItem("name") !== "Moderator") return;
-    return apiRequest('/timer/pause', {method: 'POST'});
+    const record = await apiRequest('/timer/pause', {method: 'POST'});
+    updateClockOffset(record);
+    return record;
 }
 
 export async function resumeTimer() {
     if (sessionStorage.getItem("name") !== "Moderator") return;
-    return apiRequest('/timer/resume', {method: 'POST'});
+    const record = await apiRequest('/timer/resume', {method: 'POST'});
+    updateClockOffset(record);
+    return record;
 }
 
 export async function extendTimer(seconds) {
     if (sessionStorage.getItem("name") !== "Moderator") return;
-    return apiRequest('/timer/extend', {method: 'POST', body: JSON.stringify({seconds})});
+    const record = await apiRequest('/timer/extend', {method: 'POST', body: JSON.stringify({seconds})});
+    updateClockOffset(record);
+    return record;
 }
 
 export async function stopTimer() {
     if (sessionStorage.getItem("name") !== "Moderator") return;
-    return apiRequest('/timer/stop', {method: 'POST'});
+    const record = await apiRequest('/timer/stop', {method: 'POST'});
+    updateClockOffset(record);
+    return record;
 }
