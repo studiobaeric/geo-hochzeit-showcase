@@ -169,7 +169,10 @@ async function hasOfflineMap() {
 
 async function attachOfflineLayer(targetMap, mapEl) {
     ensurePmtilesProtocol();
-    const layer = await createBaseMapLayer({ interactive: true });
+    // City names always shown here regardless of the game's "map without
+    // city names" setting (#38) - this is the moderator placing a round
+    // photo's position, not a player guessing one.
+    const layer = await createBaseMapLayer({ interactive: true, hideCityLabels: false });
     layer.addTo(targetMap);
     // Same quirk workaround as game.js: the MapLibre canvas otherwise
     // swallows clicks/drags meant for Leaflet's own marker layer.

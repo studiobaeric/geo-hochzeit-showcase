@@ -61,6 +61,8 @@ def _reset_module_state():
     game_state._timer_state.update(game_state._DEFAULT_TIMER_STATE)
     game_state._theme_config.clear()
     game_state._theme_config.update(game_state._DEFAULT_THEME_CONFIG)
+    game_state._map_labels_config.clear()
+    game_state._map_labels_config.update(game_state._DEFAULT_MAP_LABELS_CONFIG)
     game_state._subscribers.clear()
 
 

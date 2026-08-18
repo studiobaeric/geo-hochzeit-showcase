@@ -8,12 +8,14 @@ import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDistance } from './basemap.js';
 import { loadRoundConfig } from './round-config.js';
 import { loadThemeConfig } from './theme.js';
+import { loadMapLabelsConfig } from './map-labels-config.js';
 import { confirmDialog } from './confirm-dialog.js';
 
 // Live updates arrive over multiplayer.js's shared /api/events connection
-// (see its 'theme_config' listener) rather than a second one here - see
-// theme.js's onThemeConfigEvent for why that matters.
+// (see its 'theme_config'/'map_labels_config' listeners) rather than a
+// second one here - see theme.js's onThemeConfigEvent for why that matters.
 loadThemeConfig();
+loadMapLabelsConfig();
 
 const currentPhotoImage = document.getElementById('currentPhotoImage');
 const currentPhotoFallback = document.getElementById('currentPhotoFallback');
@@ -500,7 +502,12 @@ async function initResolutionMap() {
     }).setView([lat, lng], 13);
 
     L.control.zoom({position: 'topright'}).addTo(resolutionMap);
-    baseMapLayer = await createBaseMapLayer();
+    // City names always shown here regardless of the "map without city
+    // names" setting (#38/#95) - the small player-guess maps stay
+    // unlabeled while guessing is in progress, but once a round is
+    // resolved (this "Auflösung" map) the moderator wants labels back to
+    // make sense of the result.
+    baseMapLayer = await createBaseMapLayer({ hideCityLabels: false });
     baseMapLayer.addTo(resolutionMap);
 
     locationMarker = L.marker([lat, lng], {

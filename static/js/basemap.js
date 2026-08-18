@@ -2,7 +2,23 @@
 // and end_of_game.js. Keeping this in one place avoids the three call
 // sites drifting out of sync with each other.
 
+import { getMapLabelsConfig } from './map-labels-config.js';
+
 let isPmtilesProtocolRegistered = false;
+
+// Symbol layers in basemap-style.json (see tools/build_style.mjs) that
+// render place names - settlement, region and country labels. Hiding just
+// these (rather than e.g. also road/water labels) is what "map without
+// city names" (#38) means: the rest of the map stays fully labeled.
+const PLACE_LABEL_LAYER_IDS = ['places_subplace', 'places_locality', 'places_region', 'places_country'];
+
+function applyPlaceLabelVisibility(style, hidden) {
+    for (const layer of style.layers) {
+        if (PLACE_LABEL_LAYER_IDS.includes(layer.id)) {
+            layer.layout = { ...layer.layout, visibility: hidden ? 'none' : 'visible' };
+        }
+    }
+}
 
 export function ensurePmtilesProtocol() {
     if (isPmtilesProtocolRegistered) return;
@@ -25,7 +41,11 @@ function fetchBaseStyle() {
     return stylePromise;
 }
 
-export async function createBaseMapLayer(extraOptions = {}) {
+// `hideCityLabels` overrides the /config-wide setting (see
+// map-labels-config.js) for this one map - used by position-picker.js,
+// where city names stay visible regardless of the game setting since
+// that's the moderator placing round photos, not a player guessing.
+export async function createBaseMapLayer({ hideCityLabels, ...extraOptions } = {}) {
     const cachedStyle = await fetchBaseStyle();
     // Each caller rewrites sprite/glyphs/source URLs (and MapLibre mutates
     // the object further once it's handed off), so every map needs its own
@@ -36,6 +56,7 @@ export async function createBaseMapLayer(extraOptions = {}) {
     style.sprite = origin + style.sprite;
     style.glyphs = origin + style.glyphs;
     style.sources.protomaps.url = `pmtiles://${origin}/static/data/basemap.pmtiles`;
+    applyPlaceLabelVisibility(style, hideCityLabels ?? getMapLabelsConfig().hide_city_labels);
 
     return L.maplibreGL({
         style,

@@ -2,6 +2,7 @@ import {onGamestateUpdate, updateMapPosition, onRoundConfigUpdate as onModerator
 import {loadNextRound, updateView, onRoundConfigUpdate as onPlayerRoundConfigUpdate, onTimerUpdate as onPlayerTimerUpdate} from "./game.js";
 import {getDisplayNames} from './player-names.js';
 import {onThemeConfigEvent} from './theme.js';
+import {onMapLabelsConfigEvent} from './map-labels-config.js';
 
 const API_BASE = '/api';
 let gamestateRecord = null;
@@ -122,6 +123,13 @@ function initEventStream() {
     // see theme.js's onThemeConfigEvent for why that matters.
     eventSource.addEventListener('theme_config', (event) => {
         onThemeConfigEvent(JSON.parse(event.data));
+    });
+
+    // Also applies to every role alike - see theme_config above. Only
+    // affects maps created *after* this fires (basemap.js reads the cache
+    // at createBaseMapLayer() time), not one already on screen.
+    eventSource.addEventListener('map_labels_config', (event) => {
+        onMapLabelsConfigEvent(JSON.parse(event.data));
     });
 
     eventSource.onerror = (err) => {

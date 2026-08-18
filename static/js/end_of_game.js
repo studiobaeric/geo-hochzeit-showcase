@@ -3,9 +3,12 @@ import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDist
 import { resetGameState } from './multiplayer.js';
 import { loadResultCollection, getSortedResults } from './round-results.js';
 import { loadThemeConfig, subscribeThemeUpdates } from './theme.js';
+import { loadMapLabelsConfig, subscribeMapLabelsUpdates } from './map-labels-config.js';
 
 loadThemeConfig();
 subscribeThemeUpdates();
+loadMapLabelsConfig();
+subscribeMapLabelsUpdates();
 
 const endGameMapElement = document.getElementById('endGameMap');
 const roundListElement = document.getElementById('roundList');

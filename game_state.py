@@ -90,6 +90,16 @@ _DEFAULT_THEME_CONFIG = {
 
 _THEME_MODES = {"light", "dark"}
 
+# Whether the offline basemap hides place-name labels (settlement/region/
+# country names), editable at runtime via the config menu (/config -> PATCH
+# /api/map-labels-config), per #38. This only toggles which layers of the
+# already-downloaded basemap-style.json are rendered - see
+# static/js/basemap.js's applyPlaceLabelVisibility - no new map data needs
+# to be built or downloaded for it.
+_DEFAULT_MAP_LABELS_CONFIG = {
+    "hide_city_labels": False,
+}
+
 # Live state of the current round's countdown. Unlike _round_config (a
 # durable setting), this is transient per-round state: it resets to
 # "not running" on every round advance, game reset, and server restart -
@@ -130,6 +140,7 @@ _player_config = dict(_DEFAULT_PLAYER_CONFIG)
 _round_config = dict(_DEFAULT_ROUND_CONFIG)
 _timer_state = dict(_DEFAULT_TIMER_STATE)
 _theme_config = dict(_DEFAULT_THEME_CONFIG)
+_map_labels_config = dict(_DEFAULT_MAP_LABELS_CONFIG)
 
 # keyed by (round_number, placed_by)
 _placed_points = {}
@@ -204,6 +215,7 @@ def _persist_locked():
         "round_config": _round_config,
         "timer_state": _timer_state,
         "theme_config": _theme_config,
+        "map_labels_config": _map_labels_config,
     }
 
     directory = os.path.dirname(STATE_FILE) or "."
@@ -231,7 +243,7 @@ def load_state_from_disk():
     contents is treated the same as "nothing to load" and leaves the
     current in-memory defaults untouched.
     """
-    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state, _theme_config
+    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state, _theme_config, _map_labels_config
 
     if not STATE_FILE or not os.path.isfile(STATE_FILE):
         return
@@ -308,6 +320,21 @@ def load_state_from_disk():
         else:
             logger.warning(
                 "Ignoring corrupted persisted theme_config in %s: %s",
+                STATE_FILE,
+                error or "missing fields",
+            )
+
+    loaded_map_labels_config = payload.get("map_labels_config")
+    if isinstance(loaded_map_labels_config, dict):
+        known_map_labels_config = {
+            k: v for k, v in loaded_map_labels_config.items() if k in _DEFAULT_MAP_LABELS_CONFIG
+        }
+        error = _validate_map_labels_config_updates(known_map_labels_config)
+        if error is None and _DEFAULT_MAP_LABELS_CONFIG.keys() == known_map_labels_config.keys():
+            _map_labels_config = dict(known_map_labels_config)
+        else:
+            logger.warning(
+                "Ignoring corrupted persisted map_labels_config in %s: %s",
                 STATE_FILE,
                 error or "missing fields",
             )
@@ -592,6 +619,37 @@ def patch_theme_config():
     return jsonify(record)
 
 
+def _validate_map_labels_config_updates(updates):
+    if "hide_city_labels" in updates and not isinstance(updates["hide_city_labels"], bool):
+        return "hide_city_labels must be a boolean"
+
+    return None
+
+
+@bp.route("/map-labels-config", methods=["GET"])
+def get_map_labels_config():
+    with _lock:
+        return jsonify(_map_labels_config)
+
+
+@bp.route("/map-labels-config", methods=["PATCH"])
+def patch_map_labels_config():
+    updates = request.get_json(force=True) or {}
+
+    error = _validate_map_labels_config_updates(updates)
+    if error:
+        return jsonify({"error": error}), 400
+
+    with _lock:
+        for key, value in updates.items():
+            if key in _DEFAULT_MAP_LABELS_CONFIG:
+                _map_labels_config[key] = value
+        record = dict(_map_labels_config)
+        _persist_locked()
+    _broadcast("map_labels_config", record)
+    return jsonify(record)
+
+
 @bp.route("/points", methods=["POST"])
 def post_point():
     data = request.get_json(force=True) or {}
@@ -809,11 +867,13 @@ def events():
                 round_config_snapshot = dict(_round_config)
                 timer_snapshot = _timer_record_locked()
                 theme_snapshot = dict(_theme_config)
+                map_labels_snapshot = dict(_map_labels_config)
             yield f"event: gamestate\ndata: {json.dumps(snapshot)}\n\n"
             yield f"event: player_config\ndata: {json.dumps(config_snapshot)}\n\n"
             yield f"event: round_config\ndata: {json.dumps(round_config_snapshot)}\n\n"
             yield f"event: timer\ndata: {json.dumps(timer_snapshot)}\n\n"
             yield f"event: theme_config\ndata: {json.dumps(theme_snapshot)}\n\n"
+            yield f"event: map_labels_config\ndata: {json.dumps(map_labels_snapshot)}\n\n"
             while True:
                 try:
                     yield subscriber.get(timeout=15)

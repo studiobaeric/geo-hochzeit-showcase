@@ -852,6 +852,19 @@
                 </label>
             </div>
             <p class="field-hint">Gilt sofort für alle Geräte im Spiel.</p>
+
+            <div class="mode-options">
+                <label class="mode-option">
+                    <input type="checkbox" id="hideCityLabelsInput">
+                    <span>🗺️ Karte ohne Ortsnamen</span>
+                </label>
+            </div>
+            <p class="field-hint">
+                Blendet Städte-, Regionen- und Ländernamen auf der Spielkarte aus,
+                damit sie nicht beim Raten verraten, wo man ist. Nutzt die bereits
+                heruntergeladenen Kartendaten weiter - es muss nichts neu geladen
+                werden. Gilt sofort für alle Geräte im Spiel.
+            </p>
         </div>
 
         <div class="config-section">
@@ -990,6 +1003,9 @@
         getMapConfig, loadMapConfig, saveMapConfig, startMapBuild, getMapBuildStatus
     } from "{{ url_for('static', filename='js/map-config.js') }}";
     import { getThemeConfig, loadThemeConfig, saveThemeConfig } from "{{ url_for('static', filename='js/theme.js') }}";
+    import {
+        getMapLabelsConfig, loadMapLabelsConfig, saveMapLabelsConfig
+    } from "{{ url_for('static', filename='js/map-labels-config.js') }}";
     import { getPhotoFilenames, loadPhotoFilenames, uploadPlayerPhoto } from "{{ url_for('static', filename='js/player-photos.js') }}";
     import {
         loadRoundPhotos, fetchExifLocation, uploadRoundPhoto, updateRoundPhoto, deleteRoundPhoto,
@@ -1020,6 +1036,22 @@
                 console.error('Konnte Theme nicht speichern:', error);
             }
         });
+    });
+
+    const hideCityLabelsInput = document.getElementById('hideCityLabelsInput');
+
+    await loadMapLabelsConfig();
+    hideCityLabelsInput.checked = getMapLabelsConfig().hide_city_labels;
+
+    // Applied immediately (not just on "Speichern"), same as the theme
+    // toggle above.
+    hideCityLabelsInput.addEventListener('change', async () => {
+        try {
+            await saveMapLabelsConfig({ hide_city_labels: hideCityLabelsInput.checked });
+        } catch (error) {
+            console.error('Konnte Karten-Beschriftung nicht speichern:', error);
+            hideCityLabelsInput.checked = !hideCityLabelsInput.checked;
+        }
     });
 
     const roundModeManualInput = document.getElementById('roundModeManual');
