@@ -233,8 +233,11 @@ def test_locked_in_guess_survives_reload(live_server):
         )
 
         # Clicking the map must be a no-op post-lock: no second marker, no
-        # move of the existing one.
-        player1.click("#map", position={"x": 20, "y": 20})
+        # move of the existing one. (300, 300) - not a corner - so this
+        # actually hits the map surface rather than Leaflet's own top-left
+        # zoom control, which isn't gated by isLocked and would zoom the
+        # view regardless, invalidating this assertion.
+        player1.click("#map", position={"x": 300, "y": 300})
         player1.wait_for_timeout(300)
         assert player1.query_selector_all(".leaflet-marker-icon").__len__() == 1
         assert (
@@ -292,16 +295,186 @@ def test_unlocked_guess_survives_reload(live_server):
         assert player1.text_content("#lockButton") == 'Tipp abgeben'
 
         # It must still be possible to move the restored guess and lock it
-        # in afterwards - restoring the marker must not accidentally lock it.
+        # in afterwards - restoring the marker must not accidentally lock
+        # it. (300, 300) - not a corner - so this actually hits the map
+        # surface rather than Leaflet's own top-left zoom control.
         player1.wait_for_timeout(600)
-        player1.click("#map", position={"x": 20, "y": 20})
+        position_before_move = player1.eval_on_selector(
+            ".leaflet-marker-icon", "el => el.style.transform"
+        )
+        player1.click("#map", position={"x": 300, "y": 300})
         player1.wait_for_timeout(300)
         assert player1.query_selector_all(".leaflet-marker-icon").__len__() == 1
+        assert (
+            player1.eval_on_selector(".leaflet-marker-icon", "el => el.style.transform")
+            != position_before_move
+        )
 
         player1.click("#lockButton")
         player1.wait_for_selector("#lockButton:disabled")
         gamestate = context.request.get(f"{live_server}/api/gamestate").json()
         assert gamestate["player1_locked"] is True
+
+        browser.close()
+
+
+def test_locking_in_one_player_does_not_lock_the_other(live_server):
+    """Player isolation regression test requested on #85's PR: the fix
+    reads/writes gamestate's `${role}_locked` keyed by the reloading page's
+    own sessionStorage role, so player1 locking in a guess must not lock -
+    or otherwise disable - player2's own map/lock button, on the server or
+    after either player reloads.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+        player1.wait_for_selector("#waitView.active")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+        player2.wait_for_selector("#waitView.active")
+
+        moderator_page.click("#lockPlayerInputButton")
+        player1.wait_for_selector("#photoView.active")
+        player2.wait_for_selector("#photoView.active")
+
+        # Player1 places a guess and locks it in. Player2 never touches
+        # their own map.
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+        player1.wait_for_timeout(600)
+        player1.click("#map")
+        player1.wait_for_selector("#lockButton:not(:disabled)")
+        player1.click("#lockButton")
+        player1.wait_for_selector("#lockButton:disabled")
+
+        gamestate = context.request.get(f"{live_server}/api/gamestate").json()
+        assert gamestate["player1_locked"] is True
+        assert gamestate["player2_locked"] is False
+
+        # Player2's own map must be entirely unaffected: no guess, lock
+        # button in its default "nothing placed yet" state (disabled, but
+        # for the opposite reason - no marker, not a lock).
+        player2.click("#guessButton")
+        player2.wait_for_selector("#mapView.active")
+        player2.wait_for_timeout(600)
+        assert player2.query_selector_all(".leaflet-marker-icon").__len__() == 0
+        assert player2.is_disabled("#lockButton")
+        assert player2.text_content("#lockButton") == 'Tipp abgeben'
+
+        # Player2 must still be able to place and lock in their own guess
+        # independently.
+        player2.click("#map")
+        player2.wait_for_selector("#lockButton:not(:disabled)")
+        player2.click("#lockButton")
+        player2.wait_for_selector("#lockButton:disabled")
+
+        gamestate = context.request.get(f"{live_server}/api/gamestate").json()
+        assert gamestate["player1_locked"] is True
+        assert gamestate["player2_locked"] is True
+
+        # And a reload of either player must restore only that player's own
+        # lock state, not bleed the other's in.
+        player1.reload()
+        player1.wait_for_selector("#photoView.active")
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+        player1.wait_for_function(
+            "document.querySelector('#lockButton')?.textContent === 'Tipp abgegeben!'"
+        )
+
+        player2.reload()
+        player2.wait_for_selector("#photoView.active")
+        player2.click("#guessButton")
+        player2.wait_for_selector("#mapView.active")
+        player2.wait_for_function(
+            "document.querySelector('#lockButton')?.textContent === 'Tipp abgegeben!'"
+        )
+
+        browser.close()
+
+
+def test_placed_guess_is_not_visible_to_other_player(live_server):
+    """Player isolation regression test requested on #85's PR: restoring a
+    guess on reload (see restoreGuessState in game.js) fetches every point
+    placed for the round via GET /api/points/<round> and must filter down
+    to this page's own role - not render whichever player's marker happens
+    to come back first, or player2 would see player1's guess (and vice
+    versa) instead of their own.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+        player1.wait_for_selector("#waitView.active")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+        player2.wait_for_selector("#waitView.active")
+
+        moderator_page.click("#lockPlayerInputButton")
+        player1.wait_for_selector("#photoView.active")
+        player2.wait_for_selector("#photoView.active")
+
+        # Only player1 places a guess (deliberately at a distinct spot from
+        # anything player2 will place below, and away from Leaflet's own
+        # top-left zoom control so this actually reaches the map), and
+        # does not lock it in.
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+        player1.wait_for_timeout(600)
+        player1.click("#map", position={"x": 300, "y": 300})
+        player1.wait_for_selector("#lockButton:not(:disabled)")
+
+        # Player2 opening the map for the first time must see nothing -
+        # player1's point, fetched via the same /api/points/<round> call,
+        # must not leak onto player2's page.
+        player2.click("#guessButton")
+        player2.wait_for_selector("#mapView.active")
+        player2.wait_for_timeout(600)
+        assert player2.query_selector_all(".leaflet-marker-icon").__len__() == 0
+
+        # Player2 places their own guess elsewhere.
+        player2.click("#map", position={"x": 200, "y": 150})
+        player2.wait_for_selector("#lockButton:not(:disabled)")
+
+        # A reload of each page must restore exactly one marker - that
+        # page's own guess, not the other player's.
+        player1.reload()
+        player1.wait_for_selector("#photoView.active")
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+        player1.wait_for_function("document.querySelectorAll('.leaflet-marker-icon').length === 1")
+
+        player2.reload()
+        player2.wait_for_selector("#photoView.active")
+        player2.click("#guessButton")
+        player2.wait_for_selector("#mapView.active")
+        player2.wait_for_function("document.querySelectorAll('.leaflet-marker-icon').length === 1")
+
+        points = context.request.get(f"{live_server}/api/points/1").json()
+        assert len(points) == 2
+        placed_by = {record["placed_by"] for record in points}
+        assert placed_by == {"player1", "player2"}
 
         browser.close()
 
