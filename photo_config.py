@@ -93,6 +93,8 @@ def _save_locked(photos):
 def _with_url(photo):
     record = dict(photo)
     record["url"] = f"/static/photos/{photo['filename']}"
+    if photo.get("filename_hq"):
+        record["hq_url"] = f"/static/photos/{photo['filename_hq']}"
     return record
 
 
@@ -172,7 +174,7 @@ def create_round_photo():
         return jsonify({"error": error}), 400
 
     try:
-        filename = photo_storage.save_upload(photo_file, prefix="round")
+        filename, filename_hq = photo_storage.save_upload_with_hq(photo_file, prefix="round")
     except photo_storage.UploadError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -182,6 +184,7 @@ def create_round_photo():
         record = {
             "id": next_id,
             "filename": filename,
+            "filename_hq": filename_hq,
             "location": {"lat": lat, "lng": lng},
             "description": description,
         }
@@ -237,10 +240,15 @@ def delete_round_photo(photo_id):
         photos = [p for p in photos if p.get("id") != photo_id]
         _save_locked(photos)
 
-    photo_path = os.path.join(photo_storage.PHOTOS_DIR, record["filename"])
-    try:
-        os.remove(photo_path)
-    except OSError as e:
-        logger.warning("Could not remove photo file %s: %s", photo_path, e)
+    filenames = [record["filename"]]
+    if record.get("filename_hq"):
+        filenames.append(record["filename_hq"])
+
+    for name in filenames:
+        photo_path = os.path.join(photo_storage.PHOTOS_DIR, name)
+        try:
+            os.remove(photo_path)
+        except OSError as e:
+            logger.warning("Could not remove photo file %s: %s", photo_path, e)
 
     return jsonify({"deleted": True, "id": photo_id})

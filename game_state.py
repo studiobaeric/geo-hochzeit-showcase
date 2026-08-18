@@ -47,11 +47,19 @@ _DEFAULT_GAMESTATE = {
 # filenames change. An empty photo string means "no custom photo uploaded
 # yet" - the frontend then falls back to static/config/players.js's
 # PHOTO_1/PHOTO_2.
+#
+# *_photo is a downscaled/recompressed copy (used everywhere - the player
+# badges are small), *_photo_hq is the untouched original upload, used only
+# by the moderator's screen (projected via beamer, so it needs full
+# quality). Only upload_player_photo() below ever sets the _hq fields -
+# they're not accepted through the plain PATCH endpoint.
 _DEFAULT_PLAYER_CONFIG = {
     "player1_name": "player1",
     "player2_name": "player2",
     "player1_photo": "",
     "player2_photo": "",
+    "player1_photo_hq": "",
+    "player2_photo_hq": "",
 }
 
 _MAX_PLAYER_NAME_LENGTH = 40
@@ -416,6 +424,20 @@ def _validate_player_config_updates(updates):
     return None
 
 
+def _remove_photo_file(filename):
+    """Best-effort delete of a previously-uploaded photo from PHOTOS_DIR.
+
+    Never raises - called after a player photo is replaced or reset, so a
+    missing/already-gone file (or a locked one on Windows) must not break
+    the request that triggered it.
+    """
+    path = os.path.join(photo_storage.PHOTOS_DIR, filename)
+    try:
+        os.remove(path)
+    except OSError as e:
+        logger.warning("Could not remove photo file %s: %s", path, e)
+
+
 @bp.route("/player-config", methods=["GET"])
 def get_player_config():
     with _lock:
@@ -430,14 +452,28 @@ def patch_player_config():
     if error:
         return jsonify({"error": error}), 400
 
+    files_to_remove = []
     with _lock:
         for key, value in updates.items():
             if key in _PLAYER_NAME_FIELDS:
                 _player_config[key] = value.strip()
             elif key in _PLAYER_PHOTO_FIELDS:
+                old_value = _player_config[key]
                 _player_config[key] = value
+                if not value:
+                    # Resetting the default photo should also drop the
+                    # matching hq copy and delete both files - otherwise the
+                    # moderator screen would keep showing the old upload
+                    # after a reset, and the files would linger on disk.
+                    hq_key = f"{key}_hq"
+                    old_hq = _player_config[hq_key]
+                    _player_config[hq_key] = ""
+                    files_to_remove += [f for f in (old_value, old_hq) if f]
         record = dict(_player_config)
         _persist_locked()
+
+    for filename in files_to_remove:
+        _remove_photo_file(filename)
     _broadcast("player_config", record)
     return jsonify(record)
 
@@ -448,14 +484,22 @@ def upload_player_photo(role):
         return jsonify({"error": f"role must be one of: {', '.join(sorted(_PLAYER_ROLES))}"}), 400
 
     try:
-        filename = photo_storage.save_upload(request.files.get("photo"), prefix=role)
+        filename, filename_hq = photo_storage.save_upload_with_hq(request.files.get("photo"), prefix=role)
     except photo_storage.UploadError as e:
         return jsonify({"error": str(e)}), 400
 
     with _lock:
+        old_filename = _player_config[f"{role}_photo"]
+        old_filename_hq = _player_config[f"{role}_photo_hq"]
         _player_config[f"{role}_photo"] = filename
+        _player_config[f"{role}_photo_hq"] = filename_hq
         record = dict(_player_config)
         _persist_locked()
+
+    # Replacing a photo shouldn't leave the previous upload's files behind.
+    for old in (old_filename, old_filename_hq):
+        if old:
+            _remove_photo_file(old)
     _broadcast("player_config", record)
     return jsonify(record), 201
 

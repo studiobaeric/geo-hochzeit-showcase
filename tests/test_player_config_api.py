@@ -13,6 +13,8 @@ def test_get_player_config_has_default_shape(client):
         "player2_name": "player2",
         "player1_photo": "",
         "player2_photo": "",
+        "player1_photo_hq": "",
+        "player2_photo_hq": "",
     }
 
 
@@ -40,6 +42,8 @@ def test_patch_updates_both_names(client):
         "player2_name": "Bob",
         "player1_photo": "",
         "player2_photo": "",
+        "player1_photo_hq": "",
+        "player2_photo_hq": "",
     }
 
 
@@ -87,6 +91,8 @@ def test_patch_rejects_invalid_field_values(client, bad_payload):
         "player2_name": "player2",
         "player1_photo": "",
         "player2_photo": "",
+        "player1_photo_hq": "",
+        "player2_photo_hq": "",
     }
 
 

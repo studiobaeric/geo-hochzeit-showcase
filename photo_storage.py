@@ -7,10 +7,11 @@ GPS extraction live in exactly one place.
 
 import os
 import re
+import shutil
 import sys
 import uuid
 
-from PIL import ExifTags, Image
+from PIL import ExifTags, Image, ImageOps
 
 # Released binaries (see tools/build_release.py) ship this module frozen
 # into the executable, so __file__ resolves inside PyInstaller's onefile
@@ -31,6 +32,13 @@ PHOTOS_DIR = os.environ.get("PHOTOS_DIR", os.path.join(PROJECT_ROOT, "static", "
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # generous for straight-off-the-camera wedding photos
 
+# Uploads land as full-resolution phone camera photos (several MB, thousands
+# of pixels per side) but are only ever displayed in small in-game photo/badge
+# containers - downscale + recompress on upload so every later page load
+# doesn't ship the original multi-MB file to the browser.
+MAX_DIMENSION = 1600
+JPEG_QUALITY = 80
+
 _SAFE_CHARS_RE = re.compile(r"[^a-zA-Z0-9_-]+")
 
 # Raw EXIF GPS tag id (0x8825) for Pillow versions whose ExifTags.IFD enum
@@ -49,12 +57,12 @@ def _extension(filename):
     return ext if ext in ALLOWED_EXTENSIONS else None
 
 
-def save_upload(file_storage, prefix):
-    """Validate and persist an uploaded image to PHOTOS_DIR.
+def _validate_upload(file_storage, prefix):
+    """Validate an upload and return (ext, filename) - the extension and a
+    unique, sanitized filename to save it under (not yet written to disk).
 
-    Returns the saved (unique, sanitized) filename. Raises UploadError if
-    the upload is missing, not an allowed image type, or too large - the
-    caller can turn that straight into a 400 response.
+    Raises UploadError if the upload is missing, not an allowed image type,
+    or too large - the caller can turn that straight into a 400 response.
     """
     if file_storage is None or not file_storage.filename:
         raise UploadError("no photo file was uploaded")
@@ -73,10 +81,85 @@ def save_upload(file_storage, prefix):
 
     safe_prefix = _SAFE_CHARS_RE.sub("_", prefix).strip("_") or "photo"
     filename = f"{safe_prefix}_{uuid.uuid4().hex}.{ext}"
+    return ext, filename
+
+
+def save_upload(file_storage, prefix):
+    """Validate and persist an uploaded image to PHOTOS_DIR.
+
+    Returns the saved (unique, sanitized) filename. See _validate_upload()
+    for the errors this can raise.
+    """
+    ext, filename = _validate_upload(file_storage, prefix)
 
     os.makedirs(PHOTOS_DIR, exist_ok=True)
-    file_storage.save(os.path.join(PHOTOS_DIR, filename))
+    path = os.path.join(PHOTOS_DIR, filename)
+    file_storage.save(path)
+    _downscale_and_recompress(path, ext)
     return filename
+
+
+def save_upload_with_hq(file_storage, prefix):
+    """Like save_upload(), but also keeps an unmodified full-resolution copy.
+
+    Round photos are shown small almost everywhere (players' photo view, the
+    config UI's thumbnail list) but also get projected full-screen on the
+    moderator's beamer during a round, where the downscaled copy would look
+    soft - so this keeps both: an untouched original for that one place, and
+    the downscaled/recompressed copy save_upload() would have produced for
+    everywhere else.
+
+    Returns (filename, filename_hq) - `filename` is the downscaled copy
+    (same as save_upload()'s return value), `filename_hq` is the untouched
+    original upload. See _validate_upload() for the errors this can raise.
+    """
+    ext, filename = _validate_upload(file_storage, prefix)
+
+    os.makedirs(PHOTOS_DIR, exist_ok=True)
+    hq_filename = f"{filename.rsplit('.', 1)[0]}_full.{ext}"
+    hq_path = os.path.join(PHOTOS_DIR, hq_filename)
+    file_storage.save(hq_path)
+
+    path = os.path.join(PHOTOS_DIR, filename)
+    shutil.copyfile(hq_path, path)
+    _downscale_and_recompress(path, ext)
+    return filename, hq_filename
+
+
+def _downscale_and_recompress(path, ext):
+    """Shrink an oversized image in place and recompress it.
+
+    Best-effort: if anything goes wrong (unexpected pixel data, an animated
+    GIF, etc.) the file at `path` is left untouched rather than losing the
+    photo.
+    """
+    if ext == "gif":
+        # Animated GIFs would lose their frames if reopened/resaved through
+        # a single-frame Image - leave them as uploaded.
+        return
+
+    try:
+        with Image.open(path) as image:
+            image = ImageOps.exif_transpose(image)
+            image.load()
+
+            width, height = image.size
+            longest_side = max(width, height)
+            if longest_side > MAX_DIMENSION:
+                scale = MAX_DIMENSION / longest_side
+                new_size = (max(1, round(width * scale)), max(1, round(height * scale)))
+                image = image.resize(new_size, Image.LANCZOS)
+
+            if ext in ("jpg", "jpeg"):
+                if image.mode not in ("RGB", "L"):
+                    image = image.convert("RGB")
+                image.save(path, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+            elif ext == "png":
+                image.save(path, format="PNG", optimize=True)
+            elif ext == "webp":
+                image.save(path, format="WEBP", quality=JPEG_QUALITY)
+    except Exception:
+        pass
 
 
 def _to_degrees(value):
