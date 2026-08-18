@@ -301,6 +301,88 @@ def test_auflosung_keeps_player_input_locked_even_if_already_locked(live_server)
         browser.close()
 
 
+def test_basemap_style_is_fetched_once_across_all_moderator_maps(live_server):
+    """Regression test for optimization #1 from #79: moderator.js creates
+    three MapLibre maps from the same ~260KB static/data/basemap-style.json
+    - the left player map and right player map as soon as the moderator
+    view loads, then a third (resolutionMap) the first time a round is
+    resolved. Before basemap.js cached the parsed style (see its
+    fetchBaseStyle()), every one of those calls did its own fetch +
+    JSON.parse of that file, so this single page load network-fetched the
+    same 260KB three times.
+
+    This drives the moderator through exactly that sequence - page load,
+    then Auflösung - and asserts the moderator's page only ever issues ONE
+    network request for basemap-style.json, no matter how many maps get
+    created. Request *count* is used rather than wall-clock timing, since
+    page-load timing is too noisy/flaky to assert on reliably in CI - the
+    number of times the same resource is fetched is the direct,
+    deterministic signature of the fix.
+
+    The listener is attached to moderator_page specifically, not the
+    browser context: each page/tab is its own JS module realm with its own
+    independent copy of basemap.js's cache, so player1/player2 (opened
+    below, and each loading their own single map via game.js) legitimately
+    add one fetch apiece in their own tab - that's expected and unrelated
+    to what's being tested here, which is fetch reuse *within* one page.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        style_requests = []
+
+        moderator_page = context.new_page()
+        moderator_page.on(
+            "request",
+            lambda request: style_requests.append(request.url)
+            if request.url.endswith("/static/data/basemap-style.json")
+            else None,
+        )
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+        # initModeratorMaps() (left + right player maps) runs fire-and-forget
+        # right after the moderator view loads - wait for both to actually
+        # render before moving on, so their fetches have already happened.
+        moderator_page.wait_for_function(
+            "document.querySelectorAll('#leftPlayerMap .maplibregl-canvas, "
+            "#rightPlayerMap .maplibregl-canvas').length === 2"
+        )
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+
+        moderator_page.click("#lockPlayerInputButton")
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player1", "coordinates": {"lat": 49.37, "lng": 9.54}},
+        )
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player2", "coordinates": {"lat": 50.0, "lng": 10.0}},
+        )
+        moderator_page.wait_for_timeout(500)
+
+        # Auflösung creates the third map (resolutionMap) - previously a
+        # third, separate fetch of the same style JSON.
+        moderator_page.click("#mainControlButton")
+        moderator_page.wait_for_selector("#continueButton.is-active")
+        moderator_page.wait_for_selector("#resolutionMap .maplibregl-canvas")
+
+        assert len(style_requests) == 1, (
+            f"expected exactly 1 request for basemap-style.json across the moderator's "
+            f"3 maps, got {len(style_requests)}: {style_requests}"
+        )
+
+        browser.close()
+
+
 def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
     """Regression test for a reported bug: the "Kartendaten" region editor's
     zoom <select> (long, descriptive option text) wasn't covered by the
