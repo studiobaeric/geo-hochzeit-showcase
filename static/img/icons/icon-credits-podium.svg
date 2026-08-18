@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="gCreditsPodium" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4338ca"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="88" height="88" rx="22" fill="url(#gCreditsPodium)"/>
+  <rect x="22" y="50" width="16" height="26" rx="2" fill="#ffffff"/>
+  <rect x="42" y="36" width="16" height="40" rx="2" fill="#ffffff"/>
+  <rect x="62" y="56" width="16" height="20" rx="2" fill="#ffffff"/>
+  <circle cx="50" cy="26" r="7" fill="#ffffff"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="gGame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4338ca"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="88" height="88" rx="22" fill="url(#gGame)"/>
+  <path d="M50 20 C63 20 73 30 73 43 C73 59 50 82 50 82 C50 82 27 59 27 43 C27 30 37 20 50 20 Z" fill="#ffffff"/>
+  <circle cx="50" cy="43" r="10" fill="url(#gGame)"/>
+</svg>
