@@ -383,6 +383,99 @@ def test_basemap_style_is_fetched_once_across_all_moderator_maps(live_server):
         browser.close()
 
 
+def test_player_maps_reset_view_for_the_next_round(live_server):
+    """Regression test reported against PR #83's review: placing a guess
+    zooms that player's map in on the guessed location (updateMapPosition()
+    setView-ing to at least zoom 8), but advancing past a round's Auflösung
+    used to only clear the guess marker (showModPageNextRound()) - the map
+    itself stayed zoomed in on the previous round's guess instead of
+    returning to the initial Germany overview the next round should start
+    from.
+
+    moderator.js doesn't expose the maps' center/zoom to the page for
+    assertions, so this instead patches L.Map.prototype.setView (via an
+    init script, before any page script runs) to record every call made on
+    the left player map, then checks the *last* recorded zoom once round 2
+    starts: it must be back to the initial zoom (5), not left at the
+    zoomed-in level a guess sets (>= 8). This needs no production code
+    changes - it only observes calls the app already makes.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.add_init_script(
+            """
+            window.__leftMapSetViewCalls = [];
+            let _L;
+            Object.defineProperty(window, 'L', {
+                configurable: true,
+                get() { return _L; },
+                set(value) {
+                    _L = value;
+                    if (value?.Map?.prototype && !value.Map.prototype.__setViewPatched) {
+                        const original = value.Map.prototype.setView;
+                        value.Map.prototype.setView = function (center, zoom, options) {
+                            if (this._container?.id === 'leftPlayerMap') {
+                                window.__leftMapSetViewCalls.push(zoom);
+                            }
+                            return original.call(this, center, zoom, options);
+                        };
+                        value.Map.prototype.__setViewPatched = true;
+                    }
+                },
+            });
+            """
+        )
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+        moderator_page.wait_for_selector("#leftPlayerMap .maplibregl-canvas")
+
+        # createPlayerMap()'s own setView (zoom 5) must have already been
+        # recorded by now.
+        initial_calls = moderator_page.evaluate("window.__leftMapSetViewCalls")
+        assert initial_calls == [5], f"expected only the initial zoom-5 setView, got {initial_calls}"
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+
+        moderator_page.click("#lockPlayerInputButton")
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player1", "coordinates": {"lat": 49.37, "lng": 9.54}},
+        )
+        context.request.post(
+            f"{live_server}/api/points",
+            data={"round_number": 1, "placed_by": "player2", "coordinates": {"lat": 50.0, "lng": 10.0}},
+        )
+        moderator_page.wait_for_timeout(500)
+
+        zoomed_calls = moderator_page.evaluate("window.__leftMapSetViewCalls")
+        assert zoomed_calls[-1] >= 8, f"expected the guess to zoom in to >= 8, got {zoomed_calls}"
+
+        moderator_page.click("#mainControlButton")
+        moderator_page.wait_for_selector("#continueButton.is-active")
+        moderator_page.click("#continueButton")
+        moderator_page.wait_for_selector("#roundResultView.is-active")
+        moderator_page.click("#resultContinueButton")
+        moderator_page.wait_for_selector("#moderatorApp:not(.is-hidden)")
+
+        final_calls = moderator_page.evaluate("window.__leftMapSetViewCalls")
+        assert final_calls[-1] == 5, (
+            f"left player map should have reset to the initial zoom (5) for round 2, "
+            f"got setView call history {final_calls}"
+        )
+
+        browser.close()
+
+
 def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
     """Regression test for a reported bug: the "Kartendaten" region editor's
     zoom <select> (long, descriptive option text) wasn't covered by the
