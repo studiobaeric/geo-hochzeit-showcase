@@ -502,7 +502,12 @@ async function initResolutionMap() {
     }).setView([lat, lng], 13);
 
     L.control.zoom({position: 'topright'}).addTo(resolutionMap);
-    baseMapLayer = await createBaseMapLayer();
+    // City names always shown here regardless of the "map without city
+    // names" setting (#38/#95) - the small player-guess maps stay
+    // unlabeled while guessing is in progress, but once a round is
+    // resolved (this "Auflösung" map) the moderator wants labels back to
+    // make sense of the result.
+    baseMapLayer = await createBaseMapLayer({ hideCityLabels: false });
     baseMapLayer.addTo(resolutionMap);
 
     locationMarker = L.marker([lat, lng], {
