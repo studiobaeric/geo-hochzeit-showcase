@@ -714,6 +714,7 @@ export async function onGamestateUpdate(record) {
 
     ['player1', 'player2'].forEach((role) => {
         playerMapElements[role]?.classList.toggle('is-locked-in', Boolean(record[`${role}_locked`]));
+        playerMapElements[role]?.classList.toggle('is-input-disabled', playerInputLocked);
     });
 
     if (!playerInputLocked) {

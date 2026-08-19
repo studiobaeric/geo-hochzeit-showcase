@@ -222,17 +222,22 @@ body {
     background: #ccc;
 }
 
-/* Locked-in state: dim the map itself (contrast against the still-guessing
-   player, who stays at full brightness) and stamp it, rather than relying on
-   a thin border alone - see issue #106. The dim targets .leaflet-map-pane
+/* Dim the map when the player can't currently place a guess - either
+   because they've locked one in, or because input isn't allowed yet
+   (round not started / moderator disabled it) - contrasting against
+   whoever can still guess, who stays at full brightness. The stamp below
+   is separate and only appears once actually locked in, not just because
+   input is disabled - see issue #106. The dim targets .leaflet-map-pane
    specifically (tiles + markers) rather than filtering .moderator-map, since
    a filter on the container would also wash out the ::after stamp text. */
-.moderator-map.is-locked-in .leaflet-map-pane {
+.moderator-map.is-locked-in .leaflet-map-pane,
+.moderator-map.is-input-disabled .leaflet-map-pane {
     filter: grayscale(0.55) brightness(0.55);
     transition: filter 0.25s ease;
 }
 
-.moderator-map.is-locked-in::before {
+.moderator-map.is-locked-in::before,
+.moderator-map.is-input-disabled::before {
     content: "";
     position: absolute;
     inset: 0;
