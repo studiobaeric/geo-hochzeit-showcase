@@ -210,6 +210,7 @@ body {
 }
 
 .moderator-map {
+    position: relative;
     width: 100%;
     height: 100%;
     min-height: 240px;
@@ -221,12 +222,49 @@ body {
     background: #ccc;
 }
 
-.moderator-map.is-locked-in {
-    border: 5px solid #22c55e;
-    box-shadow:
-        inset 0 0 0 3px rgba(255, 255, 255, 0.9),
-        0 0 0 4px rgba(34, 197, 94, 0.42),
-        0 0 28px rgba(34, 197, 94, 0.78);
+/* Dim the map when the player can't currently place a guess - either
+   because they've locked one in, or because input isn't allowed yet
+   (round not started / moderator disabled it) - contrasting against
+   whoever can still guess, who stays at full brightness. The stamp below
+   is separate and only appears once actually locked in, not just because
+   input is disabled - see issue #106. The dim targets .leaflet-map-pane
+   specifically (tiles + markers) rather than filtering .moderator-map, since
+   a filter on the container would also wash out the ::after stamp text. */
+.moderator-map.is-locked-in .leaflet-map-pane,
+.moderator-map.is-input-disabled .leaflet-map-pane {
+    filter: grayscale(0.55) brightness(0.55);
+    transition: filter 0.25s ease;
+}
+
+.moderator-map.is-locked-in::before,
+.moderator-map.is-input-disabled::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 900;
+    background: rgba(6, 10, 18, 0.38);
+    pointer-events: none;
+}
+
+.moderator-map.is-locked-in::after {
+    content: "Tipp abgegeben";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 900;
+    transform: translate(-50%, -50%) rotate(-9deg);
+    padding: 0.3em 0.85em;
+    border: 3px solid #4ade80;
+    border-radius: 8px;
+    font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: clamp(16px, 3vw, 30px);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #4ade80;
+    text-shadow: 0 0 14px rgba(74, 222, 128, 0.55);
+    pointer-events: none;
 }
 
 /* Moderator controls */

@@ -746,6 +746,7 @@ export async function onGamestateUpdate(record) {
         const lockedIn = Boolean(record[`${role}_locked`]);
         playerLockedIn[role] = lockedIn;
         playerMapElements[role]?.classList.toggle('is-locked-in', lockedIn);
+        playerMapElements[role]?.classList.toggle('is-input-disabled', playerInputLocked);
     });
     maybeAutoStopTimer();
 
