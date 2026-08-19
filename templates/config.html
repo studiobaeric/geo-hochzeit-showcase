@@ -215,16 +215,28 @@
             font-weight: 600;
         }
 
-        .region-remove-button {
+        .icon-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
             border: none;
+            border-radius: 8px;
             background: none;
             color: var(--color-status-error-text);
-            font-size: 0.85em;
+            font-size: 1em;
+            line-height: 1;
             cursor: pointer;
-            padding: 2px 6px;
+            transition: background 0.2s;
+            flex-shrink: 0;
         }
 
-        .region-remove-button:disabled {
+        .icon-button:hover:not(:disabled) {
+            background: var(--color-bg-muted);
+        }
+
+        .icon-button:disabled {
             color: var(--color-disabled);
             cursor: not-allowed;
         }
@@ -663,15 +675,29 @@
         }
 
         .round-photo-move-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 32px;
             height: 32px;
-            border-radius: 8px;
+            border-radius: 50%;
             border: 2px solid var(--color-border);
-            background: var(--color-bg-muted);
-            color: var(--color-text);
-            font-size: 1em;
+            background: var(--color-bg-elevated);
+            color: var(--color-accent);
+            font-size: 1.1em;
             line-height: 1;
             cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        }
+
+        .round-photo-move-button:hover:not(:disabled) {
+            background: var(--color-bg-muted);
+            border-color: var(--color-accent);
+            transform: translateY(-1px);
+        }
+
+        .round-photo-move-button:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         .round-photo-move-button:disabled {
@@ -720,6 +746,79 @@
             margin-bottom: 14px;
         }
 
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 12px 14px;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 14px;
+        }
+
+        .toggle-row-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--color-text);
+            font-size: 0.95em;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-flex;
+            width: 46px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .toggle-switch-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--color-bg-muted);
+            border: 2px solid var(--color-border);
+            border-radius: 999px;
+            transition: background 0.2s, border-color 0.2s;
+            pointer-events: none;
+        }
+
+        .toggle-switch-slider::before {
+            content: "";
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            top: 3px;
+            background: var(--color-text-muted);
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-switch-slider {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .toggle-switch input:checked + .toggle-switch-slider::before {
+            transform: translateX(20px);
+            background: white;
+        }
+
+        .toggle-switch input:focus-visible + .toggle-switch-slider {
+            outline: 2px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+
         .mode-option {
             display: flex;
             align-items: center;
@@ -746,6 +845,12 @@
 
         .field.is-hidden {
             display: none;
+        }
+
+        .field.is-inactive {
+            opacity: 0.4;
+            pointer-events: none;
+            transition: opacity 0.2s;
         }
 
         .config-buttons {
@@ -841,22 +946,20 @@
 
         <div class="config-section">
             <h2>Darstellung</h2>
-            <div class="mode-options">
-                <label class="mode-option">
-                    <input type="radio" name="themeMode" value="light" id="themeModeLight">
-                    <span>☀️ Hell</span>
-                </label>
-                <label class="mode-option">
-                    <input type="radio" name="themeMode" value="dark" id="themeModeDark">
-                    <span>🌙 Dunkel</span>
+            <div class="toggle-row">
+                <span class="toggle-row-label">☀️ / 🌙 Dunkelmodus</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="themeModeToggle" aria-label="Dunkelmodus umschalten">
+                    <span class="toggle-switch-slider"></span>
                 </label>
             </div>
             <p class="field-hint">Gilt sofort für alle Geräte im Spiel.</p>
 
-            <div class="mode-options">
-                <label class="mode-option">
-                    <input type="checkbox" id="hideCityLabelsInput">
-                    <span>🗺️ Karte ohne Ortsnamen</span>
+            <div class="toggle-row">
+                <span class="toggle-row-label">🗺️ Karte ohne Ortsnamen</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="hideCityLabelsInput" aria-label="Karte ohne Ortsnamen umschalten">
+                    <span class="toggle-switch-slider"></span>
                 </label>
             </div>
             <p class="field-hint">
@@ -1017,25 +1120,23 @@
     const player2Input = document.getElementById('player2Name');
     const statusMessage = document.getElementById('statusMessage');
 
-    const themeModeLightInput = document.getElementById('themeModeLight');
-    const themeModeDarkInput = document.getElementById('themeModeDark');
+    const themeModeToggle = document.getElementById('themeModeToggle');
 
     await loadThemeConfig();
     const currentThemeConfig = getThemeConfig();
-    themeModeLightInput.checked = currentThemeConfig.mode === 'light';
-    themeModeDarkInput.checked = currentThemeConfig.mode === 'dark';
+    themeModeToggle.checked = currentThemeConfig.mode === 'dark';
 
     // Applied immediately (not just on "Speichern") so the moderator sees
     // the result of their choice right away, and it's synced to every other
     // device as soon as they pick it.
-    document.querySelectorAll('input[name="themeMode"]').forEach((input) => {
-        input.addEventListener('change', async () => {
-            try {
-                await saveThemeConfig({ mode: input.value });
-            } catch (error) {
-                console.error('Konnte Theme nicht speichern:', error);
-            }
-        });
+    themeModeToggle.addEventListener('change', async () => {
+        const mode = themeModeToggle.checked ? 'dark' : 'light';
+        try {
+            await saveThemeConfig({ mode });
+        } catch (error) {
+            console.error('Konnte Theme nicht speichern:', error);
+            themeModeToggle.checked = !themeModeToggle.checked;
+        }
     });
 
     const hideCityLabelsInput = document.getElementById('hideCityLabelsInput');
@@ -1062,8 +1163,8 @@
     const roundExtendInput = document.getElementById('roundExtend');
 
     function updateRoundDurationVisibility() {
-        roundDurationField.classList.toggle('is-hidden', !roundModeCountdownInput.checked);
-        roundExtendField.classList.toggle('is-hidden', !roundModeCountdownInput.checked);
+        roundDurationField.classList.toggle('is-inactive', !roundModeCountdownInput.checked);
+        roundExtendField.classList.toggle('is-inactive', !roundModeCountdownInput.checked);
     }
 
     document.querySelectorAll('input[name="roundMode"]').forEach((input) => {
@@ -1160,8 +1261,10 @@
 
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
-            removeButton.className = 'region-remove-button';
-            removeButton.textContent = '✕ entfernen';
+            removeButton.className = 'icon-button';
+            removeButton.textContent = '✕';
+            removeButton.title = 'Kartenausschnitt entfernen';
+            removeButton.setAttribute('aria-label', 'Kartenausschnitt entfernen');
             removeButton.disabled = regionsState.length <= 1;
             removeButton.addEventListener('click', () => {
                 regionsState.splice(index, 1);
@@ -1588,8 +1691,10 @@
 
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
-        deleteButton.className = 'region-remove-button';
-        deleteButton.textContent = '✕ löschen';
+        deleteButton.className = 'icon-button';
+        deleteButton.textContent = '🗑️';
+        deleteButton.title = 'Rundenfoto löschen';
+        deleteButton.setAttribute('aria-label', 'Rundenfoto löschen');
         deleteButton.addEventListener('click', async () => {
             if (!window.confirm('Dieses Rundenfoto wirklich löschen?')) return;
             try {
