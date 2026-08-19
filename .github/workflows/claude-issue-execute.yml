@@ -1,0 +1,59 @@
+name: Claude Issue Executor
+
+# Once a maintainer approves the plan Claude posted on an issue (by replying
+# with a comment containing a rocket emoji), implement that plan on a new
+# branch, run the test suite, and open a draft pull request that closes the
+# issue.
+#
+# Requires the Claude GitHub App to be installed on this repository and a
+# CLAUDE_CODE_OAUTH_TOKEN repository secret (see
+# https://github.com/anthropics/claude-code-action for setup).
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  execute:
+    if: >-
+      github.event.issue.pull_request == null &&
+      contains(github.event.comment.body, '🚀') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Implement approved plan
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            The plan posted on issue #${{ github.event.issue.number }} has
+            just been approved: ${{ github.event.comment.user.login }}
+            replied with a comment containing 🚀.
+
+            Read issue #${{ github.event.issue.number }} and all of its
+            comments to find the plan (posted earlier by Claude), then:
+
+            1. Create a new branch off the repository's default branch,
+               named claude/issue-${{ github.event.issue.number }}.
+            2. Implement the plan.
+            3. Run this project's test suite and fix any failures your
+               change introduces.
+            4. Commit the changes with a clear, descriptive message.
+            5. Push the branch and open a draft pull request that closes
+               #${{ github.event.issue.number }}, summarizing what changed
+               and how it was verified.
+
+            Do not merge the pull request yourself. If the plan turns out to
+            be infeasible or you have to deviate from it significantly,
+            explain why in a comment on the issue instead of guessing.
+          claude_args: |
+            --allowedTools "Read,Write,Edit,Grep,Glob,Bash"
