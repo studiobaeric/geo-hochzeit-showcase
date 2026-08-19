@@ -507,17 +507,16 @@
             justify-content: center;
             width: 36px;
             height: 36px;
-            border-radius: 50%;
             border: none;
-            background: var(--color-bg-elevated);
-            color: var(--color-accent);
-            font-size: 1.1em;
+            background: none;
+            font-size: 1.4em;
             cursor: pointer;
-            box-shadow: 0 1px 6px var(--shadow-color);
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+            transition: transform 0.15s;
         }
 
         .photo-edit-button:hover {
-            background: var(--color-bg-muted);
+            transform: scale(1.1);
         }
 
         /* Whole photo section is spoiler-protected (see .section-spoiler
@@ -614,10 +613,6 @@
             background: var(--color-bg-muted);
         }
 
-        .round-photo-row-status {
-            min-height: 1.2em;
-        }
-
         .photo-upload-status,
         .round-photo-row-status {
             font-size: 0.8em;
@@ -625,7 +620,8 @@
             color: var(--color-text-muted);
         }
 
-        .photo-upload-status:empty {
+        .photo-upload-status:empty,
+        .round-photo-row-status:empty {
             display: none;
             margin-top: 0;
         }
@@ -648,21 +644,26 @@
         .round-photo-row {
             border: 2px solid var(--color-border);
             border-radius: 10px;
-            padding: 12px;
+            padding: 10px;
             display: grid;
             grid-template-columns: auto 110px 1fr;
-            gap: 12px;
+            gap: 8px;
         }
 
-        /* The description field and its delete-button header always span
-           the full card width, below the photo/position-button row. */
+        /* The description field always spans the full card width, below
+           the photo/position-button row. */
         .round-photo-fields {
             grid-column: 1 / -1;
+            margin-bottom: 0;
         }
 
+        /* The delete button sits above "Position festlegen", at the
+           card's top-right - not above the description field. */
         .round-photo-position-wrapper {
             display: flex;
-            align-items: flex-start;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
         }
 
         @media (max-width: 480px) {
@@ -678,14 +679,6 @@
 
         .round-photo-position-wrapper .map-pick-button {
             margin-top: 0;
-        }
-
-        .field-header-row {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-bottom: 6px;
         }
 
         .round-photo-delete-button {
@@ -1762,12 +1755,15 @@
         // locally - they're persisted to the server only once the main
         // floating "Speichern" button is clicked, same as every other
         // setting on this page (there's no per-photo Speichern anymore).
+        // The delete button sits above "Position festlegen", at the
+        // card's top-right corner.
         const positionWrapper = document.createElement('div');
         positionWrapper.className = 'round-photo-position-wrapper';
+        positionWrapper.appendChild(deleteButton);
         const rowPickButton = document.createElement('button');
         rowPickButton.type = 'button';
         rowPickButton.className = 'map-pick-button';
-        rowPickButton.textContent = '📍 Position festlegen';
+        rowPickButton.textContent = '🗺️ Position festlegen';
         rowPickButton.addEventListener('click', async () => {
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
@@ -1786,15 +1782,9 @@
         row.appendChild(positionWrapper);
 
         // Below the photo/position row, spanning the full card width - see
-        // .round-photo-fields { grid-column: 1 / -1 }. The delete button
-        // sits in this field's own header, directly above the text field
-        // itself, so it stays put across every viewport width.
+        // .round-photo-fields { grid-column: 1 / -1 }.
         const descriptionField = document.createElement('div');
         descriptionField.className = 'field round-photo-fields';
-        const descriptionHeader = document.createElement('div');
-        descriptionHeader.className = 'field-header-row';
-        descriptionHeader.appendChild(deleteButton);
-        descriptionField.appendChild(descriptionHeader);
         descriptionField.appendChild(descriptionInput);
         descriptionField.appendChild(latInput);
         descriptionField.appendChild(lngInput);
