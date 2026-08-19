@@ -721,11 +721,13 @@
             border: none;
             background: none;
             color: var(--color-accent);
-            font-size: 2.2em;
-            font-weight: 700;
-            line-height: 1;
             cursor: pointer;
             transition: color 0.2s, transform 0.15s;
+        }
+
+        .round-photo-move-button svg {
+            width: 26px;
+            height: 26px;
         }
 
         .round-photo-move-button:hover:not(:disabled) {
@@ -1674,6 +1676,16 @@
 
     const roundPhotoListEl = document.getElementById('roundPhotoList');
 
+    // Hand-drawn chevrons rather than a font glyph (↑/↓, ▲/▼, …), so the
+    // reorder buttons render identically across every OS/browser instead
+    // of depending on the visitor's emoji/glyph font.
+    const CHEVRON_UP_SVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<path d="M6 15L12 9L18 15" stroke="currentColor" stroke-width="3" ' +
+        'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const CHEVRON_DOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="3" ' +
+        'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
     function createPhotoFrame(src, alt) {
         const wrapper = document.createElement('div');
         wrapper.className = 'photo-frame';
@@ -1699,7 +1711,7 @@
         const moveUpButton = document.createElement('button');
         moveUpButton.type = 'button';
         moveUpButton.className = 'round-photo-move-button';
-        moveUpButton.textContent = '↑';
+        moveUpButton.innerHTML = CHEVRON_UP_SVG;
         moveUpButton.setAttribute('aria-label', 'Nach oben verschieben');
         moveUpButton.disabled = index === 0;
         moveUpButton.addEventListener('click', () => moveRoundPhoto(index, index - 1));
@@ -1708,7 +1720,7 @@
         const moveDownButton = document.createElement('button');
         moveDownButton.type = 'button';
         moveDownButton.className = 'round-photo-move-button';
-        moveDownButton.textContent = '↓';
+        moveDownButton.innerHTML = CHEVRON_DOWN_SVG;
         moveDownButton.setAttribute('aria-label', 'Nach unten verschieben');
         moveDownButton.disabled = index === total - 1;
         moveDownButton.addEventListener('click', () => moveRoundPhoto(index, index + 1));
