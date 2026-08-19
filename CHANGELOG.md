@@ -33,6 +33,17 @@ entries here turn into a tagged release with downloadable binaries.
 
 ### Changed
 
+- Countdown mode no longer jumps straight to the solution view when the
+  timer runs out or once both players have locked in their guess - it now
+  just stops the timer and locks player input, the same as it already did
+  when the moderator pressed the resolve button manually. Revealing the
+  solution still requires the moderator to click "Runde auflösen" (renamed
+  from "Auflösung"), so they can moderate/discuss the round first. The
+  countdown's "Start" button is also now disabled instead of clickable
+  again once it's been used for a round, preventing an accidental restart
+  from re-opening player input mid-round. The moderator's countdown display
+  now reads 0:00 (instead of jumping back up to the full round duration)
+  once the round has stopped this way, until the next round starts (#101).
 - Renamed the project to "Kartenquiz" (previously "Hochzeits-Geoguesser"),
   updating page titles, the README, and release artifact/binary names.
 - CI workflows now use `actions/checkout@v7`, `actions/setup-python@v7`,
