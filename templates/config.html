@@ -478,15 +478,6 @@
             width: auto;
         }
 
-        .future-config-note {
-            background: var(--color-bg-muted);
-            border-radius: 10px;
-            padding: 16px 20px;
-            color: var(--color-text-muted);
-            font-size: 0.9em;
-            text-align: left;
-        }
-
         .player-photo-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -639,8 +630,7 @@
             margin-top: 0;
         }
 
-        .photo-upload-status.success,
-        .round-photo-row-status.success {
+        .photo-upload-status.success {
             color: var(--color-status-success-text);
         }
 
@@ -664,22 +654,15 @@
             gap: 12px;
         }
 
-        .field-header-row {
+        /* The description field and its delete-button header always span
+           the full card width, below the photo/position-button row. */
+        .round-photo-fields {
+            grid-column: 1 / -1;
+        }
+
+        .round-photo-position-wrapper {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 6px;
-        }
-
-        .field-header-row label {
-            margin-bottom: 0;
-        }
-
-        .round-photo-delete-button {
-            width: 26px;
-            height: 26px;
-            flex-shrink: 0;
+            align-items: flex-start;
         }
 
         @media (max-width: 480px) {
@@ -687,13 +670,28 @@
                 grid-template-columns: auto 1fr;
             }
 
-            .round-photo-row .photo-frame {
+            .round-photo-row .photo-frame,
+            .round-photo-position-wrapper {
                 grid-column: 2;
             }
+        }
 
-            .round-photo-row .round-photo-fields {
-                grid-column: 1 / -1;
-            }
+        .round-photo-position-wrapper .map-pick-button {
+            margin-top: 0;
+        }
+
+        .field-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .round-photo-delete-button {
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
         }
 
         .round-photo-row .photo-frame {
@@ -720,12 +718,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border: none;
             background: none;
             color: var(--color-accent);
-            font-size: 1.7em;
+            font-size: 2.2em;
+            font-weight: 700;
             line-height: 1;
             cursor: pointer;
             transition: color 0.2s, transform 0.15s;
@@ -743,18 +742,6 @@
         .round-photo-move-button:disabled {
             opacity: 0.35;
             cursor: default;
-        }
-
-        .round-photo-row-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 4px;
-        }
-
-        .round-photo-row-buttons .config-button {
-            width: auto;
-            padding: 8px 16px;
-            font-size: 0.85em;
         }
 
         .round-photo-add {
@@ -946,8 +933,20 @@
             box-shadow: 0 5px 20px var(--shadow-color);
         }
 
+        /* .config-button:hover's transform would otherwise replace (not
+           add to) the translateX(-50%) that keeps this button centered,
+           since transform isn't additive across rules - so it needs its
+           own hover rule that re-applies both. */
+        .floating-save-button:hover {
+            transform: translateX(-50%) translateY(-2px);
+        }
+
         .config-button:active {
             transform: translateY(0);
+        }
+
+        .floating-save-button:active {
+            transform: translateX(-50%) translateY(0);
         }
 
         .status-message {
@@ -1035,7 +1034,7 @@
                 </label>
                 <label class="mode-option">
                     <input type="radio" name="roundMode" value="countdown" id="roundModeCountdown">
-                    <span>Countdown – Runde läuft automatisch nach Ablauf der Zeit aus</span>
+                    <span>Countdown – Runde läuft automatisch aus</span>
                 </label>
             </div>
             <div class="field" id="roundDurationField">
@@ -1136,10 +1135,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="future-config-note">
-            Weitere Konfigurationsmöglichkeiten folgen hier in Zukunft.
         </div>
 
         <div class="config-buttons">
@@ -1724,8 +1719,27 @@
         row.appendChild(orderColumn);
         row.appendChild(createPhotoFrame(photo.url, photo.description || 'Rundenfoto'));
 
-        const fields = document.createElement('div');
-        fields.className = 'round-photo-fields';
+        const latInput = document.createElement('input');
+        latInput.type = 'hidden';
+        latInput.className = 'round-photo-lat-input';
+        latInput.value = photo.location ? photo.location.lat : '';
+
+        const lngInput = document.createElement('input');
+        lngInput.type = 'hidden';
+        lngInput.className = 'round-photo-lng-input';
+        lngInput.value = photo.location ? photo.location.lng : '';
+
+        const descriptionInput = document.createElement('input');
+        descriptionInput.type = 'text';
+        descriptionInput.className = 'round-photo-description-input';
+        descriptionInput.maxLength = 200;
+        descriptionInput.placeholder = 'Beschreibung...';
+        descriptionInput.setAttribute('aria-label', 'Beschreibung');
+        descriptionInput.value = photo.description || '';
+        descriptionInput.addEventListener('input', markDirty);
+
+        const statusEl = document.createElement('p');
+        statusEl.className = 'round-photo-row-status';
 
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
@@ -1744,40 +1758,16 @@
             }
         });
 
-        // The delete button sits in the description field's own header row
-        // (directly above that text field) rather than floating over the
-        // photo, so it stays put across the mobile/desktop layout switch.
-        const descriptionInput = document.createElement('input');
-        descriptionInput.type = 'text';
-        descriptionInput.maxLength = 200;
-        descriptionInput.value = photo.description || '';
-
-        const descriptionField = document.createElement('div');
-        descriptionField.className = 'field';
-        const descriptionHeader = document.createElement('div');
-        descriptionHeader.className = 'field-header-row';
-        const descriptionLabel = document.createElement('label');
-        descriptionLabel.textContent = 'Beschreibung';
-        descriptionHeader.appendChild(descriptionLabel);
-        descriptionHeader.appendChild(deleteButton);
-        descriptionField.appendChild(descriptionHeader);
-        descriptionField.appendChild(descriptionInput);
-        fields.appendChild(descriptionField);
-
-        const latInput = document.createElement('input');
-        latInput.type = 'hidden';
-        latInput.value = photo.location ? photo.location.lat : '';
-
-        const lngInput = document.createElement('input');
-        lngInput.type = 'hidden';
-        lngInput.value = photo.location ? photo.location.lng : '';
-        fields.appendChild(latInput);
-        fields.appendChild(lngInput);
-
+        // Position picking and description edits only touch these fields
+        // locally - they're persisted to the server only once the main
+        // floating "Speichern" button is clicked, same as every other
+        // setting on this page (there's no per-photo Speichern anymore).
+        const positionWrapper = document.createElement('div');
+        positionWrapper.className = 'round-photo-position-wrapper';
         const rowPickButton = document.createElement('button');
         rowPickButton.type = 'button';
         rowPickButton.className = 'map-pick-button';
-        rowPickButton.textContent = '📍 Auf Karte wählen';
+        rowPickButton.textContent = '📍 Position festlegen';
         rowPickButton.addEventListener('click', async () => {
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
@@ -1789,49 +1779,29 @@
             if (result) {
                 latInput.value = result.lat;
                 lngInput.value = result.lng;
+                markDirty();
             }
         });
-        fields.appendChild(rowPickButton);
+        positionWrapper.appendChild(rowPickButton);
+        row.appendChild(positionWrapper);
 
-        const statusEl = document.createElement('p');
-        statusEl.className = 'round-photo-row-status';
+        // Below the photo/position row, spanning the full card width - see
+        // .round-photo-fields { grid-column: 1 / -1 }. The delete button
+        // sits in this field's own header, directly above the text field
+        // itself, so it stays put across every viewport width.
+        const descriptionField = document.createElement('div');
+        descriptionField.className = 'field round-photo-fields';
+        const descriptionHeader = document.createElement('div');
+        descriptionHeader.className = 'field-header-row';
+        descriptionHeader.appendChild(deleteButton);
+        descriptionField.appendChild(descriptionHeader);
+        descriptionField.appendChild(descriptionInput);
+        descriptionField.appendChild(latInput);
+        descriptionField.appendChild(lngInput);
+        descriptionField.appendChild(statusEl);
+        row.appendChild(descriptionField);
 
-        const buttonsRow = document.createElement('div');
-        buttonsRow.className = 'round-photo-row-buttons';
-
-        const saveButton = document.createElement('button');
-        saveButton.type = 'button';
-        saveButton.className = 'config-button save';
-        saveButton.textContent = 'Speichern';
-        saveButton.addEventListener('click', async () => {
-            statusEl.textContent = '';
-            statusEl.className = 'round-photo-row-status';
-            const lat = parseFloat(latInput.value);
-            const lng = parseFloat(lngInput.value);
-            if (Number.isNaN(lat) || Number.isNaN(lng)) {
-                statusEl.textContent = 'Bitte eine Position über die Karte auswählen.';
-                statusEl.className = 'round-photo-row-status error';
-                return;
-            }
-            try {
-                await updateRoundPhoto(photo.id, {
-                    description: descriptionInput.value.trim(),
-                    lat,
-                    lng
-                });
-                statusEl.textContent = '✅ Gespeichert.';
-                statusEl.className = 'round-photo-row-status success';
-            } catch (error) {
-                statusEl.textContent = error.message || 'Speichern fehlgeschlagen.';
-                statusEl.className = 'round-photo-row-status error';
-            }
-        });
-
-        buttonsRow.appendChild(saveButton);
-        fields.appendChild(buttonsRow);
-        fields.appendChild(statusEl);
-
-        row.appendChild(fields);
+        row.dataset.photoId = photo.id;
         return row;
     }
 
@@ -1995,6 +1965,16 @@
                 regions: collectRegionsPayload(),
                 build_date: mapBuildDateInput.value.trim()
             });
+            await Promise.all(Array.from(roundPhotoListEl.querySelectorAll('.round-photo-row')).map((rowEl) => {
+                const lat = parseFloat(rowEl.querySelector('.round-photo-lat-input').value);
+                const lng = parseFloat(rowEl.querySelector('.round-photo-lng-input').value);
+                if (Number.isNaN(lat) || Number.isNaN(lng)) return Promise.resolve();
+                return updateRoundPhoto(rowEl.dataset.photoId, {
+                    description: rowEl.querySelector('.round-photo-description-input').value.trim(),
+                    lat,
+                    lng
+                });
+            }));
             clearDirty();
             window.location.href = '/';
         } catch (error) {
