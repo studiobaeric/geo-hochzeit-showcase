@@ -507,10 +507,26 @@
             text-align: center;
         }
 
-        .player-slot-label {
-            margin: 0 0 10px;
+        .photo-edit-button {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--color-bg-elevated);
             color: var(--color-accent);
-            font-size: 0.95em;
+            font-size: 1.1em;
+            cursor: pointer;
+            box-shadow: 0 1px 6px var(--shadow-color);
+        }
+
+        .photo-edit-button:hover {
+            background: var(--color-bg-muted);
         }
 
         /* Whole photo section is spoiler-protected (see .section-spoiler
@@ -607,12 +623,20 @@
             background: var(--color-bg-muted);
         }
 
-        .photo-upload-status,
         .round-photo-row-status {
             min-height: 1.2em;
+        }
+
+        .photo-upload-status,
+        .round-photo-row-status {
             font-size: 0.8em;
             margin-top: 6px;
             color: var(--color-text-muted);
+        }
+
+        .photo-upload-status:empty {
+            display: none;
+            margin-top: 0;
         }
 
         .photo-upload-status.success,
@@ -632,7 +656,6 @@
         }
 
         .round-photo-row {
-            position: relative;
             border: 2px solid var(--color-border);
             border-radius: 10px;
             padding: 12px;
@@ -641,12 +664,22 @@
             gap: 12px;
         }
 
+        .field-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .field-header-row label {
+            margin-bottom: 0;
+        }
+
         .round-photo-delete-button {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: var(--color-bg-elevated);
-            box-shadow: 0 1px 4px var(--shadow-color);
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
         }
 
         @media (max-width: 480px) {
@@ -666,10 +699,6 @@
         .round-photo-row .photo-frame {
             aspect-ratio: 1;
             margin-bottom: 0;
-        }
-
-        .round-photo-fields {
-            padding-right: 34px;
         }
 
         .round-photo-order {
@@ -891,6 +920,27 @@
             color: var(--color-text);
         }
 
+        /* Floats above the page and only appears once there's something
+           unsaved to lose - see the isDirty tracking below. */
+        .floating-save-button {
+            position: fixed;
+            left: 50%;
+            bottom: 20px;
+            z-index: 500;
+            width: min(360px, calc(100vw - 40px));
+            transform: translateX(-50%) translateY(140%);
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        .floating-save-button.is-visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .config-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px var(--shadow-color);
@@ -925,28 +975,26 @@
             <h2>Spieler</h2>
             <div class="player-photo-grid">
                 <div class="player-photo-slot">
-                    <h3 class="player-slot-label">Spieler 1</h3>
                     <div class="photo-frame" id="player1PhotoFrame">
                         <img alt="Spielerfoto 1">
+                        <label class="photo-edit-button" title="Foto ändern" aria-label="Foto ändern">
+                            📷
+                            <input type="file" accept="image/*" id="player1PhotoInput" hidden>
+                        </label>
                     </div>
-                    <label class="upload-button">
-                        📷 Foto ändern
-                        <input type="file" accept="image/*" id="player1PhotoInput" hidden>
-                    </label>
                     <p class="photo-upload-status" id="player1PhotoStatus"></p>
                     <div class="field">
                         <input type="text" id="player1Name" name="player1Name" maxlength="40" required aria-label="Name Spieler 1" placeholder="Name">
                     </div>
                 </div>
                 <div class="player-photo-slot">
-                    <h3 class="player-slot-label">Spieler 2</h3>
                     <div class="photo-frame" id="player2PhotoFrame">
                         <img alt="Spielerfoto 2">
+                        <label class="photo-edit-button" title="Foto ändern" aria-label="Foto ändern">
+                            📷
+                            <input type="file" accept="image/*" id="player2PhotoInput" hidden>
+                        </label>
                     </div>
-                    <label class="upload-button">
-                        📷 Foto ändern
-                        <input type="file" accept="image/*" id="player2PhotoInput" hidden>
-                    </label>
                     <p class="photo-upload-status" id="player2PhotoStatus"></p>
                     <div class="field">
                         <input type="text" id="player2Name" name="player2Name" maxlength="40" required aria-label="Name Spieler 2" placeholder="Name">
@@ -1095,9 +1143,10 @@
         </div>
 
         <div class="config-buttons">
-            <button type="submit" class="config-button save">Speichern</button>
             <button type="button" class="config-button back" id="backButton">← Zurück zur Startseite</button>
         </div>
+
+        <button type="submit" class="config-button save floating-save-button" id="mainSaveButton">💾 Speichern</button>
 
         <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
     </form>
@@ -1127,6 +1176,34 @@
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
     const statusMessage = document.getElementById('statusMessage');
+
+    // Tracks whether any of the fields covered by the main "Speichern"
+    // button (player names, round timing, map regions/build date) have
+    // unsaved edits. Settings that save themselves immediately (theme,
+    // map labels, round photos) aren't part of this - they have nothing
+    // left to lose.
+    const mainSaveButton = document.getElementById('mainSaveButton');
+    let isDirty = false;
+
+    function markDirty() {
+        if (isDirty) return;
+        isDirty = true;
+        mainSaveButton.classList.add('is-visible');
+    }
+
+    function clearDirty() {
+        isDirty = false;
+        mainSaveButton.classList.remove('is-visible');
+    }
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!isDirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
+    player1Input.addEventListener('input', markDirty);
+    player2Input.addEventListener('input', markDirty);
 
     // Enter in a text field would otherwise submit the whole form and leave
     // the page - instead just unfocus the field, like closing a keyboard.
@@ -1187,8 +1264,14 @@
     }
 
     document.querySelectorAll('input[name="roundMode"]').forEach((input) => {
-        input.addEventListener('change', updateRoundDurationVisibility);
+        input.addEventListener('change', () => {
+            updateRoundDurationVisibility();
+            markDirty();
+        });
     });
+
+    roundDurationInput.addEventListener('input', markDirty);
+    roundExtendInput.addEventListener('input', markDirty);
 
     await loadDisplayNames();
     const currentNames = getDisplayNames();
@@ -1204,6 +1287,7 @@
     updateRoundDurationVisibility();
 
     const mapBuildDateInput = document.getElementById('mapBuildDate');
+    mapBuildDateInput.addEventListener('input', markDirty);
     const downloadMapButton = document.getElementById('downloadMapButton');
     const buildStatusEl = document.getElementById('buildStatus');
     const buildLogEl = document.getElementById('buildLog');
@@ -1288,6 +1372,7 @@
             removeButton.addEventListener('click', () => {
                 regionsState.splice(index, 1);
                 renderRegionList();
+                markDirty();
             });
             header.appendChild(removeButton);
             row.appendChild(header);
@@ -1300,13 +1385,14 @@
             nameInput.maxLength = 60;
             nameInput.required = true;
             nameInput.value = region.name;
-            nameInput.addEventListener('input', () => { region.name = nameInput.value; });
+            nameInput.addEventListener('input', () => { region.name = nameInput.value; markDirty(); });
             fields.appendChild(fieldWithLabel('Name', nameInput));
 
             const zoomSelect = buildZoomSelect(region.maxzoom);
             zoomSelect.addEventListener('change', () => {
                 region.maxzoom = parseInt(zoomSelect.value, 10);
                 renderRegionList();
+                markDirty();
             });
             fields.appendChild(fieldWithLabel('Detailgrad', zoomSelect));
 
@@ -1354,6 +1440,7 @@
                 if (result) {
                     region.bbox = result.bbox;
                     updateBboxDisplay();
+                    markDirty();
                 }
             });
             bboxField.appendChild(bboxPickButton);
@@ -1382,6 +1469,7 @@
             maxzoom: Math.min(14, maxUsedZoom + 1)
         });
         renderRegionList();
+        markDirty();
     });
 
     function collectRegionsPayload() {
@@ -1639,11 +1727,42 @@
         const fields = document.createElement('div');
         fields.className = 'round-photo-fields';
 
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'icon-button round-photo-delete-button';
+        deleteButton.textContent = '✕';
+        deleteButton.title = 'Rundenfoto löschen';
+        deleteButton.setAttribute('aria-label', 'Rundenfoto löschen');
+        deleteButton.addEventListener('click', async () => {
+            if (!window.confirm('Dieses Rundenfoto wirklich löschen?')) return;
+            try {
+                await deleteRoundPhoto(photo.id);
+                row.remove();
+            } catch (error) {
+                statusEl.textContent = error.message || 'Löschen fehlgeschlagen.';
+                statusEl.className = 'round-photo-row-status error';
+            }
+        });
+
+        // The delete button sits in the description field's own header row
+        // (directly above that text field) rather than floating over the
+        // photo, so it stays put across the mobile/desktop layout switch.
         const descriptionInput = document.createElement('input');
         descriptionInput.type = 'text';
         descriptionInput.maxLength = 200;
         descriptionInput.value = photo.description || '';
-        fields.appendChild(fieldWithLabel('Beschreibung', descriptionInput));
+
+        const descriptionField = document.createElement('div');
+        descriptionField.className = 'field';
+        const descriptionHeader = document.createElement('div');
+        descriptionHeader.className = 'field-header-row';
+        const descriptionLabel = document.createElement('label');
+        descriptionLabel.textContent = 'Beschreibung';
+        descriptionHeader.appendChild(descriptionLabel);
+        descriptionHeader.appendChild(deleteButton);
+        descriptionField.appendChild(descriptionHeader);
+        descriptionField.appendChild(descriptionInput);
+        fields.appendChild(descriptionField);
 
         const latInput = document.createElement('input');
         latInput.type = 'hidden';
@@ -1708,29 +1827,11 @@
             }
         });
 
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'icon-button round-photo-delete-button';
-        deleteButton.textContent = '✕';
-        deleteButton.title = 'Rundenfoto löschen';
-        deleteButton.setAttribute('aria-label', 'Rundenfoto löschen');
-        deleteButton.addEventListener('click', async () => {
-            if (!window.confirm('Dieses Rundenfoto wirklich löschen?')) return;
-            try {
-                await deleteRoundPhoto(photo.id);
-                row.remove();
-            } catch (error) {
-                statusEl.textContent = error.message || 'Löschen fehlgeschlagen.';
-                statusEl.className = 'round-photo-row-status error';
-            }
-        });
-
         buttonsRow.appendChild(saveButton);
         fields.appendChild(buttonsRow);
         fields.appendChild(statusEl);
 
         row.appendChild(fields);
-        row.appendChild(deleteButton);
         return row;
     }
 
@@ -1868,6 +1969,9 @@
     });
 
     document.getElementById('backButton').addEventListener('click', () => {
+        if (isDirty && !window.confirm('Es gibt ungespeicherte Änderungen. Trotzdem verlassen?')) {
+            return;
+        }
         window.location.href = '/';
     });
 
@@ -1891,6 +1995,7 @@
                 regions: collectRegionsPayload(),
                 build_date: mapBuildDateInput.value.trim()
             });
+            clearDirty();
             window.location.href = '/';
         } catch (error) {
             statusMessage.textContent = error.message || 'Speichern fehlgeschlagen.';
