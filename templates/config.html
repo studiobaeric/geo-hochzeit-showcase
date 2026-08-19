@@ -632,12 +632,21 @@
         }
 
         .round-photo-row {
+            position: relative;
             border: 2px solid var(--color-border);
             border-radius: 10px;
             padding: 12px;
             display: grid;
             grid-template-columns: auto 110px 1fr;
             gap: 12px;
+        }
+
+        .round-photo-delete-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--color-bg-elevated);
+            box-shadow: 0 1px 4px var(--shadow-color);
         }
 
         @media (max-width: 480px) {
@@ -659,6 +668,10 @@
             margin-bottom: 0;
         }
 
+        .round-photo-fields {
+            padding-right: 34px;
+        }
+
         .round-photo-order {
             display: flex;
             flex-direction: column;
@@ -678,21 +691,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid var(--color-border);
-            background: var(--color-bg-elevated);
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: none;
             color: var(--color-accent);
-            font-size: 1.1em;
+            font-size: 1.7em;
             line-height: 1;
             cursor: pointer;
-            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+            transition: color 0.2s, transform 0.15s;
         }
 
         .round-photo-move-button:hover:not(:disabled) {
-            background: var(--color-bg-muted);
-            border-color: var(--color-accent);
+            color: var(--color-accent-2);
             transform: translateY(-1px);
         }
 
@@ -953,7 +964,6 @@
                     <span class="toggle-switch-slider"></span>
                 </label>
             </div>
-            <p class="field-hint">Gilt sofort für alle Geräte im Spiel.</p>
 
             <div class="toggle-row">
                 <span class="toggle-row-label">🗺️ Karte ohne Ortsnamen</span>
@@ -964,9 +974,7 @@
             </div>
             <p class="field-hint">
                 Blendet Städte-, Regionen- und Ländernamen auf der Spielkarte aus,
-                damit sie nicht beim Raten verraten, wo man ist. Nutzt die bereits
-                heruntergeladenen Kartendaten weiter - es muss nichts neu geladen
-                werden. Gilt sofort für alle Geräte im Spiel.
+                damit sie nicht beim Raten verraten, wo man ist.
             </p>
         </div>
 
@@ -1119,6 +1127,17 @@
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
     const statusMessage = document.getElementById('statusMessage');
+
+    // Enter in a text field would otherwise submit the whole form and leave
+    // the page - instead just unfocus the field, like closing a keyboard.
+    document.getElementById('configForm').addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        const target = event.target;
+        if (target.tagName === 'INPUT' && target.type !== 'submit' && target.type !== 'button') {
+            event.preventDefault();
+            target.blur();
+        }
+    });
 
     const themeModeToggle = document.getElementById('themeModeToggle');
 
@@ -1691,8 +1710,8 @@
 
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
-        deleteButton.className = 'icon-button';
-        deleteButton.textContent = '🗑️';
+        deleteButton.className = 'icon-button round-photo-delete-button';
+        deleteButton.textContent = '✕';
         deleteButton.title = 'Rundenfoto löschen';
         deleteButton.setAttribute('aria-label', 'Rundenfoto löschen');
         deleteButton.addEventListener('click', async () => {
@@ -1707,11 +1726,11 @@
         });
 
         buttonsRow.appendChild(saveButton);
-        buttonsRow.appendChild(deleteButton);
         fields.appendChild(buttonsRow);
         fields.appendChild(statusEl);
 
         row.appendChild(fields);
+        row.appendChild(deleteButton);
         return row;
     }
 
