@@ -1761,7 +1761,10 @@
             if (!window.confirm('Dieses Rundenfoto wirklich löschen?')) return;
             try {
                 await deleteRoundPhoto(photo.id);
-                row.remove();
+                // Re-render (rather than just removing this row) so the
+                // remaining rows' move buttons get fresh index/total
+                // values - moveRoundPhoto indexes into roundPhotosState.
+                renderRoundPhotoList(roundPhotosState.filter((p) => p.id !== photo.id));
             } catch (error) {
                 statusEl.textContent = error.message || 'Löschen fehlgeschlagen.';
                 statusEl.className = 'round-photo-row-status error';
@@ -1812,7 +1815,12 @@
         return row;
     }
 
+    // The currently-displayed round photos, in their current (possibly
+    // locally-reordered and not yet saved) order.
+    let roundPhotosState = [];
+
     function renderRoundPhotoList(photos) {
+        roundPhotosState = photos;
         roundPhotoListEl.innerHTML = '';
         photos.forEach((photo, index) => {
             roundPhotoListEl.appendChild(renderRoundPhotoRow(photo, index, photos.length));
@@ -1828,22 +1836,16 @@
     }
 
     // Swaps the photos at `fromIndex` and `toIndex` (used by a row's ↑/↓
-    // buttons) and persists the new order - the order in photos.json *is*
-    // the round order, see photo_config.reorder_round_photos.
-    async function moveRoundPhoto(fromIndex, toIndex) {
-        const photos = await loadRoundPhotos();
-        if (toIndex < 0 || toIndex >= photos.length) return;
-
-        [photos[fromIndex], photos[toIndex]] = [photos[toIndex], photos[fromIndex]];
-        renderRoundPhotoList(photos);
-
-        try {
-            const reordered = await reorderRoundPhotos(photos.map((photo) => photo.id));
-            renderRoundPhotoList(reordered);
-        } catch (error) {
-            console.error('Konnte Rundenfotos nicht sortieren:', error);
-            await refreshRoundPhotoList();
-        }
+    // buttons) locally only - like every other edit on this page, the new
+    // order is persisted to the server (photos.json order *is* the round
+    // order, see photo_config.reorder_round_photos) only once the main
+    // floating "Speichern" button is clicked.
+    function moveRoundPhoto(fromIndex, toIndex) {
+        if (toIndex < 0 || toIndex >= roundPhotosState.length) return;
+        [roundPhotosState[fromIndex], roundPhotosState[toIndex]] =
+            [roundPhotosState[toIndex], roundPhotosState[fromIndex]];
+        renderRoundPhotoList(roundPhotosState);
+        markDirty();
     }
 
     await refreshRoundPhotoList();
@@ -1972,7 +1974,9 @@
                 regions: collectRegionsPayload(),
                 build_date: mapBuildDateInput.value.trim()
             });
-            await Promise.all(Array.from(roundPhotoListEl.querySelectorAll('.round-photo-row')).map((rowEl) => {
+            const roundPhotoRowEls = Array.from(roundPhotoListEl.querySelectorAll('.round-photo-row'));
+            await reorderRoundPhotos(roundPhotoRowEls.map((rowEl) => Number(rowEl.dataset.photoId)));
+            await Promise.all(roundPhotoRowEls.map((rowEl) => {
                 const lat = parseFloat(rowEl.querySelector('.round-photo-lat-input').value);
                 const lng = parseFloat(rowEl.querySelector('.round-photo-lng-input').value);
                 if (Number.isNaN(lat) || Number.isNaN(lng)) return Promise.resolve();
