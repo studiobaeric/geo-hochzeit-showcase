@@ -12,7 +12,10 @@ const DEFAULTS = {
         { name: 'Welt', bbox: '-180,-90,180,90', maxzoom: 5, effective_bbox: '-180,-90,180,90' },
         { name: 'Europa', bbox: '-25,32,45,72', maxzoom: 13, effective_bbox: '-25,32,45,72' }
     ],
-    build_date: '20260608',
+    // '' = resolved to the newest available Protomaps build at build time,
+    // mirroring DEFAULT_MAP_CONFIG in map_build.py - never hardcode a fixed
+    // date here again, Protomaps' ~5-day retention window will 404 it.
+    build_date: '',
     photo_bbox: null
 };
 
