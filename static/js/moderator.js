@@ -542,7 +542,12 @@ async function initResolutionMap() {
     locationMarker = L.marker([lat, lng], {
         icon: createMarkerIcon('/static/img/marker-icon-2x-green.png')
     }).addTo(resolutionMap);
-    locationMarker.bindPopup(currentPhoto.description || 'Bildposition').openPopup();
+    // autoPan disabled: showResolutionView() already setView()s the map
+    // exactly onto this marker before opening its popup every round, so
+    // the popup's own default auto-pan (which only nudges the view just
+    // far enough for the popup to fit, not re-center it - see #113) would
+    // otherwise undo that centering instead of leaving it alone.
+    locationMarker.bindPopup(currentPhoto.description || 'Bildposition', {autoPan: false}).openPopup();
 }
 
 async function showResolutionView() {
@@ -556,7 +561,10 @@ async function showResolutionView() {
     try {
         await initResolutionMap();
         const {lat, lng} = currentPhoto.location;
-        resolutionMap.setView([lat, lng], 13);
+        // animate:false forces an exact re-center (Leaflet's default animated
+        // panBy() is offset/pixel-based and only approximates the target
+        // when it's close to the map's previous center - see #113).
+        resolutionMap.setView([lat, lng], 13, {animate: false});
         locationMarker.setLatLng([lat, lng]);
         locationMarker.setPopupContent(currentPhoto.description || 'Bildposition');
         locationMarker.openPopup();
