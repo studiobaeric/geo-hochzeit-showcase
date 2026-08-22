@@ -357,7 +357,7 @@ def resolve_latest_build_date(
             return candidate
     raise BuildError(
         f"no Protomaps daily build found in the last {window_days} days - "
-        "check https://build.protomaps.com manually and set BUILD_DATE"
+        "check https://maps.protomaps.com/builds/ manually and set BUILD_DATE"
     )
 
 
@@ -524,7 +524,7 @@ def extract_region(
                 "nicht gefunden (404). Protomaps haelt taegliche Builds nur ca. 5 Tage vor - "
                 "entweder das Build-Datum-Feld in den Karten-Einstellungen leer lassen "
                 "(automatisch neuester Stand) oder ein aktuelles Datum von "
-                "https://build.protomaps.com eintragen."
+                "https://maps.protomaps.com/builds/ eintragen."
             )
         raise
 
