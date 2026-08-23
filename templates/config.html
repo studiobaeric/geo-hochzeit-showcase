@@ -714,6 +714,16 @@
             margin-top: 4px;
         }
 
+        .round-photo-add-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .round-photo-add-buttons .config-button.build {
+            flex: 1;
+        }
+
         .mode-options {
             display: grid;
             gap: 10px;
@@ -971,7 +981,10 @@
                             <input type="hidden" id="newRoundPhotoLng">
                             <button type="button" class="map-pick-button" id="newRoundPhotoPickButton">📍 Position auf Karte wählen</button>
                             <p class="field-hint" id="newRoundPhotoGpsHint"></p>
-                            <button type="button" class="config-button build" id="addRoundPhotoButton">Foto hinzufügen</button>
+                            <div class="round-photo-add-buttons">
+                                <button type="button" class="config-button build" id="addRoundPhotoButton">Foto hinzufügen</button>
+                                <button type="button" class="region-remove-button" id="cancelRoundPhotoButton" title="Abbrechen, ohne das Foto hinzuzufügen">✕ Abbrechen</button>
+                            </div>
                             <p class="status-message" id="newRoundPhotoStatus"></p>
                         </div>
                     </div>
@@ -1655,6 +1668,7 @@
     const newRoundPhotoGpsHint = document.getElementById('newRoundPhotoGpsHint');
     const newRoundPhotoPickButton = document.getElementById('newRoundPhotoPickButton');
     const addRoundPhotoButton = document.getElementById('addRoundPhotoButton');
+    const cancelRoundPhotoButton = document.getElementById('cancelRoundPhotoButton');
     const newRoundPhotoStatus = document.getElementById('newRoundPhotoStatus');
 
     newRoundPhotoPickButton.addEventListener('click', async () => {
@@ -1674,6 +1688,20 @@
 
     let pendingRoundPhotoFile = null;
     let pendingRoundPhotoPreviewUrl = null;
+
+    // Discards the pending upload (used both after a successful add and when
+    // the user cancels) without requiring a location to be set first.
+    function resetPendingRoundPhoto() {
+        pendingRoundPhotoFile = null;
+        if (pendingRoundPhotoPreviewUrl) {
+            URL.revokeObjectURL(pendingRoundPhotoPreviewUrl);
+            pendingRoundPhotoPreviewUrl = null;
+        }
+        newRoundPhotoFileInput.value = '';
+        roundPhotoAddFields.classList.add('is-hidden');
+        newRoundPhotoStatus.textContent = '';
+        newRoundPhotoStatus.className = 'status-message';
+    }
 
     newRoundPhotoFileInput.addEventListener('change', async () => {
         const file = newRoundPhotoFileInput.files[0];
@@ -1725,22 +1753,17 @@
                 lng
             });
             await refreshRoundPhotoList();
-
-            pendingRoundPhotoFile = null;
-            if (pendingRoundPhotoPreviewUrl) {
-                URL.revokeObjectURL(pendingRoundPhotoPreviewUrl);
-                pendingRoundPhotoPreviewUrl = null;
-            }
-            newRoundPhotoFileInput.value = '';
-            roundPhotoAddFields.classList.add('is-hidden');
-            newRoundPhotoStatus.textContent = '';
-            newRoundPhotoStatus.className = 'status-message';
+            resetPendingRoundPhoto();
         } catch (error) {
             newRoundPhotoStatus.textContent = error.message || 'Hochladen fehlgeschlagen.';
             newRoundPhotoStatus.className = 'status-message error';
         } finally {
             addRoundPhotoButton.disabled = false;
         }
+    });
+
+    cancelRoundPhotoButton.addEventListener('click', () => {
+        resetPendingRoundPhoto();
     });
 
     document.getElementById('backButton').addEventListener('click', () => {
