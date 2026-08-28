@@ -1,11 +1,14 @@
+import json
 import mimetypes
 import os
 import socket
 import sys
 
-from flask import Flask, jsonify, render_template, send_file
+from flask import Flask, jsonify, render_template, send_file, url_for
 from flask_compress import Compress
 
+import game_state
+import i18n
 from game_state import bp as api_bp
 from map_build import bp as map_bp
 from photo_config import bp as photos_bp
@@ -68,6 +71,29 @@ Compress(app)
 app.register_blueprint(api_bp)
 app.register_blueprint(map_bp)
 app.register_blueprint(photos_bp)
+
+
+@app.context_processor
+def inject_i18n():
+    """Makes `t(key)`, `locale` and `i18n_json` available in every
+    template, per #98. `t` translates a dotted key into the currently
+    configured UI language (server-side, so the very first response
+    already has the right strings - no flash of German while JS loads).
+    `i18n_json` is the same locale's full string tree (pre-merged with the
+    German fallback) as a JSON string, meant to be embedded once per page
+    as `window.I18N` so static/js/i18n.js's t() can translate strings that
+    are only assembled at runtime in JS, without a separate fetch.
+    """
+    locale = game_state.get_locale()
+    return {
+        'locale': locale,
+        't': lambda key: i18n.translate(locale, key),
+        'i18n_json': json.dumps(i18n.translations_for(locale)),
+        'available_locales': [
+            (code, i18n.LOCALE_NAMES[code], url_for('static', filename=f'img/flags/{i18n.LOCALE_FLAGS[code]}'))
+            for code in i18n.SUPPORTED_LOCALES
+        ],
+    }
 
 
 @app.route('/api/version')

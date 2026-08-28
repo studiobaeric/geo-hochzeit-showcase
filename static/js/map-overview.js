@@ -12,6 +12,7 @@
 // rather than being downloaded on demand, so the map is available
 // immediately and works fully offline before any real download - and
 // before the user has even opened the picker once.
+import { t, tf } from './i18n.js';
 
 const WORLD_BOUNDS = [[-85, -180], [85, 180]];
 const WORLD_LAND_URL = '/static/data/world-land-110m.geojson';
@@ -99,9 +100,9 @@ function renderLegend(legendEl) {
     const labels = document.createElement('div');
     labels.className = 'overview-map-legend-labels';
     const first = document.createElement('span');
-    first.textContent = 'grob (Zoom 0)';
+    first.textContent = t('config.map.overview_legend_coarse');
     const last = document.createElement('span');
-    last.textContent = 'sehr detailliert (Zoom 14)';
+    last.textContent = t('config.map.overview_legend_detailed');
     labels.appendChild(first);
     labels.appendChild(last);
     scale.appendChild(labels);
@@ -110,8 +111,8 @@ function renderLegend(legendEl) {
     const states = document.createElement('div');
     states.className = 'overview-map-legend-states';
     states.innerHTML =
-        '<span class="overview-map-legend-state"><span class="overview-map-legend-swatch is-downloaded"></span>heruntergeladen</span>' +
-        '<span class="overview-map-legend-state"><span class="overview-map-legend-swatch is-planned"></span>geplant, noch nicht heruntergeladen</span>';
+        `<span class="overview-map-legend-state"><span class="overview-map-legend-swatch is-downloaded"></span>${t('config.map.overview_legend_downloaded')}</span>` +
+        `<span class="overview-map-legend-state"><span class="overview-map-legend-swatch is-planned"></span>${t('config.map.overview_legend_planned')}</span>`;
     legendEl.appendChild(states);
 }
 
@@ -173,7 +174,7 @@ export function createMapOverview(mapEl, legendEl) {
             if (!bounds) return;
             const color = colorForZoom(region.maxzoom);
             L.rectangle(bounds, { color, weight: 1, fillColor: color, fillOpacity: 0.55, interactive: false })
-                .bindTooltip(`${region.name} – heruntergeladen bis Zoom ${region.maxzoom}`, { sticky: true })
+                .bindTooltip(tf('config.map.overview_tooltip_downloaded', { name: region.name, zoom: region.maxzoom }), { sticky: true })
                 .addTo(regionLayer);
         });
 
@@ -188,7 +189,7 @@ export function createMapOverview(mapEl, legendEl) {
             if (!bounds) return;
             const color = colorForZoom(region.maxzoom);
             L.rectangle(bounds, { color, weight: 2, dashArray: '6 5', fillColor: color, fillOpacity: 0.15, interactive: false })
-                .bindTooltip(`${region.name} – geplant bis Zoom ${region.maxzoom} (noch nicht heruntergeladen)`, { sticky: true })
+                .bindTooltip(tf('config.map.overview_tooltip_planned', { name: region.name, zoom: region.maxzoom }), { sticky: true })
                 .addTo(regionLayer);
         });
     }

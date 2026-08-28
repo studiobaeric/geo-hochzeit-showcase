@@ -5,6 +5,7 @@
 // static/config/players.js's NAME_1/NAME_2 remain the fallback used before
 // the config API has ever been reached (e.g. offline / first paint).
 import { NAME_1, NAME_2 } from '../config/players.js';
+import { tf } from './i18n.js';
 
 const CONFIG_ENDPOINT = '/api/player-config';
 
@@ -39,7 +40,7 @@ export async function saveDisplayNames({ player1, player2 }) {
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Speichern fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.save_failed', { status: response.status }));
     }
 
     const data = await response.json();

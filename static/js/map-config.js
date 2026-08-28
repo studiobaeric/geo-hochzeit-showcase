@@ -3,6 +3,8 @@
 // /api/map/* so the initial "download the map" setup step
 // (tools/build_basemap*) can be driven from the browser instead of the
 // terminal.
+import { tf } from './i18n.js';
+
 const CONFIG_ENDPOINT = '/api/map/config';
 const BUILD_ENDPOINT = '/api/map/build';
 const STATUS_ENDPOINT = '/api/map/build/status';
@@ -46,7 +48,7 @@ export async function saveMapConfig({ regions, build_date }) {
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Speichern fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.save_failed', { status: response.status }));
     }
 
     cache = await response.json();
@@ -58,7 +60,7 @@ export async function startMapBuild() {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        throw new Error(data.error || `Start fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.start_failed', { status: response.status }));
     }
 
     return data;
@@ -67,7 +69,7 @@ export async function startMapBuild() {
 export async function getMapBuildStatus() {
     const response = await fetch(STATUS_ENDPOINT);
     if (!response.ok) {
-        throw new Error(`Status-Abfrage fehlgeschlagen (${response.status})`);
+        throw new Error(tf('api.status_failed', { status: response.status }));
     }
     return response.json();
 }

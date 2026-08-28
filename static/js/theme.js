@@ -4,6 +4,8 @@
 // to every page loaded afterwards - unlike localStorage alone, which would
 // stay stuck to a single browser. localStorage is still used as a
 // flash-free cache for the *next* load on this browser (see theme-init.js).
+import { tf } from './i18n.js';
+
 const CONFIG_ENDPOINT = '/api/theme-config';
 const EVENTS_ENDPOINT = '/api/events';
 const STORAGE_KEY = 'geohochzeit-theme-mode';
@@ -59,7 +61,7 @@ export async function saveThemeConfig({ mode }) {
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Speichern fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.save_failed', { status: response.status }));
     }
 
     cache = await response.json();

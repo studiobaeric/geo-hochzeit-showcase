@@ -5,6 +5,8 @@
 // getMapLabelsConfig() when building the map style, toggling the
 // visibility of the already-downloaded basemap's place-label layers; no
 // new map data is fetched for this.
+import { tf } from './i18n.js';
+
 const CONFIG_ENDPOINT = '/api/map-labels-config';
 const EVENTS_ENDPOINT = '/api/events';
 
@@ -37,7 +39,7 @@ export async function saveMapLabelsConfig({ hide_city_labels }) {
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Speichern fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.save_failed', { status: response.status }));
     }
 
     cache = await response.json();

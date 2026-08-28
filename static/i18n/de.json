@@ -1,0 +1,257 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "of": "von",
+    "uploading": "Wird hochgeladen …",
+    "upload_failed": "Hochladen fehlgeschlagen.",
+    "delete_failed": "Löschen fehlgeschlagen.",
+    "save_failed": "Speichern fehlgeschlagen.",
+    "reveal_section": "👁 Bereich anzeigen",
+    "hide_section": "🙈 Wieder verbergen",
+    "round_label": "Runde",
+    "points_suffix": "Punkte",
+    "player1_placeholder": "Spieler 1",
+    "player2_placeholder": "Spieler 2"
+  },
+  "api": {
+    "load_failed": "Laden fehlgeschlagen ({status})",
+    "upload_failed": "Hochladen fehlgeschlagen ({status})",
+    "save_failed": "Speichern fehlgeschlagen ({status})",
+    "sort_failed": "Sortieren fehlgeschlagen ({status})",
+    "delete_failed": "Löschen fehlgeschlagen ({status})",
+    "start_failed": "Start fehlgeschlagen ({status})",
+    "status_failed": "Status-Abfrage fehlgeschlagen ({status})"
+  },
+  "start": {
+    "config_button_aria": "Konfiguration öffnen",
+    "language_button_aria": "Sprache wählen",
+    "subtitle": "Erraten Sie die Orte aus den Hochzeitsfotos!",
+    "how_to_play_title": "Wie man spielt:",
+    "how_to_play": {
+      "step1": "Schaue dir das Hochzeitsfoto an",
+      "step2": "Markiere deine Vermutung auf der Karte",
+      "step3": "Erhalte Punkte basierend auf der Nähe zur richtigen Position",
+      "step4": "Je näher dran, desto mehr Punkte!"
+    },
+    "role_aria": "Rolle auswählen",
+    "player1_button": "Spieler 1",
+    "player2_button": "Spieler 2",
+    "moderator_button": "Moderator"
+  },
+  "game": {
+    "back_to_photo_button": "Zurück zum Foto",
+    "guess_button": "Tipp abgeben",
+    "guess_locked_button": "Tipp abgegeben!",
+    "guess_marker_popup": "Dein Tipp",
+    "waiting_for_moderator": "Warten auf Moderator",
+    "waiting_subtext": "Bitte auf den Beamer schauen!",
+    "photo_alt": "Hochzeitsfoto",
+    "reset_zoom_button": "Zoom zurücksetzen",
+    "to_map_button": "Zur Karte"
+  },
+  "moderator": {
+    "meta": {
+      "title": "Moderator View"
+    },
+    "player_left_aria": "Spieler links",
+    "player_right_aria": "Spieler rechts",
+    "player_photo_alt_prefix": "Bild_",
+    "current_photo_alt": "Aktuelles Spielerfoto",
+    "current_photo_fallback": "Aktuelles Foto",
+    "waiting_for_start": "Warte auf Start…",
+    "map_left_aria": "Karte Spieler links",
+    "map_right_aria": "Karte Spieler rechts",
+    "controls_aria": "Moderator Steuerung",
+    "round_prefix": "Runde:",
+    "lock_button_initial": "Spieler Input Erlauben",
+    "allow_input_button": "Input Erlauben",
+    "deny_input_button": "Input Verbieten",
+    "timer_start_button": "Start",
+    "pause_button": "Pause",
+    "resume_button": "Fortsetzen",
+    "resolve_round_button": "Runde auflösen",
+    "reset_game_button": "Spiel Zurücksetzen",
+    "resolution_aria": "Auflösung",
+    "continue_button": "Weiter",
+    "round_result_title": "Rundenergebnis",
+    "player_guess_label": "{name}s Tipp",
+    "default_photo_position": "Bildposition",
+    "locked_in_stamp": "Tipp abgegeben",
+    "reset_confirm_text": "Spiel wirklich zurücksetzen? Der aktuelle Spielstand geht dabei verloren.",
+    "reset_confirm_label": "Zurücksetzen"
+  },
+  "results": {
+    "meta": {
+      "title": "Kartenquiz - Ergebnisse"
+    },
+    "heading": "Spiel beendet!",
+    "subtitle": "Hier sind deine Ergebnisse:",
+    "winner_badge_aria": "Sieger",
+    "avg_distance_label": "Ø Distanz",
+    "closest_guess_label": "Nächster Tipp",
+    "furthest_guess_label": "Weitester Tipp",
+    "no_results": "Keine Ergebnisse verfügbar",
+    "go_home_button": "Zur Startseite"
+  },
+  "end_of_game": {
+    "heading": "Endergebnis",
+    "credits_title": "Danke fürs Entwickeln!",
+    "ai_label": "KI",
+    "map_aria": "Endergebnis Karte",
+    "new_game_button": "Neues Spiel",
+    "round_results_aria": "Rundenergebnisse",
+    "default_target_label": "Ziel",
+    "no_round_results": "Noch keine Rundenergebnisse gefunden."
+  },
+  "position_picker": {
+    "osm_attribution_suffix": "-Mitwirkende",
+    "lat_label": "Breitengrad (lat)",
+    "lng_label": "Längengrad (lng)",
+    "min_lon_label": "Min. Längengrad (min_lon)",
+    "min_lat_label": "Min. Breitengrad (min_lat)",
+    "max_lon_label": "Max. Längengrad (max_lon)",
+    "max_lat_label": "Max. Breitengrad (max_lat)",
+    "use_view_button": "Aktuellen Kartenausschnitt übernehmen",
+    "confirm_button": "Übernehmen",
+    "point_title_with_name": "Position wählen – {name}",
+    "point_title_default": "Position auf der Karte wählen",
+    "point_hint": "Karte antippen, die Markierung ziehen oder die Koordinaten unten eintragen.",
+    "offline_map_notice": "Die Offline-Karte wurde noch nicht heruntergeladen – Online-Karte wird angezeigt.",
+    "bbox_title_with_name": "Kartenausschnitt wählen – {name}",
+    "bbox_title_default": "Kartenausschnitt wählen",
+    "bbox_hint": "Eckpunkte ziehen, die Karte verschieben/zoomen und übernehmen, oder den Kartenausschnitt unten eintragen."
+  },
+  "config": {
+    "meta": {
+      "title": "Konfiguration – Kartenquiz"
+    },
+    "heading": "Konfiguration",
+    "subtitle": "Passe die Spieleinstellungen an.",
+    "player": {
+      "section_title": "Spieler",
+      "photo_alt_1": "Spielerfoto 1",
+      "photo_alt_2": "Spielerfoto 2",
+      "change_photo": "Foto ändern",
+      "name_label_1": "Name Spieler 1",
+      "name_label_2": "Name Spieler 2",
+      "name_placeholder": "Name"
+    },
+    "appearance": {
+      "section_title": "Darstellung",
+      "dark_mode_label": "Dunkelmodus",
+      "dark_mode_aria": "Dunkelmodus umschalten",
+      "hide_labels_label": "Karte ohne Ortsnamen",
+      "hide_labels_aria": "Karte ohne Ortsnamen umschalten",
+      "hide_labels_hint": "Blendet Städte-, Regionen- und Ländernamen auf der Spielkarte aus, damit sie nicht beim Raten verraten, wo man ist."
+    },
+    "round": {
+      "section_title": "Rundenzeit",
+      "mode_manual": "Manuell – Moderator löst die Runde per Klick auf",
+      "mode_countdown": "Countdown – Runde läuft automatisch aus",
+      "duration_label": "Zeitlimit pro Runde (Sekunden)",
+      "extend_label": "Verlängerung pro Klick (Sekunden)"
+    },
+    "map": {
+      "section_title": "Kartendaten",
+      "hint": "Kartenausschnitte von grob nach fein anlegen - z.B. weltweit mit wenig Detail für die Übersicht, dann einzelne Orte in hohem Detail. Für alle Fotostandorte (siehe Rundenfotos) wird beim Herunterladen automatisch hohes Detail sichergestellt, auch wenn ein Ausschnitt sie eigentlich nicht abdeckt.",
+      "overview_title": "Übersichtskarte",
+      "overview_hint": "Zeigt auf einen Blick, welche Bereiche bereits heruntergeladen sind und welche nur als Kartenausschnitt geplant, aber noch nicht heruntergeladen sind. Die Farbe zeigt den Detailgrad. Diese Übersichtskarte selbst braucht keine heruntergeladenen Kartendaten und steht immer zur Verfügung, auch ganz ohne Internetverbindung.",
+      "overview_legend_coarse": "grob (Zoom 0)",
+      "overview_legend_detailed": "sehr detailliert (Zoom 14)",
+      "overview_legend_downloaded": "heruntergeladen",
+      "overview_legend_planned": "geplant, noch nicht heruntergeladen",
+      "overview_tooltip_downloaded": "{name} – heruntergeladen bis Zoom {zoom}",
+      "overview_tooltip_planned": "{name} – geplant bis Zoom {zoom} (noch nicht heruntergeladen)",
+      "add_region_button": "weiteren Kartenausschnitt hinzufügen",
+      "build_date_label": "Protomaps-Build-Datum (optional)",
+      "build_date_placeholder": "leer = automatisch neuester Stand",
+      "build_date_hint": "Leer lassen, um beim Herunterladen automatisch den neuesten verfügbaren Stand zu verwenden (empfohlen). Protomaps hält tägliche Builds nur ca. 5 Tage vor, daher wird ein hier fest eingetragenes Datum irgendwann ungültig. Nur zum gezielten Festlegen eines bestimmten Standes ein Datum im Format JJJJMMTT eintragen (z.B. 20260810) - Übersicht der verfügbaren Daten auf",
+      "download_button": "Karte jetzt herunterladen",
+      "region_label": "Kartenausschnitt",
+      "region_remove_title": "Kartenausschnitt entfernen",
+      "field_name": "Name",
+      "field_detail": "Detailgrad",
+      "bbox_label": "Kartenausschnitt",
+      "bbox_min_lon": "Min. Lon",
+      "bbox_min_lat": "Min. Lat",
+      "bbox_max_lon": "Max. Lon",
+      "bbox_max_lat": "Max. Lat",
+      "bbox_pick_button": "Auf Karte auswählen",
+      "coverage_hint": "Detailreichster Ausschnitt: wird beim Herunterladen automatisch erweitert, damit alle Fotostandorte abgedeckt sind.",
+      "new_region_name": "Ausschnitt",
+      "download_start_error": "Download konnte nicht gestartet werden.",
+      "zoom": {
+        "0": "Kontinente",
+        "1": "Kontinente",
+        "2": "Kontinente / große Länder",
+        "3": "Länder",
+        "4": "Länder",
+        "5": "Bundesländer / Regionen (Weltübersicht, wenige MB)",
+        "6": "Bundesländer / Regionen",
+        "7": "Landkreise",
+        "8": "Städte im Überblick",
+        "9": "Städte im Überblick",
+        "10": "Stadt-Ebene, Standard (~1.4 GB für ganz Europa)",
+        "11": "Hauptstraßennetz (~2.9 GB für ganz Europa)",
+        "12": "Die meisten Straßen (~6.5 GB für ganz Europa)",
+        "13": "Jede Nebenstraße (~13 GB für ganz Europa)",
+        "14": "Maximale Detailtiefe"
+      },
+      "build_status": {
+        "idle": "Noch keine Karte heruntergeladen.",
+        "running": "Karte wird heruntergeladen …",
+        "success": "Karte erfolgreich heruntergeladen.",
+        "error": "Fehler beim Herunterladen der Karte."
+      },
+      "progress": {
+        "resolving_pmtiles_cli": "Kartenwerkzeug wird vorbereitet…",
+        "resolving_build_date": "Suche neuesten verfügbaren Kartenstand…",
+        "merging": "Kartenausschnitte werden zusammengeführt…",
+        "done": "Fertig.",
+        "extracting_label": "Lädt Kartenausschnitt"
+      }
+    },
+    "photos": {
+      "section_title": "Rundenfotos",
+      "hint": "Beliebig viele Fotos mit dem zu erratenden Ort - keine Obergrenze. Beim Auswählen einer Datei wird, falls vorhanden, die GPS-Position aus den Bilddaten automatisch ins Positionsfeld übernommen; sie lässt sich danach trotzdem frei ändern. Die Reihenfolge der Fotos legt die Rundenreihenfolge im Spiel fest - mit den ↑/↓-Pfeilen lässt sie sich jederzeit ändern. Der Bereich ist standardmäßig verborgen und wird erst nach Klick auf die Spoiler-Warnung sichtbar, damit auf einem geteilten Bildschirm nichts versehentlich verraten wird.",
+      "spoiler_warning": "Dieser Bereich enthält die Rundenfotos.",
+      "add_button": "Neues Rundenfoto hinzufügen",
+      "new_photo_alt": "Neues Rundenfoto",
+      "description_label": "Beschreibung",
+      "description_placeholder": "Beschreibung...",
+      "pick_position_button": "Position auf Karte wählen",
+      "add_photo_button": "Foto hinzufügen",
+      "move_up_aria": "Nach oben verschieben",
+      "move_down_aria": "Nach unten verschieben",
+      "photo_alt_default": "Rundenfoto",
+      "delete_title": "Rundenfoto löschen",
+      "pick_position_row_button": "Position festlegen",
+      "delete_confirm": "Dieses Rundenfoto wirklich löschen?",
+      "gps_hint_picked": "Position auf der Karte gewählt – kann bei Bedarf weiter angepasst werden.",
+      "gps_hint_searching": "Suche Position in den Bilddaten …",
+      "gps_hint_found": "Position aus den Bilddaten übernommen – kann bei Bedarf über die Karte angepasst werden.",
+      "gps_hint_not_found": "Keine Position in den Bilddaten gefunden – bitte über die Karte auswählen.",
+      "missing_position_error": "Bitte eine Position über die Karte auswählen.",
+      "cancel_add_button": "Abbrechen, ohne das Foto hinzuzufügen"
+    },
+    "host": {
+      "section_title": "Host-Verbindung",
+      "hint": "IP-Adresse und QR-Code, mit denen Gäste (z. B. auf einem Tablet) das Spiel im selben WLAN direkt öffnen können. Der Bereich ist standardmäßig verborgen, damit der QR-Code nicht versehentlich von jemandem gescannt wird, der nicht mitspielen soll.",
+      "spoiler_warning": "Dieser Bereich zeigt einen QR-Code zum Beitreten.",
+      "loading_address": "Lade Adresse …",
+      "address_error": "Adresse konnte nicht geladen werden."
+    },
+    "buttons": {
+      "back": "Zurück zur Startseite"
+    },
+    "unsaved": {
+      "title": "Ungespeicherte Änderungen",
+      "text": "Es gibt ungespeicherte Änderungen. Wenn du jetzt verlässt, gehen sie verloren.",
+      "stay": "Weiter bearbeiten",
+      "leave": "Verwerfen und verlassen"
+    }
+  }
+}

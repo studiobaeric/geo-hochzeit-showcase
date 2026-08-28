@@ -6,9 +6,11 @@ import { getDisplayNames, loadDisplayNames } from './player-names.js';
 import { formatDistance } from './basemap.js';
 import { loadResultCollection, getSortedResults } from './round-results.js';
 import { loadThemeConfig, subscribeThemeUpdates } from './theme.js';
+import { t, subscribeLocaleUpdates } from './i18n.js';
 
 loadThemeConfig();
 subscribeThemeUpdates();
+subscribeLocaleUpdates();
 
 const ROLE = sessionStorage.getItem('name');
 const OPPONENT_ROLE = { player1: 'player2', player2: 'player1' }[ROLE];
@@ -41,7 +43,7 @@ const roundListEl = document.getElementById('roundList');
 const goHomeButton = document.getElementById('goHomeButton');
 
 function formatPoints(points) {
-    return `${Number(points || 0)} Punkte`;
+    return `${Number(points || 0)} ${t('common.points_suffix')}`;
 }
 
 // distance is null when the player never placed a guess that round - show
@@ -67,7 +69,7 @@ function computeOwnStats(sortedResults) {
 
         distances.push({
             distanceMeters,
-            description: roundResult.photo?.description || `Runde ${roundResult.position}`
+            description: roundResult.photo?.description || `${t('common.round_label')} ${roundResult.position}`
         });
     });
 
@@ -118,7 +120,7 @@ function renderRoundList(sortedResults) {
     roundListEl.innerHTML = '';
 
     if (sortedResults.length === 0) {
-        roundListEl.innerHTML = '<p class="empty-state">Keine Ergebnisse verfügbar</p>';
+        roundListEl.innerHTML = `<p class="empty-state">${t('results.no_results')}</p>`;
         return;
     }
 
@@ -130,7 +132,7 @@ function renderRoundList(sortedResults) {
         row.className = 'round-row';
         row.innerHTML = `
             <div class="round-row-title">
-                <span>Runde ${roundResult.position}</span>
+                <span>${t('common.round_label')} ${roundResult.position}</span>
                 <span>${roundResult.photo?.description || ''}</span>
             </div>
             <div class="round-row-player round-row-player-self">

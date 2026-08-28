@@ -90,6 +90,20 @@ _DEFAULT_THEME_CONFIG = {
 
 _THEME_MODES = {"light", "dark"}
 
+# UI language, editable at runtime via the config menu (/config -> PATCH
+# /api/locale-config), per #98. Stored server-side like theme_config so a
+# choice made on one device (e.g. the moderator's laptop) applies to every
+# connected screen. "de" is the reference locale that every template/JS
+# string is authored in first - see static/i18n/de.json - with other
+# locales (currently just "en") added as complete key-for-key translations
+# of it; a key missing from a non-German file falls back to German rather
+# than breaking the UI (see i18n.py).
+_DEFAULT_LOCALE_CONFIG = {
+    "locale": "de",
+}
+
+_SUPPORTED_LOCALES = {"de", "en"}
+
 # Whether the offline basemap hides place-name labels (settlement/region/
 # country names), editable at runtime via the config menu (/config -> PATCH
 # /api/map-labels-config), per #38. This only toggles which layers of the
@@ -141,6 +155,7 @@ _round_config = dict(_DEFAULT_ROUND_CONFIG)
 _timer_state = dict(_DEFAULT_TIMER_STATE)
 _theme_config = dict(_DEFAULT_THEME_CONFIG)
 _map_labels_config = dict(_DEFAULT_MAP_LABELS_CONFIG)
+_locale_config = dict(_DEFAULT_LOCALE_CONFIG)
 
 # keyed by (round_number, placed_by)
 _placed_points = {}
@@ -216,6 +231,7 @@ def _persist_locked():
         "timer_state": _timer_state,
         "theme_config": _theme_config,
         "map_labels_config": _map_labels_config,
+        "locale_config": _locale_config,
     }
 
     directory = os.path.dirname(STATE_FILE) or "."
@@ -243,7 +259,7 @@ def load_state_from_disk():
     contents is treated the same as "nothing to load" and leaves the
     current in-memory defaults untouched.
     """
-    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state, _theme_config, _map_labels_config
+    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state, _theme_config, _map_labels_config, _locale_config
 
     if not STATE_FILE or not os.path.isfile(STATE_FILE):
         return
@@ -335,6 +351,19 @@ def load_state_from_disk():
         else:
             logger.warning(
                 "Ignoring corrupted persisted map_labels_config in %s: %s",
+                STATE_FILE,
+                error or "missing fields",
+            )
+
+    loaded_locale_config = payload.get("locale_config")
+    if isinstance(loaded_locale_config, dict):
+        known_locale_config = {k: v for k, v in loaded_locale_config.items() if k in _DEFAULT_LOCALE_CONFIG}
+        error = _validate_locale_config_updates(known_locale_config)
+        if error is None and _DEFAULT_LOCALE_CONFIG.keys() == known_locale_config.keys():
+            _locale_config = dict(known_locale_config)
+        else:
+            logger.warning(
+                "Ignoring corrupted persisted locale_config in %s: %s",
                 STATE_FILE,
                 error or "missing fields",
             )
@@ -619,6 +648,45 @@ def patch_theme_config():
     return jsonify(record)
 
 
+def _validate_locale_config_updates(updates):
+    if "locale" in updates and updates["locale"] not in _SUPPORTED_LOCALES:
+        return f"locale must be one of: {', '.join(sorted(_SUPPORTED_LOCALES))}"
+
+    return None
+
+
+def get_locale():
+    """Current UI locale, for app.py's Jinja context processor. Doesn't
+    need `_lock`: reading a dict's existing string value is atomic under
+    the GIL, and this is called on every page render so taking the lock
+    for it would be needless contention."""
+    return _locale_config["locale"]
+
+
+@bp.route("/locale-config", methods=["GET"])
+def get_locale_config():
+    with _lock:
+        return jsonify(_locale_config)
+
+
+@bp.route("/locale-config", methods=["PATCH"])
+def patch_locale_config():
+    updates = request.get_json(force=True) or {}
+
+    error = _validate_locale_config_updates(updates)
+    if error:
+        return jsonify({"error": error}), 400
+
+    with _lock:
+        for key, value in updates.items():
+            if key in _DEFAULT_LOCALE_CONFIG:
+                _locale_config[key] = value
+        record = dict(_locale_config)
+        _persist_locked()
+    _broadcast("locale_config", record)
+    return jsonify(record)
+
+
 def _validate_map_labels_config_updates(updates):
     if "hide_city_labels" in updates and not isinstance(updates["hide_city_labels"], bool):
         return "hide_city_labels must be a boolean"
@@ -868,12 +936,14 @@ def events():
                 timer_snapshot = _timer_record_locked()
                 theme_snapshot = dict(_theme_config)
                 map_labels_snapshot = dict(_map_labels_config)
+                locale_snapshot = dict(_locale_config)
             yield f"event: gamestate\ndata: {json.dumps(snapshot)}\n\n"
             yield f"event: player_config\ndata: {json.dumps(config_snapshot)}\n\n"
             yield f"event: round_config\ndata: {json.dumps(round_config_snapshot)}\n\n"
             yield f"event: timer\ndata: {json.dumps(timer_snapshot)}\n\n"
             yield f"event: theme_config\ndata: {json.dumps(theme_snapshot)}\n\n"
             yield f"event: map_labels_config\ndata: {json.dumps(map_labels_snapshot)}\n\n"
+            yield f"event: locale_config\ndata: {json.dumps(locale_snapshot)}\n\n"
             while True:
                 try:
                     yield subscriber.get(timeout=15)

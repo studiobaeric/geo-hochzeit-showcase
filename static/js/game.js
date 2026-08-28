@@ -6,6 +6,7 @@ import {loadDisplayNames} from "./player-names.js";
 import {loadRoundConfig} from "./round-config.js";
 import {loadThemeConfig} from "./theme.js";
 import {loadMapLabelsConfig} from "./map-labels-config.js";
+import {t} from "./i18n.js";
 
 // Live updates arrive over multiplayer.js's shared /api/events connection
 // (see its 'theme_config'/'map_labels_config' listeners) rather than a
@@ -63,7 +64,7 @@ function resetMap() {
 function resetButtons() {
     isLocked = false;
     document.getElementById('lockButton').disabled = true;
-    document.getElementById('lockButton').textContent = 'Tipp abgeben';
+    document.getElementById('lockButton').textContent = t('game.guess_button');
     document.getElementById('backToPhotoButton').style.display = 'inline-block';
     photoZoom?.reset();
 }
@@ -100,8 +101,8 @@ function waitForImageLoad(img) {
 function updateRoundDisplay(round) {
     const totalRounds = allPhotos?.length;
     document.getElementById('roundInfo').textContent = totalRounds
-        ? `Runde ${round} / ${totalRounds}`
-        : `Runde ${round}`;
+        ? `${t('common.round_label')} ${round} / ${totalRounds}`
+        : `${t('common.round_label')} ${round}`;
 }
 
 function formatSeconds(totalSeconds) {
@@ -200,13 +201,13 @@ async function restoreGuessState(round, gamestateRecord) {
     guessMarker = L.marker([lat, lon], {
         icon: createMarkerIcon('/static/img/marker-icon-2x-blue.png')
     }).addTo(map);
-    guessMarker.bindPopup('Dein Tipp');
+    guessMarker.bindPopup(t('game.guess_marker_popup'));
     document.getElementById('lockButton').disabled = false;
 
     if (gamestateRecord[`${role}_locked`]) {
         isLocked = true;
         document.getElementById('lockButton').disabled = true;
-        document.getElementById('lockButton').textContent = 'Tipp abgegeben!';
+        document.getElementById('lockButton').textContent = t('game.guess_locked_button');
         document.getElementById('backToPhotoButton').style.display = 'none';
     }
 }
@@ -290,7 +291,7 @@ async function initGame() {
             guessMarker = L.marker([lat, lng], {
                 icon: createMarkerIcon('/static/img/marker-icon-2x-blue.png')
             }).addTo(map);
-            guessMarker.bindPopup('Dein Tipp');
+            guessMarker.bindPopup(t('game.guess_marker_popup'));
         } else {
             // Verschiebe bestehenden Marker
             guessMarker.setLatLng([lat, lng]);
@@ -323,7 +324,7 @@ async function initGame() {
 
         isLocked = true;
         this.disabled = true;
-        this.textContent = 'Tipp abgegeben!';
+        this.textContent = t('game.guess_locked_button');
         lockInSolution();
 
         // Verstecke "Zurück zum Foto" Button

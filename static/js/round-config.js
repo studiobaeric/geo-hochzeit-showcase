@@ -1,6 +1,8 @@
 // Runtime-editable round timing settings (set via the /config menu), backed
 // by /api/round-config so a change made on one device is visible to every
 // other device that (re)loads a page afterwards.
+import { tf } from './i18n.js';
+
 const CONFIG_ENDPOINT = '/api/round-config';
 
 const DEFAULTS = { mode: 'manual', duration_seconds: 60, extend_seconds: 30 };
@@ -32,7 +34,7 @@ export async function saveRoundConfig({ mode, duration_seconds, extend_seconds }
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Speichern fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.save_failed', { status: response.status }));
     }
 
     cache = await response.json();

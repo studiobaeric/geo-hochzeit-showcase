@@ -247,7 +247,10 @@ body {
 }
 
 .moderator-map.is-locked-in::after {
-    content: "Tipp abgegeben";
+    /* Set as a JS-provided data attribute (moderator.js), not a literal
+       string, so it can be translated per #98 - a plain string constant
+       here couldn't go through i18n.js since CSS files aren't templated. */
+    content: attr(data-locked-in-label);
     position: absolute;
     top: 50%;
     left: 50%;

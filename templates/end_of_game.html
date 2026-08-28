@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0b1120">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/icons/icon-credits-podium.svg') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icons/icon-credits-podium.svg') }}">
-    <title>Endergebnis</title>
+    <title>{{ t('end_of_game.heading') }}</title>
     <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
@@ -14,9 +14,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/end_of_game.css') }}">
 </head>
 <body>
+<script>window.I18N = {{ i18n_json|safe }}; window.I18N_LOCALE = "{{ locale }}";</script>
 <section class="credits credits-overlay">
     <div class="credits-container">
-        <h2 class="credits-title">Danke fürs Entwickeln!</h2>
+        <h2 class="credits-title">{{ t('end_of_game.credits_title') }}</h2>
         <div class="contributors-grid">
             <div class="contributor">
                 <span class="contributor-dot contributor-dot-nico"></span>
@@ -44,37 +45,37 @@
             </div>
             <div class="contributor">
                 <span class="contributor-dot contributor-dot-claude"></span>
-                <span class="contributor-name">Claude<br>(KI)</span>
+                <span class="contributor-name">Claude<br>({{ t('end_of_game.ai_label') }})</span>
             </div>
         </div>
     </div>
 </section>
 
 <main class="end-page">
-    <div id="endGameMap" class="end-map" aria-label="Endergebnis Karte"></div>
+    <div id="endGameMap" class="end-map" aria-label="{{ t('end_of_game.map_aria') }}"></div>
 
     <aside class="end-panel">
         <header class="end-header">
-            <h1>Endergebnis</h1>
-            <button type="button" id="resetGameButton" class="reset-button">Neues Spiel</button>
+            <h1>{{ t('end_of_game.heading') }}</h1>
+            <button type="button" id="resetGameButton" class="reset-button">{{ t('end_of_game.new_game_button') }}</button>
             <div class="total-grid">
                 <div class="total-card">
                     <div class="player-line">
                         <span class="player-dot player-dot-player1"></span>
-                        <span id="player1PlayerName" class="player-name">Spieler 1</span>
+                        <span id="player1PlayerName" class="player-name">{{ t('common.player1_placeholder') }}</span>
                     </div>
-                    <strong id="player1TotalPoints" class="total-points">0 Punkte</strong>
+                    <strong id="player1TotalPoints" class="total-points">0 {{ t('common.points_suffix') }}</strong>
                 </div>
                 <div class="total-card">
                     <div class="player-line">
                         <span class="player-dot player-dot-player2"></span>
-                        <span id="player2PlayerName" class="player-name">Spieler 2</span>
+                        <span id="player2PlayerName" class="player-name">{{ t('common.player2_placeholder') }}</span>
                     </div>
-                    <strong id="player2TotalPoints" class="total-points">0 Punkte</strong>
+                    <strong id="player2TotalPoints" class="total-points">0 {{ t('common.points_suffix') }}</strong>
                 </div>
             </div>
         </header>
-        <section id="roundList" class="round-list" aria-label="Rundenergebnisse"></section>
+        <section id="roundList" class="round-list" aria-label="{{ t('end_of_game.round_results_aria') }}"></section>
     </aside>
 </main>
 

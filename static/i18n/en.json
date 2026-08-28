@@ -1,0 +1,257 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "of": "of",
+    "uploading": "Uploading …",
+    "upload_failed": "Upload failed.",
+    "delete_failed": "Delete failed.",
+    "save_failed": "Save failed.",
+    "reveal_section": "👁 Show section",
+    "hide_section": "🙈 Hide again",
+    "round_label": "Round",
+    "points_suffix": "points",
+    "player1_placeholder": "Player 1",
+    "player2_placeholder": "Player 2"
+  },
+  "api": {
+    "load_failed": "Loading failed ({status})",
+    "upload_failed": "Upload failed ({status})",
+    "save_failed": "Save failed ({status})",
+    "sort_failed": "Sorting failed ({status})",
+    "delete_failed": "Delete failed ({status})",
+    "start_failed": "Could not start ({status})",
+    "status_failed": "Status request failed ({status})"
+  },
+  "start": {
+    "config_button_aria": "Open configuration",
+    "language_button_aria": "Choose language",
+    "subtitle": "Guess the locations from the wedding photos!",
+    "how_to_play_title": "How to play:",
+    "how_to_play": {
+      "step1": "Look at the wedding photo",
+      "step2": "Mark your guess on the map",
+      "step3": "Get points based on how close you are to the actual location",
+      "step4": "The closer you are, the more points you get!"
+    },
+    "role_aria": "Choose role",
+    "player1_button": "Player 1",
+    "player2_button": "Player 2",
+    "moderator_button": "Moderator"
+  },
+  "game": {
+    "back_to_photo_button": "Back to photo",
+    "guess_button": "Submit guess",
+    "guess_locked_button": "Guess submitted!",
+    "guess_marker_popup": "Your guess",
+    "waiting_for_moderator": "Waiting for moderator",
+    "waiting_subtext": "Please look at the projector!",
+    "photo_alt": "Wedding photo",
+    "reset_zoom_button": "Reset zoom",
+    "to_map_button": "Go to map"
+  },
+  "moderator": {
+    "meta": {
+      "title": "Moderator view"
+    },
+    "player_left_aria": "Left player",
+    "player_right_aria": "Right player",
+    "player_photo_alt_prefix": "Photo of ",
+    "current_photo_alt": "Current player photo",
+    "current_photo_fallback": "Current photo",
+    "waiting_for_start": "Waiting to start…",
+    "map_left_aria": "Left player's map",
+    "map_right_aria": "Right player's map",
+    "controls_aria": "Moderator controls",
+    "round_prefix": "Round:",
+    "lock_button_initial": "Allow player input",
+    "allow_input_button": "Allow input",
+    "deny_input_button": "Deny input",
+    "timer_start_button": "Start",
+    "pause_button": "Pause",
+    "resume_button": "Resume",
+    "resolve_round_button": "Resolve round",
+    "reset_game_button": "Reset game",
+    "resolution_aria": "Resolution",
+    "continue_button": "Continue",
+    "round_result_title": "Round result",
+    "player_guess_label": "{name}'s guess",
+    "default_photo_position": "Photo location",
+    "locked_in_stamp": "Guess submitted",
+    "reset_confirm_text": "Really reset the game? The current progress will be lost.",
+    "reset_confirm_label": "Reset"
+  },
+  "results": {
+    "meta": {
+      "title": "Kartenquiz - Results"
+    },
+    "heading": "Game over!",
+    "subtitle": "Here are your results:",
+    "winner_badge_aria": "Winner",
+    "avg_distance_label": "Avg. distance",
+    "closest_guess_label": "Closest guess",
+    "furthest_guess_label": "Furthest guess",
+    "no_results": "No results available",
+    "go_home_button": "Back to start"
+  },
+  "end_of_game": {
+    "heading": "Final result",
+    "credits_title": "Thanks for developing this!",
+    "ai_label": "AI",
+    "map_aria": "Final result map",
+    "new_game_button": "New game",
+    "round_results_aria": "Round results",
+    "default_target_label": "Target",
+    "no_round_results": "No round results yet."
+  },
+  "position_picker": {
+    "osm_attribution_suffix": " contributors",
+    "lat_label": "Latitude (lat)",
+    "lng_label": "Longitude (lng)",
+    "min_lon_label": "Min. longitude (min_lon)",
+    "min_lat_label": "Min. latitude (min_lat)",
+    "max_lon_label": "Max. longitude (max_lon)",
+    "max_lat_label": "Max. latitude (max_lat)",
+    "use_view_button": "Use current map view",
+    "confirm_button": "Apply",
+    "point_title_with_name": "Choose position – {name}",
+    "point_title_default": "Choose position on the map",
+    "point_hint": "Tap the map, drag the marker, or enter the coordinates below.",
+    "offline_map_notice": "The offline map hasn't been downloaded yet – showing the online map instead.",
+    "bbox_title_with_name": "Choose map region – {name}",
+    "bbox_title_default": "Choose map region",
+    "bbox_hint": "Drag the corner handles, move/zoom the map and apply, or enter the map region below."
+  },
+  "config": {
+    "meta": {
+      "title": "Configuration – Kartenquiz"
+    },
+    "heading": "Configuration",
+    "subtitle": "Adjust the game settings.",
+    "player": {
+      "section_title": "Players",
+      "photo_alt_1": "Player 1 photo",
+      "photo_alt_2": "Player 2 photo",
+      "change_photo": "Change photo",
+      "name_label_1": "Player 1 name",
+      "name_label_2": "Player 2 name",
+      "name_placeholder": "Name"
+    },
+    "appearance": {
+      "section_title": "Appearance",
+      "dark_mode_label": "Dark mode",
+      "dark_mode_aria": "Toggle dark mode",
+      "hide_labels_label": "Map without place names",
+      "hide_labels_aria": "Toggle map without place names",
+      "hide_labels_hint": "Hides city, region, and country names on the game map so they don't give away the location while guessing."
+    },
+    "round": {
+      "section_title": "Round timing",
+      "mode_manual": "Manual – the moderator ends the round with a click",
+      "mode_countdown": "Countdown – the round ends automatically",
+      "duration_label": "Time limit per round (seconds)",
+      "extend_label": "Extension per click (seconds)"
+    },
+    "map": {
+      "section_title": "Map data",
+      "hint": "Set up map regions from coarse to fine - e.g. a low-detail world overview, then individual places in high detail. For every photo location (see round photos), high detail is automatically ensured on download, even if a region wouldn't otherwise cover it.",
+      "overview_title": "Overview map",
+      "overview_hint": "Shows at a glance which areas are already downloaded and which are only planned as a map region but not yet downloaded. The color shows the detail level. This overview map itself needs no downloaded map data and is always available, even fully offline.",
+      "overview_legend_coarse": "coarse (zoom 0)",
+      "overview_legend_detailed": "very detailed (zoom 14)",
+      "overview_legend_downloaded": "downloaded",
+      "overview_legend_planned": "planned, not yet downloaded",
+      "overview_tooltip_downloaded": "{name} – downloaded up to zoom {zoom}",
+      "overview_tooltip_planned": "{name} – planned up to zoom {zoom} (not yet downloaded)",
+      "add_region_button": "add another map region",
+      "build_date_label": "Protomaps build date (optional)",
+      "build_date_placeholder": "empty = automatically use the newest",
+      "build_date_hint": "Leave empty to automatically use the newest available build when downloading (recommended). Protomaps only keeps daily builds for about 5 days, so a date entered here will eventually become invalid. Only enter a date in YYYYMMDD format (e.g. 20260810) to pin a specific build - an overview of available dates is at",
+      "download_button": "Download map now",
+      "region_label": "Map region",
+      "region_remove_title": "Remove map region",
+      "field_name": "Name",
+      "field_detail": "Detail level",
+      "bbox_label": "Map extent",
+      "bbox_min_lon": "Min. lon",
+      "bbox_min_lat": "Min. lat",
+      "bbox_max_lon": "Max. lon",
+      "bbox_max_lat": "Max. lat",
+      "bbox_pick_button": "Choose on map",
+      "coverage_hint": "Most detailed region: automatically expanded on download so every photo location is covered.",
+      "new_region_name": "Region",
+      "download_start_error": "Could not start the download.",
+      "zoom": {
+        "0": "Continents",
+        "1": "Continents",
+        "2": "Continents / large countries",
+        "3": "Countries",
+        "4": "Countries",
+        "5": "States / regions (world overview, a few MB)",
+        "6": "States / regions",
+        "7": "Districts",
+        "8": "Cities, overview",
+        "9": "Cities, overview",
+        "10": "City level, default (~1.4 GB for all of Europe)",
+        "11": "Main road network (~2.9 GB for all of Europe)",
+        "12": "Most roads (~6.5 GB for all of Europe)",
+        "13": "Every side street (~13 GB for all of Europe)",
+        "14": "Maximum detail"
+      },
+      "build_status": {
+        "idle": "No map downloaded yet.",
+        "running": "Downloading map …",
+        "success": "Map downloaded successfully.",
+        "error": "Error downloading the map."
+      },
+      "progress": {
+        "resolving_pmtiles_cli": "Preparing map tool…",
+        "resolving_build_date": "Looking up the newest available map build…",
+        "merging": "Merging map regions…",
+        "done": "Done.",
+        "extracting_label": "Downloading map region"
+      }
+    },
+    "photos": {
+      "section_title": "Round photos",
+      "hint": "Any number of photos of the place to guess - no upper limit. When you pick a file, its GPS position (if present in the image data) is automatically filled into the position field; it can still be changed freely afterwards. The photo order sets the round order in the game - use the ↑/↓ arrows to change it at any time. This section is hidden by default and only appears after clicking the spoiler warning, so nothing is accidentally given away on a shared screen.",
+      "spoiler_warning": "This section contains the round photos.",
+      "add_button": "Add new round photo",
+      "new_photo_alt": "New round photo",
+      "description_label": "Description",
+      "description_placeholder": "Description...",
+      "pick_position_button": "Choose position on map",
+      "add_photo_button": "Add photo",
+      "move_up_aria": "Move up",
+      "move_down_aria": "Move down",
+      "photo_alt_default": "Round photo",
+      "delete_title": "Delete round photo",
+      "pick_position_row_button": "Set position",
+      "delete_confirm": "Really delete this round photo?",
+      "gps_hint_picked": "Position chosen on the map – can still be adjusted if needed.",
+      "gps_hint_searching": "Looking for a position in the image data …",
+      "gps_hint_found": "Position taken from the image data – can be adjusted via the map if needed.",
+      "gps_hint_not_found": "No position found in the image data – please choose one via the map.",
+      "missing_position_error": "Please choose a position via the map.",
+      "cancel_add_button": "Cancel without adding the photo"
+    },
+    "host": {
+      "section_title": "Host connection",
+      "hint": "IP address and QR code that guests (e.g. on a tablet) can use to open the game directly on the same Wi-Fi. This section is hidden by default so the QR code isn't accidentally scanned by someone who isn't meant to join.",
+      "spoiler_warning": "This section shows a QR code for joining.",
+      "loading_address": "Loading address …",
+      "address_error": "Could not load address."
+    },
+    "buttons": {
+      "back": "Back to start page"
+    },
+    "unsaved": {
+      "title": "Unsaved changes",
+      "text": "There are unsaved changes. If you leave now, they will be lost.",
+      "stay": "Keep editing",
+      "leave": "Discard and leave"
+    }
+  }
+}

@@ -4,11 +4,13 @@ import { resetGameState } from './multiplayer.js';
 import { loadResultCollection, getSortedResults } from './round-results.js';
 import { loadThemeConfig, subscribeThemeUpdates } from './theme.js';
 import { loadMapLabelsConfig, subscribeMapLabelsUpdates } from './map-labels-config.js';
+import { t, subscribeLocaleUpdates } from './i18n.js';
 
 loadThemeConfig();
 subscribeThemeUpdates();
 loadMapLabelsConfig();
 subscribeMapLabelsUpdates();
+subscribeLocaleUpdates();
 
 const endGameMapElement = document.getElementById('endGameMap');
 const roundListElement = document.getElementById('roundList');
@@ -72,7 +74,7 @@ function getPlayerLatLng(playerResult) {
 }
 
 function formatPoints(points) {
-    return `${Number(points || 0)} Punkte`;
+    return `${Number(points || 0)} ${t('common.points_suffix')}`;
 }
 
 async function initMap() {
@@ -127,7 +129,7 @@ function renderRoundMap(roundResult) {
             icon: createMarkerIcon('/static/img/marker-icon-2x-green.png')
         }).addTo(endGameMap));
 
-        bindPermanentMarkerLabel(goalMarker, roundResult.photo?.description || 'Ziel');
+        bindPermanentMarkerLabel(goalMarker, roundResult.photo?.description || t('end_of_game.default_target_label'));
     }
 
     Object.entries(roundResult.players || {}).forEach(([playerName, playerResult]) => {
@@ -183,7 +185,7 @@ function renderRoundList(resultCollection) {
     roundListElement.innerHTML = '';
 
     if (sortedResults.length === 0) {
-        roundListElement.innerHTML = '<p class="empty-state">Noch keine Rundenergebnisse gefunden.</p>';
+        roundListElement.innerHTML = `<p class="empty-state">${t('end_of_game.no_round_results')}</p>`;
         return;
     }
 
@@ -193,7 +195,7 @@ function renderRoundList(resultCollection) {
         roundButton.className = 'round-card';
         roundButton.innerHTML = `
             <div class="round-title">
-                <span>Runde ${roundResult.position}</span>
+                <span>${t('common.round_label')} ${roundResult.position}</span>
                 <span>${roundResult.photo?.description || ''}</span>
             </div>
             ${renderPlayerRow('player1', roundResult.players?.player1)}

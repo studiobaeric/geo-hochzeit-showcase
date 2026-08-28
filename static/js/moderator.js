@@ -10,6 +10,7 @@ import { loadRoundConfig } from './round-config.js';
 import { loadThemeConfig } from './theme.js';
 import { loadMapLabelsConfig } from './map-labels-config.js';
 import { confirmDialog } from './confirm-dialog.js';
+import { t, tf } from './i18n.js';
 
 // Live updates arrive over multiplayer.js's shared /api/events connection
 // (see its 'theme_config'/'map_labels_config' listeners) rather than a
@@ -137,13 +138,13 @@ function applyDisplayNames() {
     // screen, not a player's tablet, so the downscaled copy would look soft.
     const player1Photo = document.getElementById('player1Photo');
     if (player1Photo) {
-        player1Photo.alt = `Bild_${names.player1}`;
+        player1Photo.alt = `${t('moderator.player_photo_alt_prefix')}${names.player1}`;
         player1Photo.src = `/static/photos/${photoFilenames.player1_hq}`;
     }
 
     const player2Photo = document.getElementById('player2Photo');
     if (player2Photo) {
-        player2Photo.alt = `Bild_${names.player2}`;
+        player2Photo.alt = `${t('moderator.player_photo_alt_prefix')}${names.player2}`;
         player2Photo.src = `/static/photos/${photoFilenames.player2_hq}`;
     }
 
@@ -220,7 +221,9 @@ function updatePhotoVisibility() {
     currentPhotoFallback.classList.toggle('is-hidden', shouldShow);
 
     if (!shouldShow) {
-        currentPhotoFallback.textContent = currentGameState === 'waiting' ? 'Warte auf Start…' : 'Aktuelles Foto';
+        currentPhotoFallback.textContent = currentGameState === 'waiting'
+            ? t('moderator.waiting_for_start')
+            : t('moderator.current_photo_fallback');
     }
 }
 
@@ -260,7 +263,7 @@ function renderTimeControlPanel() {
     if (timerStartButton) timerStartButton.disabled = timerStartedForRound;
     timerPauseButton?.classList.toggle('is-hidden', !timerState.running);
     timerExtendButton?.classList.toggle('is-hidden', !timerState.running);
-    if (timerPauseButton) timerPauseButton.textContent = timerState.paused ? 'Fortsetzen' : 'Pause';
+    if (timerPauseButton) timerPauseButton.textContent = timerState.paused ? t('moderator.resume_button') : t('moderator.pause_button');
     if (timerExtendButton) timerExtendButton.textContent = `+${roundConfig.extend_seconds}s`;
 }
 
@@ -476,7 +479,7 @@ export async function updateMapPosition(record) {
             icon: createMarkerIcon(playerStyles[role].iconUrl)
         }).addTo(target.map);
 
-        marker.bindPopup(`${target.label}s Tipp`);
+        marker.bindPopup(tf('moderator.player_guess_label', { name: target.label }));
         target.setMarker(marker);
     }
 
@@ -547,7 +550,7 @@ async function initResolutionMap() {
     // the popup's own default auto-pan (which only nudges the view just
     // far enough for the popup to fit, not re-center it - see #113) would
     // otherwise undo that centering instead of leaving it alone.
-    locationMarker.bindPopup(currentPhoto.description || 'Bildposition', {autoPan: false}).openPopup();
+    locationMarker.bindPopup(currentPhoto.description || t('moderator.default_photo_position'), {autoPan: false}).openPopup();
 }
 
 async function showResolutionView() {
@@ -566,7 +569,7 @@ async function showResolutionView() {
         // when it's close to the map's previous center - see #113).
         resolutionMap.setView([lat, lng], 13, {animate: false});
         locationMarker.setLatLng([lat, lng]);
-        locationMarker.setPopupContent(currentPhoto.description || 'Bildposition');
+        locationMarker.setPopupContent(currentPhoto.description || t('moderator.default_photo_position'));
         locationMarker.openPopup();
         syncResolutionPlayerMarkers();
 
@@ -708,7 +711,7 @@ function updateCurrentPointDisplay() {
         const pointElement = playerPointElements[name];
         if (!pointElement) return;
 
-        pointElement.textContent = `${points} Punkte`;
+        pointElement.textContent = `${points} ${t('common.points_suffix')}`;
     });
 }
 
@@ -727,7 +730,7 @@ function showRoundResult(roundPlayers) {
         if (!row) return;
 
         row.querySelector('.result-player-name').textContent = result.name;
-        row.querySelector('.result-player-points').textContent = `${result.points} Punkte`;
+        row.querySelector('.result-player-points').textContent = `${result.points} ${t('common.points_suffix')}`;
     });
 
     roundResultView.classList.add('is-active');
@@ -755,15 +758,17 @@ export async function onGamestateUpdate(record) {
         playerLockedIn[role] = lockedIn;
         playerMapElements[role]?.classList.toggle('is-locked-in', lockedIn);
         playerMapElements[role]?.classList.toggle('is-input-disabled', playerInputLocked);
+        // Read by moderator.css's ::after { content: attr(...) } stamp.
+        playerMapElements[role]?.setAttribute('data-locked-in-label', t('moderator.locked_in_stamp'));
     });
     maybeAutoStopTimer();
 
     if (!playerInputLocked) {
-        lockPlayerInputButton.textContent = "Input Verbieten";
+        lockPlayerInputButton.textContent = t('moderator.deny_input_button');
         lockPlayerInputButton.style.backgroundColor = "red";
         lockPlayerInputButton.style.color = "white";
     } else {
-        lockPlayerInputButton.textContent = "Input Erlauben";
+        lockPlayerInputButton.textContent = t('moderator.allow_input_button');
         lockPlayerInputButton.style.backgroundColor = "green";
         lockPlayerInputButton.style.color = "white";
     }
@@ -804,8 +809,8 @@ function initEventListeners() {
 
     resetGameButton?.addEventListener('click', async () => {
         const confirmed = await confirmDialog(
-            'Spiel wirklich zurücksetzen? Der aktuelle Spielstand geht dabei verloren.',
-            { confirmLabel: 'Zurücksetzen' }
+            t('moderator.reset_confirm_text'),
+            { confirmLabel: t('moderator.reset_confirm_label') }
         );
         if (!confirmed) return;
 

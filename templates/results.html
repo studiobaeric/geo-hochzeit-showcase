@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
@@ -9,42 +9,43 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/icons/icon-results.svg') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icons/icon-results.svg') }}">
-    <title>Kartenquiz - Ergebnisse</title>
+    <title>{{ t('results.meta.title') }}</title>
     <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/results.css') }}">
 </head>
 <body>
+    <script>window.I18N = {{ i18n_json|safe }}; window.I18N_LOCALE = "{{ locale }}";</script>
     <div class="results-container">
-        <h1>🎉 Spiel beendet!</h1>
-        <p class="subtitle">Hier sind deine Ergebnisse:</p>
+        <h1>🎉 {{ t('results.heading') }}</h1>
+        <p class="subtitle">{{ t('results.subtitle') }}</p>
 
         <div class="score-summary">
             <div class="score-card" id="player1Card">
                 <span class="score-name" id="player1Name">player1</span>
-                <span class="score-points" id="player1Total">0 Punkte</span>
-                <span class="score-badge" id="player1Badge" aria-label="Sieger">🏆</span>
+                <span class="score-points" id="player1Total">0 {{ t('common.points_suffix') }}</span>
+                <span class="score-badge" id="player1Badge" aria-label="{{ t('results.winner_badge_aria') }}">🏆</span>
             </div>
             <div class="score-card" id="player2Card">
                 <span class="score-name" id="player2Name">player2</span>
-                <span class="score-points" id="player2Total">0 Punkte</span>
-                <span class="score-badge" id="player2Badge" aria-label="Sieger">🏆</span>
+                <span class="score-points" id="player2Total">0 {{ t('common.points_suffix') }}</span>
+                <span class="score-badge" id="player2Badge" aria-label="{{ t('results.winner_badge_aria') }}">🏆</span>
             </div>
         </div>
 
         <div class="stats-grid">
             <div class="stat-tile">
-                <span class="stat-label">Ø Distanz</span>
+                <span class="stat-label">{{ t('results.avg_distance_label') }}</span>
                 <span class="stat-value" id="avgDistance">–</span>
             </div>
             <div class="stat-tile">
-                <span class="stat-label">Nächster Tipp</span>
+                <span class="stat-label">{{ t('results.closest_guess_label') }}</span>
                 <span class="stat-value" id="closestGuess">–</span>
                 <span class="stat-caption" id="closestGuessCaption"></span>
             </div>
             <div class="stat-tile">
-                <span class="stat-label">Weitester Tipp</span>
+                <span class="stat-label">{{ t('results.furthest_guess_label') }}</span>
                 <span class="stat-value" id="furthestGuess">–</span>
                 <span class="stat-caption" id="furthestGuessCaption"></span>
             </div>
@@ -52,12 +53,12 @@
 
         <div class="round-list" id="roundList">
             <div class="empty-state">
-                <p>Keine Ergebnisse verfügbar</p>
+                <p>{{ t('results.no_results') }}</p>
             </div>
         </div>
 
         <div class="button-group">
-            <button class="btn-secondary" id="goHomeButton">Zur Startseite</button>
+            <button class="btn-secondary" id="goHomeButton">{{ t('results.go_home_button') }}</button>
         </div>
     </div>
 

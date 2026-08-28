@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0b1120">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/icons/icon-moderator.svg') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icons/icon-moderator.svg') }}">
-    <title>Moderator View</title>
+    <title>{{ t('moderator.meta.title') }}</title>
     <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}">
@@ -15,93 +15,94 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/confirm-dialog.css') }}">
 </head>
 <body>
+<script>window.I18N = {{ i18n_json|safe }}; window.I18N_LOCALE = "{{ locale }}";</script>
 <main id="moderatorApp" class="moderator-app">
     <div class="moderator-top">
-        <section class="player-stage player-stage-left" aria-label="Spieler links">
+        <section class="player-stage player-stage-left" aria-label="{{ t('moderator.player_left_aria') }}">
                 <div class="player-score-badge player-score-badge-player1">
                     <span class="player-score-marker" aria-hidden="true"></span>
-                    <span id="player1ScoreName" class="player-score-name">Spieler 1</span>
-                    <strong id="player1CurrentPoints" class="player-score-points">0 Punkte</strong>
+                    <span id="player1ScoreName" class="player-score-name">{{ t('common.player1_placeholder') }}</span>
+                    <strong id="player1CurrentPoints" class="player-score-points">0 {{ t('common.points_suffix') }}</strong>
                 </div>
-            <img id="player1Photo" alt="Bild_Spieler 1">
+            <img id="player1Photo" alt="{{ t('moderator.player_photo_alt_prefix') }}{{ t('common.player1_placeholder') }}">
         </section>
 
-        <section class="current-photo-stage" aria-label="Aktuelles Foto">
-            <img id="currentPhotoImage" class="current-photo" src="" alt="Aktuelles Spielerfoto">
-            <div id="currentPhotoFallback" class="photo-fallback">Aktuelles Foto</div>
+        <section class="current-photo-stage" aria-label="{{ t('moderator.current_photo_fallback') }}">
+            <img id="currentPhotoImage" class="current-photo" src="" alt="{{ t('moderator.current_photo_alt') }}">
+            <div id="currentPhotoFallback" class="photo-fallback">{{ t('moderator.current_photo_fallback') }}</div>
         </section>
 
-        <section class="player-stage player-stage-right" aria-label="Spieler rechts">
+        <section class="player-stage player-stage-right" aria-label="{{ t('moderator.player_right_aria') }}">
                 <div class="player-score-badge player-score-badge-player2">
                     <span class="player-score-marker" aria-hidden="true"></span>
-                    <span id="player2ScoreName" class="player-score-name">Spieler 2</span>
-                    <strong id="player2CurrentPoints" class="player-score-points">0 Punkte</strong>
+                    <span id="player2ScoreName" class="player-score-name">{{ t('common.player2_placeholder') }}</span>
+                    <strong id="player2CurrentPoints" class="player-score-points">0 {{ t('common.points_suffix') }}</strong>
                 </div>
-            <img id="player2Photo" alt="Bild_Spieler 2">
+            <img id="player2Photo" alt="{{ t('moderator.player_photo_alt_prefix') }}{{ t('common.player2_placeholder') }}">
         </section>
     </div>
 
     <div class="moderator-bottom">
-        <section class="map-panel map-panel-left" aria-label="Karte Spieler links">
+        <section class="map-panel map-panel-left" aria-label="{{ t('moderator.map_left_aria') }}">
             <div id="leftPlayerMap" class="moderator-map"></div>
         </section>
 
-        <section class="moderator-controls" aria-label="Moderator Steuerung">
+        <section class="moderator-controls" aria-label="{{ t('moderator.controls_aria') }}">
             <div class="round-indicator">
-                Runde: <span id="currentRound">1</span>
+                {{ t('moderator.round_prefix') }} <span id="currentRound">1</span>
             </div>
 
             <div id="timeControlPanel" class="time-control-panel">
-                <button type="button" id="lockPlayerInputButton" class="control-button">Spieler Input Erlauben</button>
+                <button type="button" id="lockPlayerInputButton" class="control-button">{{ t('moderator.lock_button_initial') }}</button>
 
                 <div id="countdownControls" class="countdown-controls is-hidden">
                     <div id="countdownDisplay" class="countdown-placeholder">--:--</div>
                     <div class="countdown-buttons">
-                        <button type="button" id="timerStartButton" class="control-button">Start</button>
-                        <button type="button" id="timerPauseButton" class="control-button is-hidden">Pause</button>
+                        <button type="button" id="timerStartButton" class="control-button">{{ t('moderator.timer_start_button') }}</button>
+                        <button type="button" id="timerPauseButton" class="control-button is-hidden">{{ t('moderator.pause_button') }}</button>
                         <button type="button" id="timerExtendButton" class="control-button is-hidden">+30s</button>
                     </div>
                 </div>
             </div>
 
-            <button type="button" id="mainControlButton" class="control-button">Runde auflösen</button>
-            <button type="button" id="resetGameButton" class="control-button is-danger">Spiel Zurücksetzen</button>
+            <button type="button" id="mainControlButton" class="control-button">{{ t('moderator.resolve_round_button') }}</button>
+            <button type="button" id="resetGameButton" class="control-button is-danger">{{ t('moderator.reset_game_button') }}</button>
         </section>
 
-        <section class="map-panel map-panel-right" aria-label="Karte Spieler rechts">
+        <section class="map-panel map-panel-right" aria-label="{{ t('moderator.map_right_aria') }}">
             <div id="rightPlayerMap" class="moderator-map"></div>
         </section>
     </div>
 </main>
 
-<section id="resolutionView" class="resolution-view" aria-label="Auflösung">
+<section id="resolutionView" class="resolution-view" aria-label="{{ t('moderator.resolution_aria') }}">
     <div id="resolutionMap" class="resolution-map"></div>
         <div class="resolution-distance resolution-distance-left resolution-distance-player1">
             <span class="resolution-distance-marker" aria-hidden="true"></span>
-            <strong id="player1ResolutionDistance">Spieler 1: -</strong>
+            <strong id="player1ResolutionDistance">{{ t('common.player1_placeholder') }}: -</strong>
         </div>
         <div class="resolution-distance resolution-distance-right resolution-distance-player2">
             <span class="resolution-distance-marker" aria-hidden="true"></span>
-            <strong id="player2ResolutionDistance">Spieler 2: -</strong>
+            <strong id="player2ResolutionDistance">{{ t('common.player2_placeholder') }}: -</strong>
         </div>
-    <button type="button" id="continueButton" class="continue-button">Weiter</button>
+    <button type="button" id="continueButton" class="continue-button">{{ t('moderator.continue_button') }}</button>
 </section>
 
-<section id="roundResultView" class="round-result-view" aria-label="Rundenergebnis">
+<section id="roundResultView" class="round-result-view" aria-label="{{ t('moderator.round_result_title') }}">
     <div class="result-card">
-        <h2>Rundenergebnis</h2>
+        <h2>{{ t('moderator.round_result_title') }}</h2>
 
         <div class="result-row">
-            <span id="resultRowNamePlayer1" class="result-player-name">Spieler 1</span>
-            <strong class="result-player-points">0 Punkte</strong>
+            <span id="resultRowNamePlayer1" class="result-player-name">{{ t('common.player1_placeholder') }}</span>
+            <strong class="result-player-points">0 {{ t('common.points_suffix') }}</strong>
         </div>
 
         <div class="result-row">
-            <span id="resultRowNamePlayer2" class="result-player-name">Spieler 2</span>
-            <strong class="result-player-points">0 Punkte</strong>
+            <span id="resultRowNamePlayer2" class="result-player-name">{{ t('common.player2_placeholder') }}</span>
+            <strong class="result-player-points">0 {{ t('common.points_suffix') }}</strong>
         </div>
 
-        <button type="button" id="resultContinueButton" class="result-button">Weiter</button>
+        <button type="button" id="resultContinueButton" class="result-button">{{ t('moderator.continue_button') }}</button>
     </div>
 </section>
 

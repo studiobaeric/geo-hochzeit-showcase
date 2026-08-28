@@ -12,6 +12,7 @@
 // screen (projected via beamer, so it needs full quality); they fall back
 // to the same downscaled copy for photos uploaded before this field existed.
 import { PHOTO_1, PHOTO_2 } from '../config/players.js';
+import { tf } from './i18n.js';
 
 const CONFIG_ENDPOINT = '/api/player-config';
 
@@ -51,7 +52,7 @@ export async function uploadPlayerPhoto(role, file) {
     const response = await fetch(`${CONFIG_ENDPOINT}/photo/${role}`, { method: 'POST', body: formData });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-        throw new Error(data.error || `Hochladen fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.upload_failed', { status: response.status }));
     }
 
     cache = toCache(data);

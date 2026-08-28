@@ -3,6 +3,8 @@
 // and writes) is the single source of truth for round photos - the same
 // file static/js/game.js, static/js/moderator.js and
 // static/js/end_of_game.js load directly to run the actual game.
+import { tf } from './i18n.js';
+
 const LIST_ENDPOINT = '/api/round-photos';
 const EXIF_ENDPOINT = '/api/round-photos/exif-location';
 const REORDER_ENDPOINT = '/api/round-photos/reorder';
@@ -10,7 +12,7 @@ const REORDER_ENDPOINT = '/api/round-photos/reorder';
 export async function loadRoundPhotos() {
     const response = await fetch(LIST_ENDPOINT);
     if (!response.ok) {
-        throw new Error(`Laden fehlgeschlagen (${response.status})`);
+        throw new Error(tf('api.load_failed', { status: response.status }));
     }
     return response.json();
 }
@@ -36,7 +38,7 @@ export async function uploadRoundPhoto({ file, description, lat, lng }) {
     const response = await fetch(LIST_ENDPOINT, { method: 'POST', body: formData });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-        throw new Error(data.error || `Hochladen fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.upload_failed', { status: response.status }));
     }
     return data;
 }
@@ -49,7 +51,7 @@ export async function updateRoundPhoto(id, { description, lat, lng }) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-        throw new Error(data.error || `Speichern fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.save_failed', { status: response.status }));
     }
     return data;
 }
@@ -62,7 +64,7 @@ export async function reorderRoundPhotos(order) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-        throw new Error(data.error || `Sortieren fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.sort_failed', { status: response.status }));
     }
     return data;
 }
@@ -71,6 +73,6 @@ export async function deleteRoundPhoto(id) {
     const response = await fetch(`${LIST_ENDPOINT}/${id}`, { method: 'DELETE' });
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Löschen fehlgeschlagen (${response.status})`);
+        throw new Error(data.error || tf('api.delete_failed', { status: response.status }));
     }
 }

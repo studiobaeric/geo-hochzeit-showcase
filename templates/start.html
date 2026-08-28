@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -164,37 +164,120 @@
             transform: rotate(30deg);
         }
 
+        .language-menu {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+        }
+
+        .language-link-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: var(--color-bg-muted);
+            color: var(--color-text-muted);
+            font-size: 1.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .language-link-button:hover {
+            background: var(--color-border);
+            transform: scale(1.08);
+        }
+
+        .language-menu-list {
+            position: absolute;
+            top: 48px;
+            left: 0;
+            margin: 0;
+            padding: 6px;
+            list-style: none;
+            background: var(--color-bg-elevated);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            min-width: 160px;
+            z-index: 20;
+        }
+
+        .language-menu-list[hidden] {
+            display: none;
+        }
+
+        .language-menu-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            color: var(--color-text);
+            font-size: 0.95em;
+            white-space: nowrap;
+        }
+
+        .language-menu-item:hover {
+            background: var(--color-bg-muted);
+        }
+
+        .language-menu-item.is-active {
+            font-weight: 600;
+            color: var(--color-accent);
+        }
+
+        .language-menu-flag {
+            width: 20px;
+            height: 14px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 2px;
+            box-shadow: 0 0 0 1px var(--color-border);
+        }
+
     </style>
 </head>
 <body>
+<script>window.I18N = {{ i18n_json|safe }}; window.I18N_LOCALE = "{{ locale }}";</script>
 <div class="start-container">
-    <button type="button" class="config-link-button" id="configButton" aria-label="Konfiguration öffnen" title="Konfiguration">⚙️</button>
+    <div class="language-menu">
+        <button type="button" class="language-link-button" id="languageButton" aria-label="{{ t('start.language_button_aria') }}" title="{{ t('start.language_button_aria') }}" aria-haspopup="listbox" aria-expanded="false">🌐</button>
+        <ul class="language-menu-list" id="languageMenuList" role="listbox" aria-label="{{ t('start.language_button_aria') }}" hidden>
+            {% for code, name, flag_url in available_locales %}
+            <li role="option" aria-selected="{{ 'true' if code == locale else 'false' }}" data-locale="{{ code }}" class="language-menu-item{% if code == locale %} is-active{% endif %}"><img class="language-menu-flag" src="{{ flag_url }}" alt="">{{ name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <button type="button" class="config-link-button" id="configButton" aria-label="{{ t('start.config_button_aria') }}" title="{{ t('config.heading') }}">⚙️</button>
     <h1>Kartenquiz</h1>
-    <p>Erraten Sie die Orte aus den Hochzeitsfotos!</p>
+    <p>{{ t('start.subtitle') }}</p>
 
     <div class="info-box">
-        <h3>Wie man spielt:</h3>
+        <h3>{{ t('start.how_to_play_title') }}</h3>
         <ul>
-            <li>Schaue dir das Hochzeitsfoto an</li>
-            <li>Markiere deine Vermutung auf der Karte</li>
-            <li>Erhalte Punkte basierend auf der Nähe zur richtigen Position</li>
-            <li>Je näher dran, desto mehr Punkte!</li>
+            <li>{{ t('start.how_to_play.step1') }}</li>
+            <li>{{ t('start.how_to_play.step2') }}</li>
+            <li>{{ t('start.how_to_play.step3') }}</li>
+            <li>{{ t('start.how_to_play.step4') }}</li>
         </ul>
     </div>
 
-    <div class="role-buttons" aria-label="Rolle auswählen">
-        <button class="start-button" id="player1Button" data-name="player1">Spieler 1</button>
-        <button class="start-button" id="player2Button" data-name="player2">Spieler 2</button>
-        <button class="start-button moderator" data-name="Moderator">Moderator</button>
+    <div class="role-buttons" aria-label="{{ t('start.role_aria') }}">
+        <button class="start-button" id="player1Button" data-name="player1">{{ t('start.player1_button') }}</button>
+        <button class="start-button" id="player2Button" data-name="player2">{{ t('start.player2_button') }}</button>
+        <button class="start-button moderator" data-name="Moderator">{{ t('start.moderator_button') }}</button>
     </div>
 </div>
 
 <script type="module">
     import { loadDisplayNames } from "{{ url_for('static', filename='js/player-names.js') }}";
     import { loadThemeConfig, subscribeThemeUpdates } from "{{ url_for('static', filename='js/theme.js') }}";
+    import { subscribeLocaleUpdates } from "{{ url_for('static', filename='js/i18n.js') }}";
 
     loadThemeConfig();
     subscribeThemeUpdates();
+    subscribeLocaleUpdates();
 
     const names = await loadDisplayNames();
     document.getElementById('player1Button').textContent = names.player1;
@@ -202,6 +285,56 @@
 
     document.getElementById('configButton').addEventListener('click', () => {
         window.location.href = '/config';
+    });
+
+    const languageButton = document.getElementById('languageButton');
+    const languageMenuList = document.getElementById('languageMenuList');
+
+    function closeLanguageMenu() {
+        languageMenuList.hidden = true;
+        languageButton.setAttribute('aria-expanded', 'false');
+    }
+
+    languageButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isOpen = !languageMenuList.hidden;
+        if (isOpen) {
+            closeLanguageMenu();
+        } else {
+            languageMenuList.hidden = false;
+            languageButton.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    // Locale changes re-render every server-side string, so unlike the
+    // theme toggle there's nothing to apply live here - just persist the
+    // choice and reload so this page (and, via the locale_config SSE event
+    // other pages already listen for, every other connected screen) picks
+    // up the new language.
+    languageMenuList.addEventListener('click', async (event) => {
+        const item = event.target.closest('.language-menu-item');
+        if (!item) return;
+        closeLanguageMenu();
+        try {
+            await fetch('/api/locale-config', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ locale: item.dataset.locale })
+            });
+        } catch (error) {
+            console.error('Konnte Sprache nicht speichern:', error);
+        }
+        window.location.reload();
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!languageMenuList.hidden && !event.target.closest('.language-menu')) {
+            closeLanguageMenu();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeLanguageMenu();
     });
 
     async function startGame(name) {

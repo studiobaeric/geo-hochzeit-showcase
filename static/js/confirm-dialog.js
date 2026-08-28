@@ -2,6 +2,8 @@
 // accidental click on the moderator's reset button discarded the running
 // game with no way to undo it. Builds one overlay lazily and reuses it, the
 // same lazy-singleton pattern as position-picker.js.
+import { t } from './i18n.js';
+
 let dom = null;
 let resolveFn = null;
 
@@ -47,7 +49,7 @@ function finish(result) {
 }
 
 // Resolves true if the user confirms, false if they cancel or dismiss it.
-export function confirmDialog(message, { confirmLabel = 'Bestätigen', cancelLabel = 'Abbrechen' } = {}) {
+export function confirmDialog(message, { confirmLabel = t('common.confirm'), cancelLabel = t('common.cancel') } = {}) {
     const d = buildDom();
     d.message.textContent = message;
     d.confirmButton.textContent = confirmLabel;

@@ -3,6 +3,7 @@ import {loadNextRound, updateView, onRoundConfigUpdate as onPlayerRoundConfigUpd
 import {getDisplayNames} from './player-names.js';
 import {onThemeConfigEvent} from './theme.js';
 import {onMapLabelsConfigEvent} from './map-labels-config.js';
+import {onLocaleConfigEvent} from './i18n.js';
 
 const API_BASE = '/api';
 let gamestateRecord = null;
@@ -130,6 +131,13 @@ function initEventStream() {
     // at createBaseMapLayer() time), not one already on screen.
     eventSource.addEventListener('map_labels_config', (event) => {
         onMapLabelsConfigEvent(JSON.parse(event.data));
+    });
+
+    // Also applies to every role alike - see theme_config above. A locale
+    // change re-renders every server-side string, so onLocaleConfigEvent
+    // reloads the page rather than trying to re-translate the DOM in place.
+    eventSource.addEventListener('locale_config', (event) => {
+        onLocaleConfigEvent(JSON.parse(event.data));
     });
 
     eventSource.onerror = (err) => {

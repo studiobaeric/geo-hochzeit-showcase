@@ -17,14 +17,16 @@
 // Both resolve a Promise with the picked value, or null if the user
 // cancelled - callers don't need to know anything about Leaflet.
 import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon } from './basemap.js';
+import { t, tf } from './i18n.js';
 
 const ACCENT_COLOR = '#4f46e5';
 const DEFAULT_CENTER = [49.3690, 9.5436];
 const DEFAULT_ZOOM = 6;
 const DEFAULT_BBOX_BOUNDS = [[32, -25], [72, 45]]; // roughly Europe
 
-const OSM_ATTRIBUTION =
-    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende';
+function osmAttribution() {
+    return `&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>${t('position_picker.osm_attribution_suffix')}`;
+}
 
 let dom = null;
 let map = null;
@@ -63,45 +65,45 @@ function buildDom() {
         <div class="position-picker-dialog" role="dialog" aria-modal="true">
             <div class="position-picker-header">
                 <h3 class="position-picker-title"></h3>
-                <button type="button" class="position-picker-close" aria-label="Schließen">&times;</button>
+                <button type="button" class="position-picker-close" aria-label="${t('common.close')}">&times;</button>
             </div>
             <p class="position-picker-hint"></p>
             <p class="position-picker-notice" hidden></p>
             <div class="position-picker-map"></div>
             <div class="position-picker-manual-point field-row" hidden>
                 <div class="field">
-                    <label>Breitengrad (lat)</label>
+                    <label>${t('position_picker.lat_label')}</label>
                     <input type="number" step="any" min="-90" max="90" class="position-picker-manual-lat">
                 </div>
                 <div class="field">
-                    <label>Längengrad (lng)</label>
+                    <label>${t('position_picker.lng_label')}</label>
                     <input type="number" step="any" min="-180" max="180" class="position-picker-manual-lng">
                 </div>
             </div>
             <div class="position-picker-manual-bbox" hidden>
                 <div class="position-picker-manual-bbox-grid">
                     <div class="field">
-                        <label>Min. Längengrad (min_lon)</label>
+                        <label>${t('position_picker.min_lon_label')}</label>
                         <input type="number" step="any" min="-180" max="180" class="position-picker-manual-minlon">
                     </div>
                     <div class="field">
-                        <label>Min. Breitengrad (min_lat)</label>
+                        <label>${t('position_picker.min_lat_label')}</label>
                         <input type="number" step="any" min="-90" max="90" class="position-picker-manual-minlat">
                     </div>
                     <div class="field">
-                        <label>Max. Längengrad (max_lon)</label>
+                        <label>${t('position_picker.max_lon_label')}</label>
                         <input type="number" step="any" min="-180" max="180" class="position-picker-manual-maxlon">
                     </div>
                     <div class="field">
-                        <label>Max. Breitengrad (max_lat)</label>
+                        <label>${t('position_picker.max_lat_label')}</label>
                         <input type="number" step="any" min="-90" max="90" class="position-picker-manual-maxlat">
                     </div>
                 </div>
-                <button type="button" class="map-pick-button position-picker-use-view">📐 Aktuellen Kartenausschnitt übernehmen</button>
+                <button type="button" class="map-pick-button position-picker-use-view">📐 ${t('position_picker.use_view_button')}</button>
             </div>
             <div class="position-picker-actions">
-                <button type="button" class="config-button back position-picker-cancel">Abbrechen</button>
-                <button type="button" class="config-button save position-picker-confirm" disabled>✓ Übernehmen</button>
+                <button type="button" class="config-button back position-picker-cancel">${t('common.cancel')}</button>
+                <button type="button" class="config-button save position-picker-confirm" disabled>✓ ${t('position_picker.confirm_button')}</button>
             </div>
         </div>`;
     document.body.appendChild(overlay);
@@ -186,7 +188,7 @@ async function attachOfflineLayer(targetMap, mapEl) {
 function attachOnlineLayer(targetMap) {
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: OSM_ATTRIBUTION
+        attribution: osmAttribution()
     }).addTo(targetMap);
 }
 
@@ -206,8 +208,8 @@ export function pickPoint({ lat, lng, title } = {}) {
     const d = buildDom();
     const hasInitial = Number.isFinite(lat) && Number.isFinite(lng);
 
-    d.title.textContent = title ? `Position wählen – ${title}` : 'Position auf der Karte wählen';
-    d.hint.textContent = 'Karte antippen, die Markierung ziehen oder die Koordinaten unten eintragen.';
+    d.title.textContent = title ? tf('position_picker.point_title_with_name', { name: title }) : t('position_picker.point_title_default');
+    d.hint.textContent = t('position_picker.point_hint');
     d.manualPointWrap.hidden = false;
     d.manualBboxWrap.hidden = true;
     d.notice.hidden = true;
@@ -263,8 +265,7 @@ export function pickPoint({ lat, lng, title } = {}) {
             } else {
                 attachOnlineLayer(map);
                 d.notice.hidden = false;
-                d.notice.textContent =
-                    'ℹ️ Die Offline-Karte wurde noch nicht heruntergeladen – Online-Karte wird angezeigt.';
+                d.notice.textContent = `ℹ️ ${t('position_picker.offline_map_notice')}`;
             }
         });
 
@@ -280,10 +281,8 @@ export function pickBBox({ bbox, title } = {}) {
     const d = buildDom();
     const parsed = parseBBox(bbox);
 
-    d.title.textContent = title ? `Kartenausschnitt wählen – ${title}` : 'Kartenausschnitt wählen';
-    d.hint.textContent =
-        'Eckpunkte ziehen, die Karte verschieben/zoomen und übernehmen, oder den Kartenausschnitt ' +
-        'unten eintragen.';
+    d.title.textContent = title ? tf('position_picker.bbox_title_with_name', { name: title }) : t('position_picker.bbox_title_default');
+    d.hint.textContent = t('position_picker.bbox_hint');
     d.manualPointWrap.hidden = true;
     d.manualBboxWrap.hidden = false;
     d.notice.hidden = true;

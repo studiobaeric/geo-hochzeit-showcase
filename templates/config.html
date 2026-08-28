@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/icons/icon-config.svg') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icons/icon-config.svg') }}">
-    <title>Konfiguration – Kartenquiz</title>
+    <title>{{ t('config.meta.title') }}</title>
     <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}"/>
@@ -1129,132 +1129,117 @@
     </style>
 </head>
 <body>
+<script>window.I18N = {{ i18n_json|safe }}; window.I18N_LOCALE = "{{ locale }}";</script>
 <div class="config-container">
-    <h1>⚙️ Konfiguration</h1>
-    <p>Passe die Spieleinstellungen an.</p>
+    <h1>⚙️ {{ t('config.heading') }}</h1>
+    <p>{{ t('config.subtitle') }}</p>
 
     <form id="configForm">
         <div class="config-section">
-            <h2>Spieler</h2>
+            <h2>{{ t('config.player.section_title') }}</h2>
             <div class="player-photo-grid">
                 <div class="player-photo-slot">
                     <div class="photo-frame" id="player1PhotoFrame">
-                        <img alt="Spielerfoto 1">
-                        <label class="photo-edit-button" title="Foto ändern" aria-label="Foto ändern">
+                        <img alt="{{ t('config.player.photo_alt_1') }}">
+                        <label class="photo-edit-button" title="{{ t('config.player.change_photo') }}" aria-label="{{ t('config.player.change_photo') }}">
                             📷
                             <input type="file" accept="image/*" id="player1PhotoInput" hidden>
                         </label>
                     </div>
                     <p class="photo-upload-status" id="player1PhotoStatus"></p>
                     <div class="field">
-                        <input type="text" id="player1Name" name="player1Name" maxlength="40" required aria-label="Name Spieler 1" placeholder="Name">
+                        <input type="text" id="player1Name" name="player1Name" maxlength="40" required aria-label="{{ t('config.player.name_label_1') }}" placeholder="{{ t('config.player.name_placeholder') }}">
                     </div>
                 </div>
                 <div class="player-photo-slot">
                     <div class="photo-frame" id="player2PhotoFrame">
-                        <img alt="Spielerfoto 2">
-                        <label class="photo-edit-button" title="Foto ändern" aria-label="Foto ändern">
+                        <img alt="{{ t('config.player.photo_alt_2') }}">
+                        <label class="photo-edit-button" title="{{ t('config.player.change_photo') }}" aria-label="{{ t('config.player.change_photo') }}">
                             📷
                             <input type="file" accept="image/*" id="player2PhotoInput" hidden>
                         </label>
                     </div>
                     <p class="photo-upload-status" id="player2PhotoStatus"></p>
                     <div class="field">
-                        <input type="text" id="player2Name" name="player2Name" maxlength="40" required aria-label="Name Spieler 2" placeholder="Name">
+                        <input type="text" id="player2Name" name="player2Name" maxlength="40" required aria-label="{{ t('config.player.name_label_2') }}" placeholder="{{ t('config.player.name_placeholder') }}">
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="config-section">
-            <h2>Darstellung</h2>
+            <h2>{{ t('config.appearance.section_title') }}</h2>
             <div class="toggle-row">
-                <span class="toggle-row-label">☀️ / 🌙 Dunkelmodus</span>
+                <span class="toggle-row-label">☀️ / 🌙 {{ t('config.appearance.dark_mode_label') }}</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="themeModeToggle" aria-label="Dunkelmodus umschalten">
+                    <input type="checkbox" id="themeModeToggle" aria-label="{{ t('config.appearance.dark_mode_aria') }}">
                     <span class="toggle-switch-slider"></span>
                 </label>
             </div>
 
             <div class="toggle-row">
-                <span class="toggle-row-label">🗺️ Karte ohne Ortsnamen</span>
+                <span class="toggle-row-label">🗺️ {{ t('config.appearance.hide_labels_label') }}</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="hideCityLabelsInput" aria-label="Karte ohne Ortsnamen umschalten">
+                    <input type="checkbox" id="hideCityLabelsInput" aria-label="{{ t('config.appearance.hide_labels_aria') }}">
                     <span class="toggle-switch-slider"></span>
                 </label>
             </div>
             <p class="field-hint">
-                Blendet Städte-, Regionen- und Ländernamen auf der Spielkarte aus,
-                damit sie nicht beim Raten verraten, wo man ist.
+                {{ t('config.appearance.hide_labels_hint') }}
             </p>
         </div>
 
         <div class="config-section">
-            <h2>Rundenzeit</h2>
+            <h2>{{ t('config.round.section_title') }}</h2>
             <div class="mode-options">
                 <label class="mode-option">
                     <input type="radio" name="roundMode" value="manual" id="roundModeManual">
-                    <span>Manuell – Moderator löst die Runde per Klick auf</span>
+                    <span>{{ t('config.round.mode_manual') }}</span>
                 </label>
                 <label class="mode-option">
                     <input type="radio" name="roundMode" value="countdown" id="roundModeCountdown">
-                    <span>Countdown – Runde läuft automatisch aus</span>
+                    <span>{{ t('config.round.mode_countdown') }}</span>
                 </label>
             </div>
             <div class="field" id="roundDurationField">
-                <label for="roundDuration">Zeitlimit pro Runde (Sekunden)</label>
+                <label for="roundDuration">{{ t('config.round.duration_label') }}</label>
                 <input type="number" id="roundDuration" name="roundDuration" min="5" max="3600" step="1" required>
             </div>
             <div class="field" id="roundExtendField">
-                <label for="roundExtend">Verlängerung pro Klick (Sekunden)</label>
+                <label for="roundExtend">{{ t('config.round.extend_label') }}</label>
                 <input type="number" id="roundExtend" name="roundExtend" min="1" max="600" step="1" required>
             </div>
         </div>
 
         <div class="config-section">
-            <h2>Kartendaten</h2>
+            <h2>{{ t('config.map.section_title') }}</h2>
             <p class="field-hint">
-                Kartenausschnitte von grob nach fein anlegen - z.B. weltweit mit
-                wenig Detail für die Übersicht, dann einzelne Orte in hohem
-                Detail. Für alle Fotostandorte (siehe Rundenfotos) wird beim
-                Herunterladen automatisch hohes Detail sichergestellt, auch
-                wenn ein Ausschnitt sie eigentlich nicht abdeckt.
+                {{ t('config.map.hint') }}
             </p>
             <div class="overview-map-wrap">
-                <h3>Übersichtskarte</h3>
+                <h3>{{ t('config.map.overview_title') }}</h3>
                 <p class="field-hint">
-                    Zeigt auf einen Blick, welche Bereiche bereits
-                    heruntergeladen sind und welche nur als Kartenausschnitt
-                    geplant, aber noch nicht heruntergeladen sind. Die Farbe
-                    zeigt den Detailgrad. Diese Übersichtskarte selbst
-                    braucht keine heruntergeladenen Kartendaten und steht
-                    immer zur Verfügung, auch ganz ohne Internetverbindung.
+                    {{ t('config.map.overview_hint') }}
                 </p>
                 <div class="overview-map" id="overviewMap"></div>
                 <div class="overview-map-legend" id="overviewMapLegend"></div>
             </div>
 
             <div class="region-list" id="regionList"></div>
-            <button type="button" class="add-region-button" id="addRegionButton">+ weiteren Kartenausschnitt hinzufügen</button>
+            <button type="button" class="add-region-button" id="addRegionButton">+ {{ t('config.map.add_region_button') }}</button>
 
             <div class="field">
-                <label for="mapBuildDate">Protomaps-Build-Datum (optional)</label>
+                <label for="mapBuildDate">{{ t('config.map.build_date_label') }}</label>
                 <input type="text" id="mapBuildDate" name="mapBuildDate" pattern="\d{8}" maxlength="8"
-                       placeholder="leer = automatisch neuester Stand">
+                       placeholder="{{ t('config.map.build_date_placeholder') }}">
                 <p class="field-hint">
-                    Leer lassen, um beim Herunterladen automatisch den
-                    neuesten verfügbaren Stand zu verwenden (empfohlen).
-                    Protomaps hält tägliche Builds nur ca. 5 Tage vor, daher
-                    wird ein hier fest eingetragenes Datum irgendwann
-                    ungültig. Nur zum gezielten Festlegen eines bestimmten
-                    Standes ein Datum im Format JJJJMMTT eintragen (z.B.
-                    20260810) - Übersicht der verfügbaren Daten auf
+                    {{ t('config.map.build_date_hint') }}
                     <a href="https://maps.protomaps.com/builds/" target="_blank" rel="noopener">maps.protomaps.com/builds</a>.
                 </p>
             </div>
 
             <div class="config-buttons">
-                <button type="button" class="config-button build" id="downloadMapButton">🗺️ Karte jetzt herunterladen</button>
+                <button type="button" class="config-button build" id="downloadMapButton">🗺️ {{ t('config.map.download_button') }}</button>
             </div>
             <div class="build-status" id="buildStatus" role="status" aria-live="polite" hidden></div>
             <div class="build-progress" id="buildProgress" hidden>
@@ -1265,51 +1250,42 @@
         </div>
 
         <div class="config-section">
-            <h2>Rundenfotos</h2>
+            <h2>{{ t('config.photos.section_title') }}</h2>
             <p class="field-hint">
-                Beliebig viele Fotos mit dem zu erratenden Ort - keine
-                Obergrenze. Beim Auswählen einer Datei wird, falls
-                vorhanden, die GPS-Position aus den Bilddaten automatisch
-                ins Positionsfeld übernommen; sie lässt sich danach
-                trotzdem frei ändern. Die Reihenfolge der Fotos legt die
-                Rundenreihenfolge im Spiel fest - mit den ↑/↓-Pfeilen lässt
-                sie sich jederzeit ändern. Der Bereich ist standardmäßig
-                verborgen und wird erst nach Klick auf die
-                Spoiler-Warnung sichtbar, damit auf einem geteilten
-                Bildschirm nichts versehentlich verraten wird.
+                {{ t('config.photos.hint') }}
             </p>
 
             <div class="section-spoiler" id="photosSectionSpoiler">
                 <div class="section-spoiler-warning">
-                    <p>⚠️ Dieser Bereich enthält die Rundenfotos.</p>
-                    <button type="button" class="config-button build" id="photosSectionRevealButton">👁 Bereich anzeigen</button>
+                    <p>⚠️ {{ t('config.photos.spoiler_warning') }}</p>
+                    <button type="button" class="config-button build" id="photosSectionRevealButton">{{ t('common.reveal_section') }}</button>
                 </div>
 
                 <div class="section-spoiler-content">
-                    <button type="button" class="section-spoiler-hide-button" id="photosSectionHideButton">🙈 Wieder verbergen</button>
+                    <button type="button" class="section-spoiler-hide-button" id="photosSectionHideButton">{{ t('common.hide_section') }}</button>
 
                     <div class="round-photo-list" id="roundPhotoList"></div>
 
                     <div class="round-photo-add">
                         <label class="upload-button">
-                            ➕ Neues Rundenfoto hinzufügen
+                            ➕ {{ t('config.photos.add_button') }}
                             <input type="file" accept="image/*" id="newRoundPhotoFile" hidden>
                         </label>
                         <div class="round-photo-add-fields is-hidden" id="roundPhotoAddFields">
                             <div class="photo-frame" id="newRoundPhotoFrame">
-                                <img id="newRoundPhotoPreview" alt="Neues Rundenfoto">
+                                <img id="newRoundPhotoPreview" alt="{{ t('config.photos.new_photo_alt') }}">
                             </div>
                             <div class="field">
-                                <label for="newRoundPhotoDescription">Beschreibung</label>
+                                <label for="newRoundPhotoDescription">{{ t('config.photos.description_label') }}</label>
                                 <input type="text" id="newRoundPhotoDescription" maxlength="200">
                             </div>
                             <input type="hidden" id="newRoundPhotoLat">
                             <input type="hidden" id="newRoundPhotoLng">
-                            <button type="button" class="map-pick-button" id="newRoundPhotoPickButton">📍 Position auf Karte wählen</button>
+                            <button type="button" class="map-pick-button" id="newRoundPhotoPickButton">📍 {{ t('config.photos.pick_position_button') }}</button>
                             <p class="field-hint" id="newRoundPhotoGpsHint"></p>
                             <div class="round-photo-add-buttons">
-                                <button type="button" class="config-button build" id="addRoundPhotoButton">Foto hinzufügen</button>
-                                <button type="button" class="icon-button" id="cancelRoundPhotoButton" title="Abbrechen, ohne das Foto hinzuzufügen" aria-label="Abbrechen, ohne das Foto hinzuzufügen">✕</button>
+                                <button type="button" class="config-button build" id="addRoundPhotoButton">{{ t('config.photos.add_photo_button') }}</button>
+                                <button type="button" class="icon-button" id="cancelRoundPhotoButton" title="{{ t('config.photos.cancel_add_button') }}" aria-label="{{ t('config.photos.cancel_add_button') }}">✕</button>
                             </div>
                             <p class="status-message" id="newRoundPhotoStatus"></p>
                         </div>
@@ -1319,48 +1295,44 @@
         </div>
 
         <div class="config-section">
-            <h2>Host-Verbindung</h2>
+            <h2>{{ t('config.host.section_title') }}</h2>
             <p class="field-hint">
-                IP-Adresse und QR-Code, mit denen Gäste (z. B. auf einem
-                Tablet) das Spiel im selben WLAN direkt öffnen können. Der
-                Bereich ist standardmäßig verborgen, damit der QR-Code
-                nicht versehentlich von jemandem gescannt wird, der nicht
-                mitspielen soll.
+                {{ t('config.host.hint') }}
             </p>
 
             <div class="section-spoiler" id="hostConnectionSpoiler">
                 <div class="section-spoiler-warning">
-                    <p>⚠️ Dieser Bereich zeigt einen QR-Code zum Beitreten.</p>
-                    <button type="button" class="config-button build" id="hostConnectionRevealButton">👁 Bereich anzeigen</button>
+                    <p>⚠️ {{ t('config.host.spoiler_warning') }}</p>
+                    <button type="button" class="config-button build" id="hostConnectionRevealButton">{{ t('common.reveal_section') }}</button>
                 </div>
 
                 <div class="section-spoiler-content">
-                    <button type="button" class="section-spoiler-hide-button" id="hostConnectionHideButton">🙈 Wieder verbergen</button>
+                    <button type="button" class="section-spoiler-hide-button" id="hostConnectionHideButton">{{ t('common.hide_section') }}</button>
 
                     <div class="host-connection-info">
                         <div class="host-connection-qrcode" id="hostConnectionQrCode"></div>
-                        <p class="host-connection-url" id="hostConnectionUrl">Lade Adresse …</p>
+                        <p class="host-connection-url" id="hostConnectionUrl">{{ t('config.host.loading_address') }}</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="config-buttons">
-            <button type="button" class="config-button back" id="backButton">← Zurück zur Startseite</button>
+            <button type="button" class="config-button back" id="backButton">← {{ t('config.buttons.back') }}</button>
         </div>
 
-        <button type="submit" class="config-button save floating-save-button" id="mainSaveButton">💾 Speichern</button>
+        <button type="submit" class="config-button save floating-save-button" id="mainSaveButton">💾 {{ t('common.save') }}</button>
 
         <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
     </form>
 
     <div class="unsaved-confirm-overlay" id="unsavedConfirmOverlay">
         <div class="unsaved-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsavedConfirmTitle">
-            <h3 class="unsaved-confirm-title" id="unsavedConfirmTitle">Ungespeicherte Änderungen</h3>
-            <p class="unsaved-confirm-text">Es gibt ungespeicherte Änderungen. Wenn du jetzt verlässt, gehen sie verloren.</p>
+            <h3 class="unsaved-confirm-title" id="unsavedConfirmTitle">{{ t('config.unsaved.title') }}</h3>
+            <p class="unsaved-confirm-text">{{ t('config.unsaved.text') }}</p>
             <div class="unsaved-confirm-actions">
-                <button type="button" class="config-button back" id="unsavedConfirmStay">Weiter bearbeiten</button>
-                <button type="button" class="config-button danger" id="unsavedConfirmLeave">Verwerfen und verlassen</button>
+                <button type="button" class="config-button back" id="unsavedConfirmStay">{{ t('config.unsaved.stay') }}</button>
+                <button type="button" class="config-button danger" id="unsavedConfirmLeave">{{ t('config.unsaved.leave') }}</button>
             </div>
         </div>
     </div>
@@ -1388,6 +1360,7 @@
     } from "{{ url_for('static', filename='js/photo-config.js') }}";
     import { pickPoint, pickBBox } from "{{ url_for('static', filename='js/position-picker.js') }}";
     import { loadHostInfo } from "{{ url_for('static', filename='js/host-connection.js') }}";
+    import { t } from "{{ url_for('static', filename='js/i18n.js') }}";
     import { createMapOverview } from "{{ url_for('static', filename='js/map-overview.js') }}";
 
     const player1Input = document.getElementById('player1Name');
@@ -1530,21 +1503,21 @@
     // as a labelled dropdown (what it looks like / roughly how big the
     // download gets) rather than a bare number input.
     const ZOOM_LEVEL_LABELS = [
-        [0, 'Kontinente'],
-        [1, 'Kontinente'],
-        [2, 'Kontinente / große Länder'],
-        [3, 'Länder'],
-        [4, 'Länder'],
-        [5, 'Bundesländer / Regionen (Weltübersicht, wenige MB)'],
-        [6, 'Bundesländer / Regionen'],
-        [7, 'Landkreise'],
-        [8, 'Städte im Überblick'],
-        [9, 'Städte im Überblick'],
-        [10, 'Stadt-Ebene, Standard (~1.4 GB für ganz Europa)'],
-        [11, 'Hauptstraßennetz (~2.9 GB für ganz Europa)'],
-        [12, 'Die meisten Straßen (~6.5 GB für ganz Europa)'],
-        [13, 'Jede Nebenstraße (~13 GB für ganz Europa)'],
-        [14, 'Maximale Detailtiefe']
+        [0, t('config.map.zoom.0')],
+        [1, t('config.map.zoom.1')],
+        [2, t('config.map.zoom.2')],
+        [3, t('config.map.zoom.3')],
+        [4, t('config.map.zoom.4')],
+        [5, t('config.map.zoom.5')],
+        [6, t('config.map.zoom.6')],
+        [7, t('config.map.zoom.7')],
+        [8, t('config.map.zoom.8')],
+        [9, t('config.map.zoom.9')],
+        [10, t('config.map.zoom.10')],
+        [11, t('config.map.zoom.11')],
+        [12, t('config.map.zoom.12')],
+        [13, t('config.map.zoom.13')],
+        [14, t('config.map.zoom.14')]
     ];
 
     let regionsState = [];
@@ -1588,15 +1561,15 @@
             const header = document.createElement('div');
             header.className = 'region-row-header';
             const label = document.createElement('span');
-            label.textContent = `Kartenausschnitt ${index + 1}`;
+            label.textContent = `${t('config.map.region_label')} ${index + 1}`;
             header.appendChild(label);
 
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
             removeButton.className = 'icon-button';
             removeButton.textContent = '✕';
-            removeButton.title = 'Kartenausschnitt entfernen';
-            removeButton.setAttribute('aria-label', 'Kartenausschnitt entfernen');
+            removeButton.title = t('config.map.region_remove_title');
+            removeButton.setAttribute('aria-label', t('config.map.region_remove_title'));
             removeButton.disabled = regionsState.length <= 1;
             removeButton.addEventListener('click', () => {
                 regionsState.splice(index, 1);
@@ -1615,7 +1588,7 @@
             nameInput.required = true;
             nameInput.value = region.name;
             nameInput.addEventListener('input', () => { region.name = nameInput.value; markDirty(); updateOverviewMap(); });
-            fields.appendChild(fieldWithLabel('Name', nameInput));
+            fields.appendChild(fieldWithLabel(t('config.map.field_name'), nameInput));
 
             const zoomSelect = buildZoomSelect(region.maxzoom);
             zoomSelect.addEventListener('change', () => {
@@ -1623,17 +1596,20 @@
                 renderRegionList();
                 markDirty();
             });
-            fields.appendChild(fieldWithLabel('Detailgrad', zoomSelect));
+            fields.appendChild(fieldWithLabel(t('config.map.field_detail'), zoomSelect));
 
             const bboxField = document.createElement('div');
             bboxField.className = 'field region-bbox-field';
             const bboxLabel = document.createElement('label');
-            bboxLabel.textContent = 'Kartenausschnitt';
+            bboxLabel.textContent = t('config.map.bbox_label');
             bboxField.appendChild(bboxLabel);
 
             const bboxGrid = document.createElement('div');
             bboxGrid.className = 'bbox-display-grid';
-            const bboxCoordEls = ['Min. Lon', 'Min. Lat', 'Max. Lon', 'Max. Lat'].map((labelText) => {
+            const bboxCoordEls = [
+                t('config.map.bbox_min_lon'), t('config.map.bbox_min_lat'),
+                t('config.map.bbox_max_lon'), t('config.map.bbox_max_lat')
+            ].map((labelText) => {
                 const item = document.createElement('div');
                 item.className = 'bbox-display-item';
                 const label = document.createElement('span');
@@ -1660,11 +1636,11 @@
             const bboxPickButton = document.createElement('button');
             bboxPickButton.type = 'button';
             bboxPickButton.className = 'map-pick-button';
-            bboxPickButton.textContent = '🗺️ Auf Karte auswählen';
+            bboxPickButton.textContent = `🗺️ ${t('config.map.bbox_pick_button')}`;
             bboxPickButton.addEventListener('click', async () => {
                 const result = await pickBBox({
                     bbox: region.bbox,
-                    title: region.name || `Kartenausschnitt ${index + 1}`
+                    title: region.name || `${t('config.map.region_label')} ${index + 1}`
                 });
                 if (result) {
                     region.bbox = result.bbox;
@@ -1681,9 +1657,7 @@
             if (index === topIndex) {
                 const hint = document.createElement('p');
                 hint.className = 'region-coverage-hint';
-                hint.textContent =
-                    'Detailreichster Ausschnitt: wird beim Herunterladen automatisch ' +
-                    'erweitert, damit alle Fotostandorte abgedeckt sind.';
+                hint.textContent = t('config.map.coverage_hint');
                 row.appendChild(hint);
             }
 
@@ -1696,7 +1670,7 @@
     addRegionButton.addEventListener('click', () => {
         const maxUsedZoom = regionsState.length ? Math.max(...regionsState.map((r) => r.maxzoom)) : -1;
         regionsState.push({
-            name: `Ausschnitt ${regionsState.length + 1}`,
+            name: `${t('config.map.new_region_name')} ${regionsState.length + 1}`,
             bbox: '',
             maxzoom: Math.min(14, maxUsedZoom + 1)
         });
@@ -1726,10 +1700,10 @@
     applyMapConfigToForm(getMapConfig());
 
     const BUILD_STATUS_LABELS = {
-        idle: 'Noch keine Karte heruntergeladen.',
-        running: '⏳ Karte wird heruntergeladen …',
-        success: '✅ Karte erfolgreich heruntergeladen.',
-        error: '❌ Fehler beim Herunterladen der Karte.'
+        idle: t('config.map.build_status.idle'),
+        running: `⏳ ${t('config.map.build_status.running')}`,
+        success: `✅ ${t('config.map.build_status.success')}`,
+        error: `❌ ${t('config.map.build_status.error')}`
     };
 
     // Rough, honestly-labelled progress: pmtiles' own download/extract
@@ -1738,10 +1712,10 @@
     // during the (usually longest) extraction stage, which of the
     // configured Kartenausschnitte is currently downloading.
     const PROGRESS_STAGE_LABELS = {
-        resolving_pmtiles_cli: 'Kartenwerkzeug wird vorbereitet…',
-        resolving_build_date: 'Suche neuesten verfügbaren Kartenstand…',
-        merging: 'Kartenausschnitte werden zusammengeführt…',
-        done: 'Fertig.'
+        resolving_pmtiles_cli: t('config.map.progress.resolving_pmtiles_cli'),
+        resolving_build_date: t('config.map.progress.resolving_build_date'),
+        merging: t('config.map.progress.merging'),
+        done: t('config.map.progress.done')
     };
 
     function progressPercent(progress) {
@@ -1769,7 +1743,8 @@
     function progressLabel(progress) {
         if (progress.stage === 'extracting') {
             const percent = typeof progress.percent === 'number' ? ` (${progress.percent}%)` : '';
-            return `Lädt Kartenausschnitt ${progress.region_index + 1} von ${progress.region_count}: ${progress.region_name}${percent}…`;
+            return `${t('config.map.progress.extracting_label')} ${progress.region_index + 1} ` +
+                `${t('common.of')} ${progress.region_count}: ${progress.region_name}${percent}…`;
         }
         return PROGRESS_STAGE_LABELS[progress.stage] || progress.stage;
     }
@@ -1843,7 +1818,7 @@
             downloadMapButton.disabled = false;
             buildStatusEl.hidden = false;
             buildStatusEl.className = 'build-status state-error';
-            buildStatusEl.textContent = error.message || 'Download konnte nicht gestartet werden.';
+            buildStatusEl.textContent = error.message || t('config.map.download_start_error');
         }
     });
 
@@ -1893,7 +1868,7 @@
                 height: 220,
             });
         } catch (error) {
-            hostConnectionUrl.textContent = error.message || 'Adresse konnte nicht geladen werden.';
+            hostConnectionUrl.textContent = error.message || t('config.host.address_error');
         }
     });
 
@@ -1935,7 +1910,7 @@
             const file = input.files[0];
             if (!file) return;
 
-            statusEl.textContent = 'Wird hochgeladen …';
+            statusEl.textContent = t('common.uploading');
             statusEl.className = 'photo-upload-status';
             try {
                 await uploadPlayerPhoto(role, file);
@@ -1943,7 +1918,7 @@
                 statusEl.textContent = '';
                 statusEl.className = 'photo-upload-status';
             } catch (error) {
-                statusEl.textContent = error.message || 'Hochladen fehlgeschlagen.';
+                statusEl.textContent = error.message || t('common.upload_failed');
                 statusEl.className = 'photo-upload-status error';
             } finally {
                 input.value = '';
@@ -1982,14 +1957,14 @@
 
         const orderLabel = document.createElement('span');
         orderLabel.className = 'round-photo-order-label';
-        orderLabel.textContent = `Runde ${index + 1}`;
+        orderLabel.textContent = `${t('common.round_label')} ${index + 1}`;
         orderColumn.appendChild(orderLabel);
 
         const moveUpButton = document.createElement('button');
         moveUpButton.type = 'button';
         moveUpButton.className = 'round-photo-move-button';
         moveUpButton.innerHTML = CHEVRON_UP_SVG;
-        moveUpButton.setAttribute('aria-label', 'Nach oben verschieben');
+        moveUpButton.setAttribute('aria-label', t('config.photos.move_up_aria'));
         moveUpButton.disabled = index === 0;
         moveUpButton.addEventListener('click', () => moveRoundPhoto(index, index - 1));
         orderColumn.appendChild(moveUpButton);
@@ -1998,13 +1973,13 @@
         moveDownButton.type = 'button';
         moveDownButton.className = 'round-photo-move-button';
         moveDownButton.innerHTML = CHEVRON_DOWN_SVG;
-        moveDownButton.setAttribute('aria-label', 'Nach unten verschieben');
+        moveDownButton.setAttribute('aria-label', t('config.photos.move_down_aria'));
         moveDownButton.disabled = index === total - 1;
         moveDownButton.addEventListener('click', () => moveRoundPhoto(index, index + 1));
         orderColumn.appendChild(moveDownButton);
 
         row.appendChild(orderColumn);
-        row.appendChild(createPhotoFrame(photo.url, photo.description || 'Rundenfoto'));
+        row.appendChild(createPhotoFrame(photo.url, photo.description || t('config.photos.photo_alt_default')));
 
         const latInput = document.createElement('input');
         latInput.type = 'hidden';
@@ -2020,8 +1995,8 @@
         descriptionInput.type = 'text';
         descriptionInput.className = 'round-photo-description-input';
         descriptionInput.maxLength = 200;
-        descriptionInput.placeholder = 'Beschreibung...';
-        descriptionInput.setAttribute('aria-label', 'Beschreibung');
+        descriptionInput.placeholder = t('config.photos.description_placeholder');
+        descriptionInput.setAttribute('aria-label', t('config.photos.description_label'));
         descriptionInput.value = photo.description || '';
         descriptionInput.addEventListener('input', markDirty);
 
@@ -2032,10 +2007,10 @@
         deleteButton.type = 'button';
         deleteButton.className = 'icon-button round-photo-delete-button';
         deleteButton.textContent = '✕';
-        deleteButton.title = 'Rundenfoto löschen';
-        deleteButton.setAttribute('aria-label', 'Rundenfoto löschen');
+        deleteButton.title = t('config.photos.delete_title');
+        deleteButton.setAttribute('aria-label', t('config.photos.delete_title'));
         deleteButton.addEventListener('click', async () => {
-            if (!window.confirm('Dieses Rundenfoto wirklich löschen?')) return;
+            if (!window.confirm(t('config.photos.delete_confirm'))) return;
             try {
                 await deleteRoundPhoto(photo.id);
                 // Re-render (rather than just removing this row) so the
@@ -2043,7 +2018,7 @@
                 // values - moveRoundPhoto indexes into roundPhotosState.
                 renderRoundPhotoList(roundPhotosState.filter((p) => p.id !== photo.id));
             } catch (error) {
-                statusEl.textContent = error.message || 'Löschen fehlgeschlagen.';
+                statusEl.textContent = error.message || t('common.delete_failed');
                 statusEl.className = 'round-photo-row-status error';
             }
         });
@@ -2060,14 +2035,14 @@
         const rowPickButton = document.createElement('button');
         rowPickButton.type = 'button';
         rowPickButton.className = 'map-pick-button';
-        rowPickButton.textContent = '🗺️ Position festlegen';
+        rowPickButton.textContent = `🗺️ ${t('config.photos.pick_position_row_button')}`;
         rowPickButton.addEventListener('click', async () => {
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
             const result = await pickPoint({
                 lat: Number.isNaN(lat) ? undefined : lat,
                 lng: Number.isNaN(lng) ? undefined : lng,
-                title: descriptionInput.value.trim() || 'Rundenfoto'
+                title: descriptionInput.value.trim() || t('config.photos.photo_alt_default')
             });
             if (result) {
                 latInput.value = result.lat;
@@ -2145,12 +2120,12 @@
         const result = await pickPoint({
             lat: Number.isNaN(lat) ? undefined : lat,
             lng: Number.isNaN(lng) ? undefined : lng,
-            title: newRoundPhotoDescription.value.trim() || 'Neues Rundenfoto'
+            title: newRoundPhotoDescription.value.trim() || t('config.photos.new_photo_alt')
         });
         if (result) {
             newRoundPhotoLat.value = result.lat;
             newRoundPhotoLng.value = result.lng;
-            newRoundPhotoGpsHint.textContent = '📍 Position auf der Karte gewählt – kann bei Bedarf weiter angepasst werden.';
+            newRoundPhotoGpsHint.textContent = `📍 ${t('config.photos.gps_hint_picked')}`;
         }
     });
 
@@ -2189,15 +2164,14 @@
         newRoundPhotoLat.value = '';
         newRoundPhotoLng.value = '';
 
-        newRoundPhotoGpsHint.textContent = 'Suche Position in den Bilddaten …';
+        newRoundPhotoGpsHint.textContent = t('config.photos.gps_hint_searching');
         const location = await fetchExifLocation(file);
         if (location.lat !== null && location.lng !== null) {
             newRoundPhotoLat.value = location.lat;
             newRoundPhotoLng.value = location.lng;
-            newRoundPhotoGpsHint.textContent =
-                '📍 Position aus den Bilddaten übernommen – kann bei Bedarf über die Karte angepasst werden.';
+            newRoundPhotoGpsHint.textContent = `📍 ${t('config.photos.gps_hint_found')}`;
         } else {
-            newRoundPhotoGpsHint.textContent = 'Keine Position in den Bilddaten gefunden – bitte über die Karte auswählen.';
+            newRoundPhotoGpsHint.textContent = t('config.photos.gps_hint_not_found');
         }
     });
 
@@ -2207,7 +2181,7 @@
         const lat = parseFloat(newRoundPhotoLat.value);
         const lng = parseFloat(newRoundPhotoLng.value);
         if (Number.isNaN(lat) || Number.isNaN(lng)) {
-            newRoundPhotoStatus.textContent = 'Bitte eine Position über die Karte auswählen.';
+            newRoundPhotoStatus.textContent = t('config.photos.missing_position_error');
             newRoundPhotoStatus.className = 'status-message error';
             return;
         }
@@ -2223,7 +2197,7 @@
             await refreshRoundPhotoList();
             resetPendingRoundPhoto();
         } catch (error) {
-            newRoundPhotoStatus.textContent = error.message || 'Hochladen fehlgeschlagen.';
+            newRoundPhotoStatus.textContent = error.message || t('common.upload_failed');
             newRoundPhotoStatus.className = 'status-message error';
         } finally {
             addRoundPhotoButton.disabled = false;
@@ -2300,7 +2274,7 @@
             clearDirty();
             window.location.href = '/';
         } catch (error) {
-            statusMessage.textContent = error.message || 'Speichern fehlgeschlagen.';
+            statusMessage.textContent = error.message || t('common.save_failed');
             statusMessage.className = 'status-message error';
         }
     });
