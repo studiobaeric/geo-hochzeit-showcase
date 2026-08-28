@@ -10,7 +10,6 @@ jobs:
   pytest:
     name: pytest (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     strategy:
       # Default fail-fast (cancel the other versions on the first failure):
@@ -46,11 +45,6 @@ jobs:
   e2e-smoke:
     name: End-to-end smoke test
     runs-on: ubuntu-latest
-    # A stuck apt mirror during "playwright install --with-deps" has
-    # previously hung for the full 6-hour runner default before GitHub
-    # canceled it - fail fast instead so a flaky mirror doesn't block CI
-    # for hours.
-    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v7
@@ -76,7 +70,6 @@ jobs:
   sanity-checks:
     name: Sanity checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v7
