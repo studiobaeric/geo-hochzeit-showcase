@@ -148,7 +148,7 @@ automatisch der neueste tatsächlich verfügbare Stand ermittelt (Protomaps
 hält tägliche Builds nur ca. 5 Tage vor, ein fest eingetragenes Datum würde
 irgendwann ungültig werden). Nur für einen gezielt fixierten Stand lässt
 sich optional ein Datum eintragen; ein Link zur
-[Build-Übersicht](https://build.protomaps.com) zeigt, welche Daten dort
+[Build-Übersicht](https://maps.protomaps.com/builds/) zeigt, welche Daten dort
 gerade verfügbar sind. Der Download-Button startet `tools/build_basemap.py`
 direkt auf dem Server (`POST /api/map/build`) - das Skript ist reines
 Python und läuft identisch auf Linux, macOS und Windows. Während des
@@ -303,7 +303,7 @@ Das Build-Skript sucht automatisch dort nach pmtiles.
 | `MAXZOOM`       | `13`           | Legacy-Modus (kein `REGIONS_FILE`): Detailgrad des Europa-Ausschnitts |
 | `WORLD_MAXZOOM` | `5`            | Legacy-Modus: bis zu welchem Zoom die Weltübersicht reicht (z0–n) |
 | `EUROPE_BBOX`   | `-25,32,45,72` | Legacy-Modus: Bounding Box `min_lon,min_lat,max_lon,max_lat` für den Detail-Ausschnitt |
-| `BUILD_DATE`    | *(leer)*       | Protomaps-Build-Datum (`YYYYMMDD`). Leer = automatisch der neueste tatsächlich verfügbare Stand (siehe `resolve_latest_build_date` in `tools/build_basemap.py`); manuell nur nötig, um einen bestimmten Stand zu fixieren – aktuelle Werte auf <https://build.protomaps.com> |
+| `BUILD_DATE`    | *(leer)*       | Protomaps-Build-Datum (`YYYYMMDD`). Leer = automatisch der neueste tatsächlich verfügbare Stand (siehe `resolve_latest_build_date` in `tools/build_basemap.py`); manuell nur nötig, um einen bestimmten Stand zu fixieren – aktuelle Werte auf <https://maps.protomaps.com/builds/> |
 | `FORCE_REBUILD` | `false`        | `true` = ignoriert Caches, lädt alles neu                        |
 | `CACHE_DIR`     | `/tmp`         | Wo die Zwischenergebnisse je Ausschnitt liegen                   |
 | `DRY_RUN`       | `false`        | `true` = zeigt nur den Bauplan (keine Downloads, keine Schreibzugriffe) – für Tests |
@@ -349,7 +349,7 @@ $env:EUROPE_BBOX="5.5,47,15.5,55"; $env:MAXZOOM=12; python tools/build_basemap.p
 > **Hinweis:** Protomaps hält die täglichen Planet-Builds nur ~5 Tage vor.
 > `BUILD_DATE` leer lassen (Standard) löst das automatisch auf; nur falls
 > hier bewusst ein festes Datum gesetzt wurde und der Download mit einem
-> 404 fehlschlägt, ein aktuelles Datum von <https://build.protomaps.com>
+> 404 fehlschlägt, ein aktuelles Datum von <https://maps.protomaps.com/builds/>
 > eintragen.
 
 Die PMTiles-Datei muss **nicht** komplett in den RAM passen: der Browser liest

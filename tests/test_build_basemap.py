@@ -990,7 +990,7 @@ def test_extract_region_adds_hint_on_404_and_still_raises(monkeypatch):
             Path("/tmp/out.pmtiles"), "-1,-1,1,1", 0, 5, log_lines.append,
         )
 
-    assert any("build.protomaps.com" in line for line in log_lines)
+    assert any("maps.protomaps.com/builds" in line for line in log_lines)
     assert any("20260608" in line for line in log_lines)
 
 
