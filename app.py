@@ -1,5 +1,6 @@
 import mimetypes
 import os
+import socket
 import sys
 
 from flask import Flask, jsonify, render_template, send_file
@@ -31,6 +32,32 @@ def _read_version():
 
 APP_VERSION = _read_version()
 
+# Port the game server listens on (see app.run() at the bottom) - also
+# exposed via /api/host-info so the config menu can show it as part of the
+# join URL/QR code.
+PORT = 8080
+
+
+def _detect_lan_ip():
+    """Best-effort LAN IP of this machine, for the config menu's host-info
+    QR code so guests on another device (e.g. a tablet) can join without
+    typing the address by hand.
+
+    Opens a UDP "connection" to a public address - no packets are actually
+    sent, this is just how the OS is asked which local interface/IP it
+    would use to reach that destination. Falls back to localhost if the
+    machine has no network route (e.g. offline).
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(('8.8.8.8', 80))
+        return sock.getsockname()[0]
+    except OSError:
+        return '127.0.0.1'
+    finally:
+        sock.close()
+
+
 app = Flask(
     __name__,
     template_folder=os.path.join(_BASE_DIR, 'templates'),
@@ -46,6 +73,12 @@ app.register_blueprint(photos_bp)
 @app.route('/api/version')
 def version():
     return jsonify(version=APP_VERSION)
+
+
+@app.route('/api/host-info')
+def host_info():
+    ip = _detect_lan_ip()
+    return jsonify(ip=ip, port=PORT, url=f'http://{ip}:{PORT}/')
 
 
 @app.after_request
@@ -102,10 +135,10 @@ if __name__ == '__main__':
     is_frozen = getattr(sys, 'frozen', False)
     if is_frozen:
         import webbrowser
-        webbrowser.open('http://localhost:8080')
+        webbrowser.open(f'http://localhost:{PORT}')
 
     # threaded=True: MapLibre/PMTiles feuert beim Zoomen viele parallele
     # Range-Requests auf basemap.pmtiles ab. Der Default-Dev-Server ist
     # single-threaded und lehnt gleichzeitige Verbindungen ab (ERR_CONNECTION
     # _REFUSED) - mit Threads werden sie nebenlaeufig bedient.
-    app.run(host='0.0.0.0', port=8080, debug=not is_frozen, threaded=True)
+    app.run(host='0.0.0.0', port=PORT, debug=not is_frozen, threaded=True)

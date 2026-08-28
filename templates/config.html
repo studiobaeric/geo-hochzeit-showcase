@@ -579,6 +579,31 @@
             background: var(--color-border);
         }
 
+        .host-connection-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .host-connection-qrcode {
+            display: inline-block;
+            padding: 12px;
+            background: #fff;
+            border-radius: 10px;
+            line-height: 0;
+        }
+
+        .host-connection-url {
+            margin: 0;
+            font-family: monospace;
+            font-size: 1.05em;
+            color: var(--color-text);
+            user-select: all;
+            word-break: break-all;
+            text-align: center;
+        }
+
         .upload-button {
             display: block;
             border: 2px dashed var(--color-border);
@@ -979,6 +1004,33 @@
             </div>
         </div>
 
+        <div class="config-section">
+            <h2>Host-Verbindung</h2>
+            <p class="field-hint">
+                IP-Adresse und QR-Code, mit denen Gäste (z. B. auf einem
+                Tablet) das Spiel im selben WLAN direkt öffnen können. Der
+                Bereich ist standardmäßig verborgen, damit der QR-Code
+                nicht versehentlich von jemandem gescannt wird, der nicht
+                mitspielen soll.
+            </p>
+
+            <div class="section-spoiler" id="hostConnectionSpoiler">
+                <div class="section-spoiler-warning">
+                    <p>⚠️ Dieser Bereich zeigt einen QR-Code zum Beitreten.</p>
+                    <button type="button" class="config-button build" id="hostConnectionRevealButton">👁 Bereich anzeigen</button>
+                </div>
+
+                <div class="section-spoiler-content">
+                    <button type="button" class="section-spoiler-hide-button" id="hostConnectionHideButton">🙈 Wieder verbergen</button>
+
+                    <div class="host-connection-info">
+                        <div class="host-connection-qrcode" id="hostConnectionQrCode"></div>
+                        <p class="host-connection-url" id="hostConnectionUrl">Lade Adresse …</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="future-config-note">
             Weitere Konfigurationsmöglichkeiten folgen hier in Zukunft.
         </div>
@@ -996,6 +1048,7 @@
 <script src="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/pmtiles/pmtiles.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/maplibre-gl-leaflet/leaflet-maplibre-gl.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/qrcode/qrcode.min.js') }}"></script>
 <script type="module">
     import { getDisplayNames, loadDisplayNames, saveDisplayNames } from "{{ url_for('static', filename='js/player-names.js') }}";
     import { getRoundConfig, loadRoundConfig, saveRoundConfig } from "{{ url_for('static', filename='js/round-config.js') }}";
@@ -1012,6 +1065,7 @@
         reorderRoundPhotos
     } from "{{ url_for('static', filename='js/photo-config.js') }}";
     import { pickPoint, pickBBox } from "{{ url_for('static', filename='js/position-picker.js') }}";
+    import { loadHostInfo } from "{{ url_for('static', filename='js/host-connection.js') }}";
 
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
@@ -1417,6 +1471,43 @@
 
     photosSectionHideButton.addEventListener('click', () => {
         photosSectionSpoiler.classList.remove('revealed');
+    });
+
+    // --- Host-Verbindung: IP + QR-Code -----------------------------------
+
+    // Same spoiler-protection idea as the photos section above, but for a
+    // different reason: the QR code lets anyone who scans it join the
+    // game, so it stays hidden until the moderator deliberately reveals
+    // it (instead of being visible any time the config page is open).
+    const hostConnectionSpoiler = document.getElementById('hostConnectionSpoiler');
+    const hostConnectionRevealButton = document.getElementById('hostConnectionRevealButton');
+    const hostConnectionHideButton = document.getElementById('hostConnectionHideButton');
+    const hostConnectionQrCode = document.getElementById('hostConnectionQrCode');
+    const hostConnectionUrl = document.getElementById('hostConnectionUrl');
+
+    let hostConnectionLoaded = false;
+
+    hostConnectionRevealButton.addEventListener('click', async () => {
+        hostConnectionSpoiler.classList.add('revealed');
+        if (hostConnectionLoaded) {
+            return;
+        }
+        hostConnectionLoaded = true;
+        try {
+            const info = await loadHostInfo();
+            hostConnectionUrl.textContent = info.url;
+            new QRCode(hostConnectionQrCode, {
+                text: info.url,
+                width: 220,
+                height: 220,
+            });
+        } catch (error) {
+            hostConnectionUrl.textContent = error.message || 'Adresse konnte nicht geladen werden.';
+        }
+    });
+
+    hostConnectionHideButton.addEventListener('click', () => {
+        hostConnectionSpoiler.classList.remove('revealed');
     });
 
     const playerPhotoRoles = ['player1', 'player2'];
