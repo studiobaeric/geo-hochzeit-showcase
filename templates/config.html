@@ -215,16 +215,28 @@
             font-weight: 600;
         }
 
-        .region-remove-button {
+        .icon-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
             border: none;
+            border-radius: 8px;
             background: none;
             color: var(--color-status-error-text);
-            font-size: 0.85em;
+            font-size: 1em;
+            line-height: 1;
             cursor: pointer;
-            padding: 2px 6px;
+            transition: background 0.2s;
+            flex-shrink: 0;
         }
 
-        .region-remove-button:disabled {
+        .icon-button:hover:not(:disabled) {
+            background: var(--color-bg-muted);
+        }
+
+        .icon-button:disabled {
             color: var(--color-disabled);
             cursor: not-allowed;
         }
@@ -466,15 +478,6 @@
             width: auto;
         }
 
-        .future-config-note {
-            background: var(--color-bg-muted);
-            border-radius: 10px;
-            padding: 16px 20px;
-            color: var(--color-text-muted);
-            font-size: 0.9em;
-            text-align: left;
-        }
-
         .player-photo-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -495,10 +498,29 @@
             text-align: center;
         }
 
-        .player-slot-label {
-            margin: 0 0 10px;
-            color: var(--color-accent);
-            font-size: 0.95em;
+        .photo-edit-button {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: var(--color-bg-elevated);
+            box-shadow: 0 1px 6px var(--shadow-color);
+            font-size: 1.2em;
+            line-height: 1;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.2s;
+        }
+
+        .photo-edit-button:hover {
+            background: var(--color-bg-muted);
+            transform: scale(1.05);
         }
 
         /* Whole photo section is spoiler-protected (see .section-spoiler
@@ -622,14 +644,18 @@
 
         .photo-upload-status,
         .round-photo-row-status {
-            min-height: 1.2em;
             font-size: 0.8em;
             margin-top: 6px;
             color: var(--color-text-muted);
         }
 
-        .photo-upload-status.success,
-        .round-photo-row-status.success {
+        .photo-upload-status:empty,
+        .round-photo-row-status:empty {
+            display: none;
+            margin-top: 0;
+        }
+
+        .photo-upload-status.success {
             color: var(--color-status-success-text);
         }
 
@@ -647,10 +673,26 @@
         .round-photo-row {
             border: 2px solid var(--color-border);
             border-radius: 10px;
-            padding: 12px;
+            padding: 10px;
             display: grid;
             grid-template-columns: auto 110px 1fr;
-            gap: 12px;
+            gap: 8px;
+        }
+
+        /* The description field always spans the full card width, below
+           the photo/position-button row. */
+        .round-photo-fields {
+            grid-column: 1 / -1;
+            margin-bottom: 0;
+        }
+
+        /* The delete button sits above "Position festlegen", at the
+           card's top-right - not above the description field. */
+        .round-photo-position-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
         }
 
         @media (max-width: 480px) {
@@ -658,13 +700,20 @@
                 grid-template-columns: auto 1fr;
             }
 
-            .round-photo-row .photo-frame {
+            .round-photo-row .photo-frame,
+            .round-photo-position-wrapper {
                 grid-column: 2;
             }
+        }
 
-            .round-photo-row .round-photo-fields {
-                grid-column: 1 / -1;
-            }
+        .round-photo-position-wrapper .map-pick-button {
+            margin-top: 0;
+        }
+
+        .round-photo-delete-button {
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
         }
 
         .round-photo-row .photo-frame {
@@ -677,6 +726,7 @@
             flex-direction: column;
             align-items: center;
             gap: 4px;
+            margin-right: 4px;
         }
 
         .round-photo-order-label {
@@ -688,32 +738,35 @@
         }
 
         .round-photo-move-button {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: 2px solid var(--color-border);
-            background: var(--color-bg-muted);
-            color: var(--color-text);
-            font-size: 1em;
-            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: none;
+            color: var(--color-accent);
             cursor: pointer;
+            transition: color 0.2s, transform 0.15s;
+        }
+
+        .round-photo-move-button svg {
+            width: 26px;
+            height: 26px;
+        }
+
+        .round-photo-move-button:hover:not(:disabled) {
+            color: var(--color-accent-2);
+            transform: translateY(-1px);
+        }
+
+        .round-photo-move-button:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         .round-photo-move-button:disabled {
             opacity: 0.35;
             cursor: default;
-        }
-
-        .round-photo-row-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 4px;
-        }
-
-        .round-photo-row-buttons .config-button {
-            width: auto;
-            padding: 8px 16px;
-            font-size: 0.85em;
         }
 
         .round-photo-add {
@@ -745,6 +798,79 @@
             margin-bottom: 14px;
         }
 
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 12px 14px;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 14px;
+        }
+
+        .toggle-row-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--color-text);
+            font-size: 0.95em;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-flex;
+            width: 46px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .toggle-switch-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--color-bg-muted);
+            border: 2px solid var(--color-border);
+            border-radius: 999px;
+            transition: background 0.2s, border-color 0.2s;
+            pointer-events: none;
+        }
+
+        .toggle-switch-slider::before {
+            content: "";
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            top: 3px;
+            background: var(--color-text-muted);
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-switch-slider {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .toggle-switch input:checked + .toggle-switch-slider::before {
+            transform: translateX(20px);
+            background: white;
+        }
+
+        .toggle-switch input:focus-visible + .toggle-switch-slider {
+            outline: 2px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+
         .mode-option {
             display: flex;
             align-items: center;
@@ -771,6 +897,12 @@
 
         .field.is-hidden {
             display: none;
+        }
+
+        .field.is-inactive {
+            opacity: 0.4;
+            pointer-events: none;
+            transition: opacity 0.2s;
         }
 
         .config-buttons {
@@ -800,13 +932,46 @@
             color: var(--color-text);
         }
 
+        /* Floats above the page and only appears once there's something
+           unsaved to lose - see the isDirty tracking below. */
+        .floating-save-button {
+            position: fixed;
+            left: 50%;
+            bottom: 20px;
+            z-index: 500;
+            width: min(360px, calc(100vw - 40px));
+            transform: translateX(-50%) translateY(140%);
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        .floating-save-button.is-visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .config-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px var(--shadow-color);
         }
 
+        /* .config-button:hover's transform would otherwise replace (not
+           add to) the translateX(-50%) that keeps this button centered,
+           since transform isn't additive across rules - so it needs its
+           own hover rule that re-applies both. */
+        .floating-save-button:hover {
+            transform: translateX(-50%) translateY(-2px);
+        }
+
         .config-button:active {
             transform: translateY(0);
+        }
+
+        .floating-save-button:active {
+            transform: translateX(-50%) translateY(0);
         }
 
         .status-message {
@@ -817,6 +982,60 @@
 
         .status-message.success {
             color: var(--color-status-success-text);
+        }
+
+        .unsaved-confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(3px);
+        }
+
+        .unsaved-confirm-overlay.is-active {
+            display: flex;
+        }
+
+        .unsaved-confirm-dialog {
+            background: var(--color-bg-elevated);
+            border-radius: 16px;
+            padding: 22px;
+            width: min(420px, 100%);
+            box-shadow: 0 20px 60px var(--shadow-color);
+            box-sizing: border-box;
+        }
+
+        .unsaved-confirm-title {
+            margin: 0;
+            color: var(--color-text);
+            font-size: 1.15em;
+        }
+
+        .unsaved-confirm-text {
+            color: var(--color-text-muted);
+            font-size: 0.9em;
+            margin: 10px 0 0;
+        }
+
+        .unsaved-confirm-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .unsaved-confirm-actions .config-button {
+            width: auto;
+        }
+
+        .config-button.danger {
+            background: var(--color-status-error-bg);
+            color: var(--color-status-error-text);
         }
 
         .status-message.error {
@@ -834,28 +1053,26 @@
             <h2>Spieler</h2>
             <div class="player-photo-grid">
                 <div class="player-photo-slot">
-                    <h3 class="player-slot-label">Spieler 1</h3>
                     <div class="photo-frame" id="player1PhotoFrame">
                         <img alt="Spielerfoto 1">
+                        <label class="photo-edit-button" title="Foto ändern" aria-label="Foto ändern">
+                            📷
+                            <input type="file" accept="image/*" id="player1PhotoInput" hidden>
+                        </label>
                     </div>
-                    <label class="upload-button">
-                        📷 Foto ändern
-                        <input type="file" accept="image/*" id="player1PhotoInput" hidden>
-                    </label>
                     <p class="photo-upload-status" id="player1PhotoStatus"></p>
                     <div class="field">
                         <input type="text" id="player1Name" name="player1Name" maxlength="40" required aria-label="Name Spieler 1" placeholder="Name">
                     </div>
                 </div>
                 <div class="player-photo-slot">
-                    <h3 class="player-slot-label">Spieler 2</h3>
                     <div class="photo-frame" id="player2PhotoFrame">
                         <img alt="Spielerfoto 2">
+                        <label class="photo-edit-button" title="Foto ändern" aria-label="Foto ändern">
+                            📷
+                            <input type="file" accept="image/*" id="player2PhotoInput" hidden>
+                        </label>
                     </div>
-                    <label class="upload-button">
-                        📷 Foto ändern
-                        <input type="file" accept="image/*" id="player2PhotoInput" hidden>
-                    </label>
                     <p class="photo-upload-status" id="player2PhotoStatus"></p>
                     <div class="field">
                         <input type="text" id="player2Name" name="player2Name" maxlength="40" required aria-label="Name Spieler 2" placeholder="Name">
@@ -866,29 +1083,24 @@
 
         <div class="config-section">
             <h2>Darstellung</h2>
-            <div class="mode-options">
-                <label class="mode-option">
-                    <input type="radio" name="themeMode" value="light" id="themeModeLight">
-                    <span>☀️ Hell</span>
-                </label>
-                <label class="mode-option">
-                    <input type="radio" name="themeMode" value="dark" id="themeModeDark">
-                    <span>🌙 Dunkel</span>
+            <div class="toggle-row">
+                <span class="toggle-row-label">☀️ / 🌙 Dunkelmodus</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="themeModeToggle" aria-label="Dunkelmodus umschalten">
+                    <span class="toggle-switch-slider"></span>
                 </label>
             </div>
-            <p class="field-hint">Gilt sofort für alle Geräte im Spiel.</p>
 
-            <div class="mode-options">
-                <label class="mode-option">
-                    <input type="checkbox" id="hideCityLabelsInput">
-                    <span>🗺️ Karte ohne Ortsnamen</span>
+            <div class="toggle-row">
+                <span class="toggle-row-label">🗺️ Karte ohne Ortsnamen</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="hideCityLabelsInput" aria-label="Karte ohne Ortsnamen umschalten">
+                    <span class="toggle-switch-slider"></span>
                 </label>
             </div>
             <p class="field-hint">
                 Blendet Städte-, Regionen- und Ländernamen auf der Spielkarte aus,
-                damit sie nicht beim Raten verraten, wo man ist. Nutzt die bereits
-                heruntergeladenen Kartendaten weiter - es muss nichts neu geladen
-                werden. Gilt sofort für alle Geräte im Spiel.
+                damit sie nicht beim Raten verraten, wo man ist.
             </p>
         </div>
 
@@ -901,7 +1113,7 @@
                 </label>
                 <label class="mode-option">
                     <input type="radio" name="roundMode" value="countdown" id="roundModeCountdown">
-                    <span>Countdown – Runde läuft automatisch nach Ablauf der Zeit aus</span>
+                    <span>Countdown – Runde läuft automatisch aus</span>
                 </label>
             </div>
             <div class="field" id="roundDurationField">
@@ -1031,17 +1243,25 @@
             </div>
         </div>
 
-        <div class="future-config-note">
-            Weitere Konfigurationsmöglichkeiten folgen hier in Zukunft.
-        </div>
-
         <div class="config-buttons">
-            <button type="submit" class="config-button save">Speichern</button>
             <button type="button" class="config-button back" id="backButton">← Zurück zur Startseite</button>
         </div>
 
+        <button type="submit" class="config-button save floating-save-button" id="mainSaveButton">💾 Speichern</button>
+
         <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
     </form>
+
+    <div class="unsaved-confirm-overlay" id="unsavedConfirmOverlay">
+        <div class="unsaved-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsavedConfirmTitle">
+            <h3 class="unsaved-confirm-title" id="unsavedConfirmTitle">Ungespeicherte Änderungen</h3>
+            <p class="unsaved-confirm-text">Es gibt ungespeicherte Änderungen. Wenn du jetzt verlässt, gehen sie verloren.</p>
+            <div class="unsaved-confirm-actions">
+                <button type="button" class="config-button back" id="unsavedConfirmStay">Weiter bearbeiten</button>
+                <button type="button" class="config-button danger" id="unsavedConfirmLeave">Verwerfen und verlassen</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
@@ -1071,25 +1291,62 @@
     const player2Input = document.getElementById('player2Name');
     const statusMessage = document.getElementById('statusMessage');
 
-    const themeModeLightInput = document.getElementById('themeModeLight');
-    const themeModeDarkInput = document.getElementById('themeModeDark');
+    // Tracks whether any of the fields covered by the main "Speichern"
+    // button (player names, round timing, map regions/build date) have
+    // unsaved edits. Settings that save themselves immediately (theme,
+    // map labels, round photos) aren't part of this - they have nothing
+    // left to lose.
+    const mainSaveButton = document.getElementById('mainSaveButton');
+    let isDirty = false;
+
+    function markDirty() {
+        if (isDirty) return;
+        isDirty = true;
+        mainSaveButton.classList.add('is-visible');
+    }
+
+    function clearDirty() {
+        isDirty = false;
+        mainSaveButton.classList.remove('is-visible');
+    }
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!isDirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
+    player1Input.addEventListener('input', markDirty);
+    player2Input.addEventListener('input', markDirty);
+
+    // Enter in a text field would otherwise submit the whole form and leave
+    // the page - instead just unfocus the field, like closing a keyboard.
+    document.getElementById('configForm').addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        const target = event.target;
+        if (target.tagName === 'INPUT' && target.type !== 'submit' && target.type !== 'button') {
+            event.preventDefault();
+            target.blur();
+        }
+    });
+
+    const themeModeToggle = document.getElementById('themeModeToggle');
 
     await loadThemeConfig();
     const currentThemeConfig = getThemeConfig();
-    themeModeLightInput.checked = currentThemeConfig.mode === 'light';
-    themeModeDarkInput.checked = currentThemeConfig.mode === 'dark';
+    themeModeToggle.checked = currentThemeConfig.mode === 'dark';
 
     // Applied immediately (not just on "Speichern") so the moderator sees
     // the result of their choice right away, and it's synced to every other
     // device as soon as they pick it.
-    document.querySelectorAll('input[name="themeMode"]').forEach((input) => {
-        input.addEventListener('change', async () => {
-            try {
-                await saveThemeConfig({ mode: input.value });
-            } catch (error) {
-                console.error('Konnte Theme nicht speichern:', error);
-            }
-        });
+    themeModeToggle.addEventListener('change', async () => {
+        const mode = themeModeToggle.checked ? 'dark' : 'light';
+        try {
+            await saveThemeConfig({ mode });
+        } catch (error) {
+            console.error('Konnte Theme nicht speichern:', error);
+            themeModeToggle.checked = !themeModeToggle.checked;
+        }
     });
 
     const hideCityLabelsInput = document.getElementById('hideCityLabelsInput');
@@ -1116,13 +1373,19 @@
     const roundExtendInput = document.getElementById('roundExtend');
 
     function updateRoundDurationVisibility() {
-        roundDurationField.classList.toggle('is-hidden', !roundModeCountdownInput.checked);
-        roundExtendField.classList.toggle('is-hidden', !roundModeCountdownInput.checked);
+        roundDurationField.classList.toggle('is-inactive', !roundModeCountdownInput.checked);
+        roundExtendField.classList.toggle('is-inactive', !roundModeCountdownInput.checked);
     }
 
     document.querySelectorAll('input[name="roundMode"]').forEach((input) => {
-        input.addEventListener('change', updateRoundDurationVisibility);
+        input.addEventListener('change', () => {
+            updateRoundDurationVisibility();
+            markDirty();
+        });
     });
+
+    roundDurationInput.addEventListener('input', markDirty);
+    roundExtendInput.addEventListener('input', markDirty);
 
     await loadDisplayNames();
     const currentNames = getDisplayNames();
@@ -1138,6 +1401,7 @@
     updateRoundDurationVisibility();
 
     const mapBuildDateInput = document.getElementById('mapBuildDate');
+    mapBuildDateInput.addEventListener('input', markDirty);
     const downloadMapButton = document.getElementById('downloadMapButton');
     const buildStatusEl = document.getElementById('buildStatus');
     const buildLogEl = document.getElementById('buildLog');
@@ -1214,12 +1478,15 @@
 
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
-            removeButton.className = 'region-remove-button';
-            removeButton.textContent = '✕ entfernen';
+            removeButton.className = 'icon-button';
+            removeButton.textContent = '✕';
+            removeButton.title = 'Kartenausschnitt entfernen';
+            removeButton.setAttribute('aria-label', 'Kartenausschnitt entfernen');
             removeButton.disabled = regionsState.length <= 1;
             removeButton.addEventListener('click', () => {
                 regionsState.splice(index, 1);
                 renderRegionList();
+                markDirty();
             });
             header.appendChild(removeButton);
             row.appendChild(header);
@@ -1232,13 +1499,14 @@
             nameInput.maxLength = 60;
             nameInput.required = true;
             nameInput.value = region.name;
-            nameInput.addEventListener('input', () => { region.name = nameInput.value; });
+            nameInput.addEventListener('input', () => { region.name = nameInput.value; markDirty(); });
             fields.appendChild(fieldWithLabel('Name', nameInput));
 
             const zoomSelect = buildZoomSelect(region.maxzoom);
             zoomSelect.addEventListener('change', () => {
                 region.maxzoom = parseInt(zoomSelect.value, 10);
                 renderRegionList();
+                markDirty();
             });
             fields.appendChild(fieldWithLabel('Detailgrad', zoomSelect));
 
@@ -1286,6 +1554,7 @@
                 if (result) {
                     region.bbox = result.bbox;
                     updateBboxDisplay();
+                    markDirty();
                 }
             });
             bboxField.appendChild(bboxPickButton);
@@ -1314,6 +1583,7 @@
             maxzoom: Math.min(14, maxUsedZoom + 1)
         });
         renderRegionList();
+        markDirty();
     });
 
     function collectRegionsPayload() {
@@ -1562,6 +1832,16 @@
 
     const roundPhotoListEl = document.getElementById('roundPhotoList');
 
+    // Hand-drawn chevrons rather than a font glyph (↑/↓, ▲/▼, …), so the
+    // reorder buttons render identically across every OS/browser instead
+    // of depending on the visitor's emoji/glyph font.
+    const CHEVRON_UP_SVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<path d="M6 15L12 9L18 15" stroke="currentColor" stroke-width="3" ' +
+        'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const CHEVRON_DOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="3" ' +
+        'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
     function createPhotoFrame(src, alt) {
         const wrapper = document.createElement('div');
         wrapper.className = 'photo-frame';
@@ -1587,7 +1867,7 @@
         const moveUpButton = document.createElement('button');
         moveUpButton.type = 'button';
         moveUpButton.className = 'round-photo-move-button';
-        moveUpButton.textContent = '↑';
+        moveUpButton.innerHTML = CHEVRON_UP_SVG;
         moveUpButton.setAttribute('aria-label', 'Nach oben verschieben');
         moveUpButton.disabled = index === 0;
         moveUpButton.addEventListener('click', () => moveRoundPhoto(index, index - 1));
@@ -1596,7 +1876,7 @@
         const moveDownButton = document.createElement('button');
         moveDownButton.type = 'button';
         moveDownButton.className = 'round-photo-move-button';
-        moveDownButton.textContent = '↓';
+        moveDownButton.innerHTML = CHEVRON_DOWN_SVG;
         moveDownButton.setAttribute('aria-label', 'Nach unten verschieben');
         moveDownButton.disabled = index === total - 1;
         moveDownButton.addEventListener('click', () => moveRoundPhoto(index, index + 1));
@@ -1605,29 +1885,61 @@
         row.appendChild(orderColumn);
         row.appendChild(createPhotoFrame(photo.url, photo.description || 'Rundenfoto'));
 
-        const fields = document.createElement('div');
-        fields.className = 'round-photo-fields';
-
-        const descriptionInput = document.createElement('input');
-        descriptionInput.type = 'text';
-        descriptionInput.maxLength = 200;
-        descriptionInput.value = photo.description || '';
-        fields.appendChild(fieldWithLabel('Beschreibung', descriptionInput));
-
         const latInput = document.createElement('input');
         latInput.type = 'hidden';
+        latInput.className = 'round-photo-lat-input';
         latInput.value = photo.location ? photo.location.lat : '';
 
         const lngInput = document.createElement('input');
         lngInput.type = 'hidden';
+        lngInput.className = 'round-photo-lng-input';
         lngInput.value = photo.location ? photo.location.lng : '';
-        fields.appendChild(latInput);
-        fields.appendChild(lngInput);
 
+        const descriptionInput = document.createElement('input');
+        descriptionInput.type = 'text';
+        descriptionInput.className = 'round-photo-description-input';
+        descriptionInput.maxLength = 200;
+        descriptionInput.placeholder = 'Beschreibung...';
+        descriptionInput.setAttribute('aria-label', 'Beschreibung');
+        descriptionInput.value = photo.description || '';
+        descriptionInput.addEventListener('input', markDirty);
+
+        const statusEl = document.createElement('p');
+        statusEl.className = 'round-photo-row-status';
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'icon-button round-photo-delete-button';
+        deleteButton.textContent = '✕';
+        deleteButton.title = 'Rundenfoto löschen';
+        deleteButton.setAttribute('aria-label', 'Rundenfoto löschen');
+        deleteButton.addEventListener('click', async () => {
+            if (!window.confirm('Dieses Rundenfoto wirklich löschen?')) return;
+            try {
+                await deleteRoundPhoto(photo.id);
+                // Re-render (rather than just removing this row) so the
+                // remaining rows' move buttons get fresh index/total
+                // values - moveRoundPhoto indexes into roundPhotosState.
+                renderRoundPhotoList(roundPhotosState.filter((p) => p.id !== photo.id));
+            } catch (error) {
+                statusEl.textContent = error.message || 'Löschen fehlgeschlagen.';
+                statusEl.className = 'round-photo-row-status error';
+            }
+        });
+
+        // Position picking and description edits only touch these fields
+        // locally - they're persisted to the server only once the main
+        // floating "Speichern" button is clicked, same as every other
+        // setting on this page (there's no per-photo Speichern anymore).
+        // The delete button sits above "Position festlegen", at the
+        // card's top-right corner.
+        const positionWrapper = document.createElement('div');
+        positionWrapper.className = 'round-photo-position-wrapper';
+        positionWrapper.appendChild(deleteButton);
         const rowPickButton = document.createElement('button');
         rowPickButton.type = 'button';
         rowPickButton.className = 'map-pick-button';
-        rowPickButton.textContent = '📍 Auf Karte wählen';
+        rowPickButton.textContent = '🗺️ Position festlegen';
         rowPickButton.addEventListener('click', async () => {
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
@@ -1639,69 +1951,32 @@
             if (result) {
                 latInput.value = result.lat;
                 lngInput.value = result.lng;
+                markDirty();
             }
         });
-        fields.appendChild(rowPickButton);
+        positionWrapper.appendChild(rowPickButton);
+        row.appendChild(positionWrapper);
 
-        const statusEl = document.createElement('p');
-        statusEl.className = 'round-photo-row-status';
+        // Below the photo/position row, spanning the full card width - see
+        // .round-photo-fields { grid-column: 1 / -1 }.
+        const descriptionField = document.createElement('div');
+        descriptionField.className = 'field round-photo-fields';
+        descriptionField.appendChild(descriptionInput);
+        descriptionField.appendChild(latInput);
+        descriptionField.appendChild(lngInput);
+        descriptionField.appendChild(statusEl);
+        row.appendChild(descriptionField);
 
-        const buttonsRow = document.createElement('div');
-        buttonsRow.className = 'round-photo-row-buttons';
-
-        const saveButton = document.createElement('button');
-        saveButton.type = 'button';
-        saveButton.className = 'config-button save';
-        saveButton.textContent = 'Speichern';
-        saveButton.addEventListener('click', async () => {
-            statusEl.textContent = '';
-            statusEl.className = 'round-photo-row-status';
-            const lat = parseFloat(latInput.value);
-            const lng = parseFloat(lngInput.value);
-            if (Number.isNaN(lat) || Number.isNaN(lng)) {
-                statusEl.textContent = 'Bitte eine Position über die Karte auswählen.';
-                statusEl.className = 'round-photo-row-status error';
-                return;
-            }
-            try {
-                await updateRoundPhoto(photo.id, {
-                    description: descriptionInput.value.trim(),
-                    lat,
-                    lng
-                });
-                statusEl.textContent = '✅ Gespeichert.';
-                statusEl.className = 'round-photo-row-status success';
-            } catch (error) {
-                statusEl.textContent = error.message || 'Speichern fehlgeschlagen.';
-                statusEl.className = 'round-photo-row-status error';
-            }
-        });
-
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'region-remove-button';
-        deleteButton.textContent = '✕ löschen';
-        deleteButton.addEventListener('click', async () => {
-            if (!window.confirm('Dieses Rundenfoto wirklich löschen?')) return;
-            try {
-                await deleteRoundPhoto(photo.id);
-                row.remove();
-            } catch (error) {
-                statusEl.textContent = error.message || 'Löschen fehlgeschlagen.';
-                statusEl.className = 'round-photo-row-status error';
-            }
-        });
-
-        buttonsRow.appendChild(saveButton);
-        buttonsRow.appendChild(deleteButton);
-        fields.appendChild(buttonsRow);
-        fields.appendChild(statusEl);
-
-        row.appendChild(fields);
+        row.dataset.photoId = photo.id;
         return row;
     }
 
+    // The currently-displayed round photos, in their current (possibly
+    // locally-reordered and not yet saved) order.
+    let roundPhotosState = [];
+
     function renderRoundPhotoList(photos) {
+        roundPhotosState = photos;
         roundPhotoListEl.innerHTML = '';
         photos.forEach((photo, index) => {
             roundPhotoListEl.appendChild(renderRoundPhotoRow(photo, index, photos.length));
@@ -1717,22 +1992,16 @@
     }
 
     // Swaps the photos at `fromIndex` and `toIndex` (used by a row's ↑/↓
-    // buttons) and persists the new order - the order in photos.json *is*
-    // the round order, see photo_config.reorder_round_photos.
-    async function moveRoundPhoto(fromIndex, toIndex) {
-        const photos = await loadRoundPhotos();
-        if (toIndex < 0 || toIndex >= photos.length) return;
-
-        [photos[fromIndex], photos[toIndex]] = [photos[toIndex], photos[fromIndex]];
-        renderRoundPhotoList(photos);
-
-        try {
-            const reordered = await reorderRoundPhotos(photos.map((photo) => photo.id));
-            renderRoundPhotoList(reordered);
-        } catch (error) {
-            console.error('Konnte Rundenfotos nicht sortieren:', error);
-            await refreshRoundPhotoList();
-        }
+    // buttons) locally only - like every other edit on this page, the new
+    // order is persisted to the server (photos.json order *is* the round
+    // order, see photo_config.reorder_round_photos) only once the main
+    // floating "Speichern" button is clicked.
+    function moveRoundPhoto(fromIndex, toIndex) {
+        if (toIndex < 0 || toIndex >= roundPhotosState.length) return;
+        [roundPhotosState[fromIndex], roundPhotosState[toIndex]] =
+            [roundPhotosState[toIndex], roundPhotosState[fromIndex]];
+        renderRoundPhotoList(roundPhotosState);
+        markDirty();
     }
 
     await refreshRoundPhotoList();
@@ -1834,7 +2103,34 @@
         }
     });
 
-    document.getElementById('backButton').addEventListener('click', () => {
+    const unsavedConfirmOverlay = document.getElementById('unsavedConfirmOverlay');
+    const unsavedConfirmStay = document.getElementById('unsavedConfirmStay');
+    const unsavedConfirmLeave = document.getElementById('unsavedConfirmLeave');
+
+    function confirmDiscardUnsavedChanges() {
+        return new Promise((resolve) => {
+            function finish(shouldLeave) {
+                unsavedConfirmOverlay.classList.remove('is-active');
+                document.removeEventListener('keydown', onKeydown);
+                resolve(shouldLeave);
+            }
+            function onKeydown(event) {
+                if (event.key === 'Escape') finish(false);
+            }
+            unsavedConfirmStay.addEventListener('click', () => finish(false), { once: true });
+            unsavedConfirmLeave.addEventListener('click', () => finish(true), { once: true });
+            unsavedConfirmOverlay.addEventListener('click', (event) => {
+                if (event.target === unsavedConfirmOverlay) finish(false);
+            }, { once: true });
+            document.addEventListener('keydown', onKeydown);
+            unsavedConfirmOverlay.classList.add('is-active');
+        });
+    }
+
+    document.getElementById('backButton').addEventListener('click', async () => {
+        if (isDirty && !(await confirmDiscardUnsavedChanges())) {
+            return;
+        }
         window.location.href = '/';
     });
 
@@ -1858,6 +2154,19 @@
                 regions: collectRegionsPayload(),
                 build_date: mapBuildDateInput.value.trim()
             });
+            const roundPhotoRowEls = Array.from(roundPhotoListEl.querySelectorAll('.round-photo-row'));
+            await reorderRoundPhotos(roundPhotoRowEls.map((rowEl) => Number(rowEl.dataset.photoId)));
+            await Promise.all(roundPhotoRowEls.map((rowEl) => {
+                const lat = parseFloat(rowEl.querySelector('.round-photo-lat-input').value);
+                const lng = parseFloat(rowEl.querySelector('.round-photo-lng-input').value);
+                if (Number.isNaN(lat) || Number.isNaN(lng)) return Promise.resolve();
+                return updateRoundPhoto(rowEl.dataset.photoId, {
+                    description: rowEl.querySelector('.round-photo-description-input').value.trim(),
+                    lat,
+                    lng
+                });
+            }));
+            clearDirty();
             window.location.href = '/';
         } catch (error) {
             statusMessage.textContent = error.message || 'Speichern fehlgeschlagen.';
