@@ -283,6 +283,81 @@
             background: var(--color-bg-muted);
         }
 
+        .overview-map-wrap {
+            margin-bottom: 18px;
+        }
+
+        .overview-map-wrap h3 {
+            color: var(--color-accent);
+            font-size: 1.1em;
+            margin-bottom: 14px;
+        }
+
+        .overview-map {
+            width: 100%;
+            height: min(34vh, 280px);
+            min-height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+
+        .overview-map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 0.78em;
+            color: var(--color-text-muted);
+        }
+
+        .overview-map-legend-scale {
+            min-width: 200px;
+            flex: 1;
+        }
+
+        .overview-map-legend-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .overview-map-legend-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+        }
+
+        .overview-map-legend-states {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .overview-map-legend-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .overview-map-legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .overview-map-legend-swatch.is-downloaded {
+            background: #f97316;
+            opacity: 0.55;
+        }
+
+        .overview-map-legend-swatch.is-planned {
+            background: none;
+            border: 2px dashed #f97316;
+            box-sizing: border-box;
+        }
+
         .field-hint a {
             color: var(--color-accent);
         }
@@ -1145,6 +1220,20 @@
                 Herunterladen automatisch hohes Detail sichergestellt, auch
                 wenn ein Ausschnitt sie eigentlich nicht abdeckt.
             </p>
+            <div class="overview-map-wrap">
+                <h3>Übersichtskarte</h3>
+                <p class="field-hint">
+                    Zeigt auf einen Blick, welche Bereiche bereits
+                    heruntergeladen sind und welche nur als Kartenausschnitt
+                    geplant, aber noch nicht heruntergeladen sind. Die Farbe
+                    zeigt den Detailgrad. Diese Übersichtskarte selbst
+                    braucht keine heruntergeladenen Kartendaten und steht
+                    immer zur Verfügung, auch ganz ohne Internetverbindung.
+                </p>
+                <div class="overview-map" id="overviewMap"></div>
+                <div class="overview-map-legend" id="overviewMapLegend"></div>
+            </div>
+
             <div class="region-list" id="regionList"></div>
             <button type="button" class="add-region-button" id="addRegionButton">+ weiteren Kartenausschnitt hinzufügen</button>
 
@@ -1299,6 +1388,7 @@
     } from "{{ url_for('static', filename='js/photo-config.js') }}";
     import { pickPoint, pickBBox } from "{{ url_for('static', filename='js/position-picker.js') }}";
     import { loadHostInfo } from "{{ url_for('static', filename='js/host-connection.js') }}";
+    import { createMapOverview } from "{{ url_for('static', filename='js/map-overview.js') }}";
 
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
@@ -1424,6 +1514,18 @@
     const regionListEl = document.getElementById('regionList');
     const addRegionButton = document.getElementById('addRegionButton');
 
+    const mapOverview = createMapOverview(
+        document.getElementById('overviewMap'), document.getElementById('overviewMapLegend')
+    );
+    let latestBuildStatus = { status: 'idle', config_used: null };
+
+    function updateOverviewMap() {
+        const downloaded = latestBuildStatus.status === 'success' && latestBuildStatus.config_used
+            ? latestBuildStatus.config_used.regions
+            : [];
+        mapOverview.render({ regions: collectRegionsPayload(), downloaded });
+    }
+
     // Zoom is a technical parameter for non-technical users, so it's offered
     // as a labelled dropdown (what it looks like / roughly how big the
     // download gets) rather than a bare number input.
@@ -1512,7 +1614,7 @@
             nameInput.maxLength = 60;
             nameInput.required = true;
             nameInput.value = region.name;
-            nameInput.addEventListener('input', () => { region.name = nameInput.value; markDirty(); });
+            nameInput.addEventListener('input', () => { region.name = nameInput.value; markDirty(); updateOverviewMap(); });
             fields.appendChild(fieldWithLabel('Name', nameInput));
 
             const zoomSelect = buildZoomSelect(region.maxzoom);
@@ -1568,6 +1670,7 @@
                     region.bbox = result.bbox;
                     updateBboxDisplay();
                     markDirty();
+                    updateOverviewMap();
                 }
             });
             bboxField.appendChild(bboxPickButton);
@@ -1586,6 +1689,8 @@
 
             regionListEl.appendChild(row);
         });
+
+        updateOverviewMap();
     }
 
     addRegionButton.addEventListener('click', () => {
@@ -1680,6 +1785,9 @@
     }
 
     function renderBuildStatus(status) {
+        latestBuildStatus = status;
+        updateOverviewMap();
+
         buildStatusEl.hidden = status.status === 'idle';
         buildStatusEl.className = `build-status state-${status.status}`;
         let text = BUILD_STATUS_LABELS[status.status] || status.status;
