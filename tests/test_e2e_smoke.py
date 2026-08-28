@@ -867,6 +867,468 @@ def test_player_maps_reset_view_for_the_next_round(live_server):
         browser.close()
 
 
+def test_auflosung_map_recenters_exactly_without_animation(live_server):
+    """Regression test for #113/#118: Auflösung's resolutionMap.setView()
+    used to rely on Leaflet's default animated pan, which only
+    approximates the target when it's close to the map's previous center,
+    so the map didn't always end up exactly centered on the round's photo
+    location. The fix (moderator.js's showResolutionView) passes
+    {animate: false} to setView() - forcing an exact, synchronous
+    re-center - and {autoPan: false} to the location marker's popup, so
+    the popup's own auto-pan (which nudges the view just far enough for
+    the popup to fit) can't undo that centering.
+
+    This patches L.Map.prototype.setView and L.Marker.prototype.bindPopup
+    (before any page script runs) to record every call made against the
+    resolutionMap container / its location marker, then asserts every
+    recorded setView call used {animate: false} and targeted exactly the
+    resolved round's photo location, and that the location marker's popup
+    was bound with {autoPan: false}.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.add_init_script(
+            """
+            window.__resolutionSetViewCalls = [];
+            window.__resolutionPopupOptions = [];
+            let _L;
+            Object.defineProperty(window, 'L', {
+                configurable: true,
+                get() { return _L; },
+                set(value) {
+                    _L = value;
+                    if (value?.Map?.prototype && !value.Map.prototype.__setViewPatched) {
+                        const originalSetView = value.Map.prototype.setView;
+                        value.Map.prototype.setView = function (center, zoom, options) {
+                            if (this._container?.id === 'resolutionMap') {
+                                window.__resolutionSetViewCalls.push({ center, zoom, options });
+                            }
+                            return originalSetView.call(this, center, zoom, options);
+                        };
+                        value.Map.prototype.__setViewPatched = true;
+                    }
+                    if (value?.Marker?.prototype && !value.Marker.prototype.__bindPopupPatched) {
+                        const originalBindPopup = value.Marker.prototype.bindPopup;
+                        value.Marker.prototype.bindPopup = function (content, options) {
+                            if (options && 'autoPan' in options) {
+                                window.__resolutionPopupOptions.push(options);
+                            }
+                            return originalBindPopup.call(this, content, options);
+                        };
+                        value.Marker.prototype.__bindPopupPatched = true;
+                    }
+                },
+            });
+            """
+        )
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        photos = context.request.get(f"{live_server}/api/round-photos").json()
+        num_rounds = min(2, len(photos))
+        assert num_rounds >= 1
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+
+        for round_number in range(1, num_rounds + 1):
+            moderator_page.click("#lockPlayerInputButton")
+            context.request.post(
+                f"{live_server}/api/points",
+                data={"round_number": round_number, "placed_by": "player1", "coordinates": {"lat": 49.37, "lng": 9.54}},
+            )
+            context.request.post(
+                f"{live_server}/api/points",
+                data={"round_number": round_number, "placed_by": "player2", "coordinates": {"lat": 50.0, "lng": 10.0}},
+            )
+            moderator_page.wait_for_timeout(500)
+
+            moderator_page.click("#mainControlButton")
+            # resolutionMap.setView() gets called from more than just the one
+            # line under test here: initResolutionMap() does its own
+            # L.map(...).setView(...) the first time it creates the map (no
+            # `options` argument, only on round 1), and
+            # syncResolutionPlayerMarkers()'s resolutionMap.fitBounds(...)
+            # internally calls setView() too (with a `{padding: [...]}`
+            # options object, once per round both players have a marker).
+            # The recentering call under test - showResolutionView()'s
+            # resolutionMap.setView([lat, lng], 13, {animate: false}) - is
+            # the only one of the three that ever passes an `animate` key,
+            # so filter on that specifically rather than "any options".
+            moderator_page.wait_for_function(
+                f"window.__resolutionSetViewCalls.filter(c => c.options && 'animate' in c.options)"
+                f".length === {round_number}"
+            )
+
+            if round_number < num_rounds:
+                moderator_page.click("#continueButton")
+                moderator_page.wait_for_selector("#roundResultView.is-active")
+                moderator_page.click("#resultContinueButton")
+
+        setview_calls = [
+            call
+            for call in moderator_page.evaluate("window.__resolutionSetViewCalls")
+            if call["options"] and "animate" in call["options"]
+        ]
+        assert len(setview_calls) == num_rounds, (
+            f"expected one recentering setView call on the resolution map per "
+            f"round resolved (excluding initResolutionMap()'s one-time "
+            f"map-creation setView and fitBounds()'s own internal setView, "
+            f"neither of which passes an `animate` option), got {setview_calls}"
+        )
+        for round_number, call in enumerate(setview_calls, start=1):
+            expected = photos[round_number - 1]["location"]
+            assert call["options"]["animate"] is False, (
+                f"round {round_number}'s Auflösung setView must use animate: false "
+                f"so the map re-centers exactly instead of approximating via an "
+                f"animated pan, got {call}"
+            )
+            assert call["center"][0] == pytest.approx(expected["lat"], abs=1e-6)
+            assert call["center"][1] == pytest.approx(expected["lng"], abs=1e-6)
+
+        popup_options = moderator_page.evaluate("window.__resolutionPopupOptions")
+        assert any(options.get("autoPan") is False for options in popup_options), (
+            "the resolution map's location-marker popup must be bound with "
+            "autoPan: false, or its own auto-pan can undo the map's exact "
+            "re-centering onto the photo location"
+        )
+
+        browser.close()
+
+
+def test_guess_map_canvas_is_resized_once_visible(live_server):
+    """Regression test for #90/#93: the player's guess map is created (as
+    part of initGame()) while #mapView can still be display:none - e.g.
+    before the player has clicked "Tipp abgeben" - so MapLibre GL sizes
+    its WebGL canvas from a 0x0 container, leaving the map blank once the
+    view becomes visible (reported on Android tablets, though the
+    underlying "canvas created while hidden" issue isn't browser-specific).
+    The fix explicitly calls the underlying maplibregl.Map's resize(),
+    both when #mapView becomes visible (showView()'s setTimeout) and, if
+    the view was already visible by then, once the basemap layer finishes
+    loading (initGame()'s createBaseMapLayer().then(...)) - covering both
+    possible orderings of "view becomes visible" vs. "basemap finishes
+    loading".
+
+    This patches maplibregl.Map.prototype.resize (before any page script
+    runs) to record every call, then asserts resize() was actually invoked
+    for the player's guess map by the time it's visible, and that the
+    visible canvas ends up with a non-zero size - the concrete symptom of
+    the original bug.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        player1 = context.new_page()
+        player1.add_init_script(
+            """
+            window.__resizeCallCount = 0;
+            let _maplibregl;
+            Object.defineProperty(window, 'maplibregl', {
+                configurable: true,
+                get() { return _maplibregl; },
+                set(value) {
+                    _maplibregl = value;
+                    if (value?.Map?.prototype && !value.Map.prototype.__resizePatched) {
+                        const original = value.Map.prototype.resize;
+                        value.Map.prototype.resize = function (...args) {
+                            window.__resizeCallCount += 1;
+                            return original.apply(this, args);
+                        };
+                        value.Map.prototype.__resizePatched = true;
+                    }
+                },
+            });
+            """
+        )
+        player1.goto(live_server)
+        player1.click("#player1Button")
+        player1.wait_for_selector("#waitView.active")
+
+        moderator_page.click("#lockPlayerInputButton")
+        player1.wait_for_selector("#photoView.active")
+        # Click through to the map view right away, without waiting for the
+        # basemap layer's own async load to finish first - the ordering
+        # that used to leave the canvas blank.
+        player1.click("#guessButton")
+        player1.wait_for_selector("#mapView.active")
+
+        player1.wait_for_function("window.__resizeCallCount > 0")
+
+        player1.wait_for_selector("#map canvas.maplibregl-canvas")
+        canvas_box = player1.eval_on_selector(
+            "#map canvas.maplibregl-canvas",
+            "el => ({ width: el.clientWidth, height: el.clientHeight })",
+        )
+        assert canvas_box["width"] > 0
+        assert canvas_box["height"] > 0
+
+        browser.close()
+
+
+def test_round_result_card_shows_only_that_rounds_points_not_cumulative(live_server):
+    """Regression test for #74: showRoundResult() used to be handed the
+    running pointByName total instead of the round's own points, so the
+    "Rundenergebnis" card showed each player's cumulative score across all
+    rounds played so far, not just what they scored this round.
+
+    Playing two rounds with the exact same (dead-on) guess - so each round
+    should independently score the maximum 1000 points - and asserting the
+    round-result card shows 1000 both times, not ~2000 the second time, is
+    a direct, deterministic way to catch the cumulative-total regression
+    without reading pointByName internals.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+        photos = context.request.get(f"{live_server}/api/round-photos").json()
+        assert len(photos) >= 2
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+
+        player2 = context.new_page()
+        player2.goto(live_server)
+        player2.click("#player2Button")
+
+        def play_round_and_get_result(round_number):
+            moderator_page.click("#lockPlayerInputButton")
+            # Guess exactly the round's photo location, so both rounds score
+            # the same maximum points regardless of which photo it is.
+            location = photos[round_number - 1]["location"]
+            for role in ("player1", "player2"):
+                context.request.post(
+                    f"{live_server}/api/points",
+                    data={
+                        "round_number": round_number,
+                        "placed_by": role,
+                        "coordinates": {"lat": location["lat"], "lng": location["lng"]},
+                    },
+                )
+            moderator_page.wait_for_timeout(500)
+
+            moderator_page.click("#mainControlButton")
+            moderator_page.wait_for_selector("#continueButton.is-active")
+            moderator_page.click("#continueButton")
+            moderator_page.wait_for_selector("#roundResultView.is-active")
+
+            points_text = moderator_page.eval_on_selector(
+                ".result-row .result-player-points", "el => el.textContent"
+            )
+            moderator_page.click("#resultContinueButton")
+            return points_text
+
+        round1_points = play_round_and_get_result(1)
+        round2_points = play_round_and_get_result(2)
+
+        assert round1_points == "1000 Punkte"
+        assert round2_points == round1_points, (
+            f"round 2's Rundenergebnis card must show that round's own points "
+            f"(same as round 1's, since both guesses were exact), not the "
+            f"cumulative total across rounds - got round1={round1_points!r} "
+            f"round2={round2_points!r}"
+        )
+
+        browser.close()
+
+
+def test_results_screen_round_numbers_stay_sequential_after_reordering_photos(live_server):
+    """Regression test for #52: the Endergebnis/Results round-by-round list
+    used to number rounds by round_number (persisted server-side, equal to
+    a photo's id - a number assigned once and never renumbered, see
+    photo_config.py), instead of that photo's current position in
+    photos.json. Reordering (or deleting an earlier) round photo makes ids
+    drift out of sequence with position - e.g. after swapping round photos
+    1 and 2, round 1 is now the photo whose id is 2 - so the round list
+    used to show "Runde 2" then "Runde 1" instead of "Runde 1" then
+    "Runde 2".
+
+    This reorders round photos 1 and 2 via the same /api/round-photos/reorder
+    endpoint /config uses (see test_moderator_still_records_guesses_after_a_
+    photo_id_position_drift for why a redirected ROUND_PHOTOS_FILE wouldn't
+    help here - results.js fetches the real static/config/photos.json
+    directly), plays through every round, and asserts the /results screen's
+    round list stays numbered 1..N in play order - not by the underlying
+    (now out-of-order) photo ids. The original order is restored in
+    `finally` regardless of outcome.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        try:
+            context = browser.new_context()
+
+            original_photos = context.request.get(f"{live_server}/api/round-photos").json()
+            num_rounds = len(original_photos)
+            assert num_rounds >= 2
+            original_order = [photo["id"] for photo in original_photos]
+            swapped_order = [original_order[1], original_order[0], *original_order[2:]]
+
+            reorder_response = context.request.post(
+                f"{live_server}/api/round-photos/reorder", data={"order": swapped_order}
+            )
+            assert reorder_response.ok
+
+            try:
+                moderator_page = context.new_page()
+                moderator_page.goto(live_server)
+                moderator_page.click("button[data-name='Moderator']")
+                moderator_page.wait_for_selector("#lockPlayerInputButton")
+
+                player1 = context.new_page()
+                player1.goto(live_server)
+                player1.click("#player1Button")
+
+                player2 = context.new_page()
+                player2.goto(live_server)
+                player2.click("#player2Button")
+
+                for round_number in range(1, num_rounds + 1):
+                    moderator_page.click("#lockPlayerInputButton")
+                    context.request.post(
+                        f"{live_server}/api/points",
+                        data={"round_number": round_number, "placed_by": "player1", "coordinates": {"lat": 49.37, "lng": 9.54}},
+                    )
+                    context.request.post(
+                        f"{live_server}/api/points",
+                        data={"round_number": round_number, "placed_by": "player2", "coordinates": {"lat": 50.0, "lng": 10.0}},
+                    )
+                    moderator_page.wait_for_timeout(500)
+
+                    moderator_page.click("#mainControlButton")
+                    moderator_page.wait_for_selector("#continueButton.is-active")
+                    moderator_page.click("#continueButton")
+                    moderator_page.wait_for_selector("#roundResultView.is-active")
+                    moderator_page.click("#resultContinueButton")
+
+                player1.wait_for_url(f"{live_server}/results")
+                player1.wait_for_function(
+                    f"document.querySelectorAll('#roundList .round-row').length === {num_rounds}"
+                )
+
+                round_titles = player1.eval_on_selector_all(
+                    "#roundList .round-row .round-row-title span:first-child",
+                    "els => els.map(el => el.textContent)",
+                )
+                assert round_titles == [f"Runde {n}" for n in range(1, num_rounds + 1)], (
+                    f"round list must stay numbered by play order (1..{num_rounds}), not "
+                    f"by the underlying (now reordered) photo ids - got {round_titles}"
+                )
+            finally:
+                context.request.post(
+                    f"{live_server}/api/round-photos/reorder", data={"order": original_order}
+                )
+        finally:
+            browser.close()
+
+
+def test_countdown_expiring_locks_input_without_auto_revealing_solution(live_server):
+    """Regression test for #101/#102: when a round's countdown timer
+    reached 0, the moderator screen used to jump straight to the
+    "Auflösung" (solution) view automatically. maybeAutoStopTimer() must
+    instead only lock player input and stop the timer - the moderator
+    still has to press "Runde auflösen" themselves to reveal the solution,
+    e.g. to moderate/discuss the round with guests first.
+
+    Uses the minimum allowed countdown (5s) so the timer expires quickly,
+    then asserts: the player's own view falls back to waiting (input got
+    locked), but the moderator's resolution/solution view never opens on
+    its own - only after a subsequent manual click does it.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        config_response = context.request.patch(
+            f"{live_server}/api/round-config",
+            data={"mode": "countdown", "duration_seconds": 5},
+        )
+        assert config_response.ok
+
+        moderator_page = context.new_page()
+        moderator_page.goto(live_server)
+        moderator_page.click("button[data-name='Moderator']")
+        moderator_page.wait_for_selector("#timerStartButton")
+
+        player1 = context.new_page()
+        player1.goto(live_server)
+        player1.click("#player1Button")
+        player1.wait_for_selector("#waitView.active")
+
+        moderator_page.click("#timerStartButton")
+        player1.wait_for_selector("#photoView.active")
+
+        # The countdown must actually expire and auto-stop - back to
+        # waiting - without the moderator lifting a finger.
+        player1.wait_for_selector("#waitView.active", timeout=10000)
+
+        # The solution view must NOT have opened itself.
+        assert "is-active" not in (moderator_page.get_attribute("#resolutionView", "class") or "")
+        assert "is-active" not in (moderator_page.get_attribute("#continueButton", "class") or "")
+
+        # The moderator must still be able to reveal it manually afterwards.
+        moderator_page.click("#mainControlButton")
+        moderator_page.wait_for_selector("#continueButton.is-active")
+
+        browser.close()
+
+
+def test_map_config_default_build_date_is_not_hardcoded(live_server):
+    """Regression test for #117: map-config.js's DEFAULTS.build_date used
+    to be a hardcoded date string - this module's fallback whenever
+    loadMapConfig()'s fetch to /api/map/config fails, or before it's had a
+    chance to run. Protomaps only retains basemap builds for ~5 days, so
+    any hardcoded date silently 404s once that window passes. The fix
+    replaced it with '' ("resolve to the newest available build at build
+    time"), which must never regress back to a fixed date.
+
+    Imports map-config.js fresh on a page that never itself imports it
+    (so nothing has called loadMapConfig() yet to overwrite the cache) and
+    reads its default build_date directly - a plain dynamic import inside
+    a real page, working around the "no JS test runner exists" gap noted
+    in the coverage audit this test is part of closing.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_context().new_page()
+        page.goto(live_server)  # the start page never imports map-config.js
+
+        default_build_date = page.evaluate(
+            "async () => { const mod = await import('/static/js/map-config.js'); "
+            "return mod.getMapConfig().build_date; }"
+        )
+
+        assert default_build_date == "", (
+            f"map-config.js's default build_date must stay '' (resolved to the "
+            f"newest available Protomaps build at build time) - a hardcoded date "
+            f"will silently 404 once Protomaps' ~5-day retention window passes, "
+            f"got {default_build_date!r}"
+        )
+
+        browser.close()
+
+
 def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
     """Regression test for a reported bug: the "Kartendaten" region editor's
     zoom <select> (long, descriptive option text) wasn't covered by the
