@@ -71,7 +71,13 @@ let currentGameState = 'waiting';
 
 let roundConfig = { mode: 'manual', duration_seconds: 60, extend_seconds: 30 };
 let timerState = { running: false, paused: false, ends_at: null, remaining_seconds: null };
-let autoResolvedForRound = false;
+let autoStoppedForRound = false;
+// Whether the countdown has already been started once for the current round -
+// keeps Start disabled (rather than clickable again) after it stops, so the
+// moderator can't accidentally re-open player input for a round already in
+// progress (#101).
+let timerStartedForRound = false;
+let playerLockedIn = { player1: false, player2: false };
 
 // latestPlayerRecords/resolutionPlayerMarkers are plain objects, not Maps -
 // they must be reassigned/removed explicitly, a bare `.clear` call is a
@@ -228,6 +234,12 @@ function formatSeconds(totalSeconds) {
 function computeRemainingSeconds() {
     if (timerState.paused) return timerState.remaining_seconds ?? 0;
     if (timerState.running) return Math.max(0, (timerState.ends_at ?? 0) - serverNow());
+    // Not running and not paused is ambiguous by itself - it's both the
+    // "before Start" state (should preview the full round duration) and the
+    // "round is over" state after a timeout/both-locked-in/manual resolve
+    // stopped the timer (should read 0, not jump back up to the full
+    // duration, until the next round resets timerStartedForRound) (#101).
+    if (timerStartedForRound) return 0;
     return roundConfig.duration_seconds;
 }
 
@@ -245,21 +257,21 @@ function renderTimeControlPanel() {
     countdownControls.classList.toggle('is-urgent', timerState.running && !timerState.paused && remaining <= 10);
 
     timerStartButton?.classList.toggle('is-hidden', timerState.running);
+    if (timerStartButton) timerStartButton.disabled = timerStartedForRound;
     timerPauseButton?.classList.toggle('is-hidden', !timerState.running);
     timerExtendButton?.classList.toggle('is-hidden', !timerState.running);
     if (timerPauseButton) timerPauseButton.textContent = timerState.paused ? 'Fortsetzen' : 'Pause';
     if (timerExtendButton) timerExtendButton.textContent = `+${roundConfig.extend_seconds}s`;
 }
 
-// Ends the round the same way a manual "Auflösung" click would, but
-// triggered by the countdown reaching 0 instead of the moderator's click.
-// Guarded by autoResolvedForRound so a slow network response or a couple of
-// overlapping ticks can't fire it twice for the same round.
-async function triggerResolution() {
-    showResolutionView();
+// Ends the round: locks player input so guesses stop, and (in countdown
+// mode) stops the timer. Triggered either by the countdown reaching 0, both
+// players locking in, or the moderator's manual "Runde auflösen" click.
+async function lockRoundInput() {
     // Always lock, never toggle - if the moderator had already locked player
-    // input manually before pressing "Auflösung", toggling would flip it back
-    // to unlocked and let players guess again on the round being resolved (#66).
+    // input manually before pressing "Runde auflösen", toggling would flip it
+    // back to unlocked and let players guess again on the round being
+    // resolved (#66).
     await lockPlayerInput();
 
     if (roundConfig.mode === 'countdown') {
@@ -271,15 +283,32 @@ async function triggerResolution() {
     }
 }
 
-async function maybeAutoResolveRound() {
+// Only the moderator's manual "Runde auflösen" click reveals the solution
+// view - the countdown reaching 0 (or both players locking in early, see
+// maybeAutoStopTimer) stops the timer and locks input, but leaves showing
+// the solution up to the moderator, who may want to moderate/discuss the
+// round first (#101).
+async function triggerResolution() {
+    showResolutionView();
+    await lockRoundInput();
+}
+
+// Guarded by autoStoppedForRound so a slow network response or a couple of
+// overlapping ticks can't fire it twice for the same round. Stops the timer
+// early once both players have locked in their guess, since there's nothing
+// left to count down for (#101).
+async function maybeAutoStopTimer() {
     if (roundConfig.mode !== 'countdown') return;
     if (!timerState.running || timerState.paused) return;
-    if (autoResolvedForRound) return;
+    if (autoStoppedForRound) return;
     if (currentGameState !== 'playing') return;
-    if (computeRemainingSeconds() > 0) return;
 
-    autoResolvedForRound = true;
-    await triggerResolution();
+    const timeIsUp = computeRemainingSeconds() <= 0;
+    const bothPlayersLockedIn = playerLockedIn.player1 && playerLockedIn.player2;
+    if (!timeIsUp && !bothPlayersLockedIn) return;
+
+    autoStoppedForRound = true;
+    await lockRoundInput();
 }
 
 export function onRoundConfigUpdate(record) {
@@ -290,7 +319,7 @@ export function onRoundConfigUpdate(record) {
 export function onTimerUpdate(record) {
     timerState = record;
     renderTimeControlPanel();
-    maybeAutoResolveRound();
+    maybeAutoStopTimer();
 }
 
 function getRecordLatLng(record) {
@@ -513,7 +542,12 @@ async function initResolutionMap() {
     locationMarker = L.marker([lat, lng], {
         icon: createMarkerIcon('/static/img/marker-icon-2x-green.png')
     }).addTo(resolutionMap);
-    locationMarker.bindPopup(currentPhoto.description || 'Bildposition').openPopup();
+    // autoPan disabled: showResolutionView() already setView()s the map
+    // exactly onto this marker before opening its popup every round, so
+    // the popup's own default auto-pan (which only nudges the view just
+    // far enough for the popup to fit, not re-center it - see #113) would
+    // otherwise undo that centering instead of leaving it alone.
+    locationMarker.bindPopup(currentPhoto.description || 'Bildposition', {autoPan: false}).openPopup();
 }
 
 async function showResolutionView() {
@@ -527,7 +561,10 @@ async function showResolutionView() {
     try {
         await initResolutionMap();
         const {lat, lng} = currentPhoto.location;
-        resolutionMap.setView([lat, lng], 13);
+        // animate:false forces an exact re-center (Leaflet's default animated
+        // panBy() is offset/pixel-based and only approximates the target
+        // when it's close to the map's previous center - see #113).
+        resolutionMap.setView([lat, lng], 13, {animate: false});
         locationMarker.setLatLng([lat, lng]);
         locationMarker.setPopupContent(currentPhoto.description || 'Bildposition');
         locationMarker.openPopup();
@@ -709,12 +746,17 @@ export async function onGamestateUpdate(record) {
     roundIndicator.textContent = round;
 
     if (round !== previousRound) {
-        autoResolvedForRound = false;
+        autoStoppedForRound = false;
+        timerStartedForRound = false;
     }
 
     ['player1', 'player2'].forEach((role) => {
-        playerMapElements[role]?.classList.toggle('is-locked-in', Boolean(record[`${role}_locked`]));
+        const lockedIn = Boolean(record[`${role}_locked`]);
+        playerLockedIn[role] = lockedIn;
+        playerMapElements[role]?.classList.toggle('is-locked-in', lockedIn);
+        playerMapElements[role]?.classList.toggle('is-input-disabled', playerInputLocked);
     });
+    maybeAutoStopTimer();
 
     if (!playerInputLocked) {
         lockPlayerInputButton.textContent = "Input Verbieten";
@@ -775,7 +817,9 @@ function initEventListeners() {
             player2: 0
         };
         resultCollection = {};
-        autoResolvedForRound = false;
+        autoStoppedForRound = false;
+        timerStartedForRound = false;
+        playerLockedIn = { player1: false, player2: false };
 
         updateCurrentPointDisplay()
 
@@ -790,8 +834,15 @@ function initEventListeners() {
             // "moderator starts the timer by clicking start".
             await unlockPlayerInput();
             await startTimer();
-        } finally {
+            // Keep Start disabled even after the timer stops (naturally, both
+            // players locking in, or a manual "Runde auflösen") - restarting
+            // it would re-open player input for a round already in progress
+            // (#101). renderTimeControlPanel() keeps re-applying this every
+            // tick, so it survives the countdown's own is-hidden toggling.
+            timerStartedForRound = true;
+        } catch (error) {
             timerStartButton.disabled = false;
+            console.error('Could not start timer:', error);
         }
     });
 
@@ -891,7 +942,7 @@ if (moderatorApp) {
     renderTimeControlPanel();
     setInterval(() => {
         renderTimeControlPanel();
-        maybeAutoResolveRound();
+        maybeAutoStopTimer();
     }, 250);
 
     mainControlButton?.addEventListener('click', async () => {
