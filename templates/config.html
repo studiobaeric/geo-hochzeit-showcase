@@ -984,6 +984,60 @@
             color: var(--color-status-success-text);
         }
 
+        .unsaved-confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(3px);
+        }
+
+        .unsaved-confirm-overlay.is-active {
+            display: flex;
+        }
+
+        .unsaved-confirm-dialog {
+            background: var(--color-bg-elevated);
+            border-radius: 16px;
+            padding: 22px;
+            width: min(420px, 100%);
+            box-shadow: 0 20px 60px var(--shadow-color);
+            box-sizing: border-box;
+        }
+
+        .unsaved-confirm-title {
+            margin: 0;
+            color: var(--color-text);
+            font-size: 1.15em;
+        }
+
+        .unsaved-confirm-text {
+            color: var(--color-text-muted);
+            font-size: 0.9em;
+            margin: 10px 0 0;
+        }
+
+        .unsaved-confirm-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .unsaved-confirm-actions .config-button {
+            width: auto;
+        }
+
+        .config-button.danger {
+            background: var(--color-status-error-bg);
+            color: var(--color-status-error-text);
+        }
+
         .status-message.error {
             color: var(--color-status-error-text);
         }
@@ -1197,6 +1251,17 @@
 
         <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
     </form>
+
+    <div class="unsaved-confirm-overlay" id="unsavedConfirmOverlay">
+        <div class="unsaved-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsavedConfirmTitle">
+            <h3 class="unsaved-confirm-title" id="unsavedConfirmTitle">Ungespeicherte Änderungen</h3>
+            <p class="unsaved-confirm-text">Es gibt ungespeicherte Änderungen. Wenn du jetzt verlässt, gehen sie verloren.</p>
+            <div class="unsaved-confirm-actions">
+                <button type="button" class="config-button back" id="unsavedConfirmStay">Weiter bearbeiten</button>
+                <button type="button" class="config-button danger" id="unsavedConfirmLeave">Verwerfen und verlassen</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>
@@ -2038,8 +2103,32 @@
         }
     });
 
-    document.getElementById('backButton').addEventListener('click', () => {
-        if (isDirty && !window.confirm('Es gibt ungespeicherte Änderungen. Trotzdem verlassen?')) {
+    const unsavedConfirmOverlay = document.getElementById('unsavedConfirmOverlay');
+    const unsavedConfirmStay = document.getElementById('unsavedConfirmStay');
+    const unsavedConfirmLeave = document.getElementById('unsavedConfirmLeave');
+
+    function confirmDiscardUnsavedChanges() {
+        return new Promise((resolve) => {
+            function finish(shouldLeave) {
+                unsavedConfirmOverlay.classList.remove('is-active');
+                document.removeEventListener('keydown', onKeydown);
+                resolve(shouldLeave);
+            }
+            function onKeydown(event) {
+                if (event.key === 'Escape') finish(false);
+            }
+            unsavedConfirmStay.addEventListener('click', () => finish(false), { once: true });
+            unsavedConfirmLeave.addEventListener('click', () => finish(true), { once: true });
+            unsavedConfirmOverlay.addEventListener('click', (event) => {
+                if (event.target === unsavedConfirmOverlay) finish(false);
+            }, { once: true });
+            document.addEventListener('keydown', onKeydown);
+            unsavedConfirmOverlay.classList.add('is-active');
+        });
+    }
+
+    document.getElementById('backButton').addEventListener('click', async () => {
+        if (isDirty && !(await confirmDiscardUnsavedChanges())) {
             return;
         }
         window.location.href = '/';
