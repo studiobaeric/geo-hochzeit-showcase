@@ -163,19 +163,14 @@
         .build-log {
             max-height: 140px;
             overflow-y: auto;
-            background: var(--color-code-bg);
-            color: var(--color-code-text);
+            background: var(--color-status-error-bg);
+            color: var(--color-status-error-text);
             border-radius: 8px;
             padding: 10px 12px;
             margin-top: 10px;
-            font-family: 'SFMono-Regular', Consolas, monospace;
             font-size: 0.78em;
             white-space: pre-wrap;
             word-break: break-word;
-        }
-
-        .build-log:empty {
-            display: none;
         }
 
         .config-button.build {
@@ -1246,7 +1241,7 @@
                 <progress id="buildProgressBar" max="100" value="0"></progress>
                 <p class="build-progress-label" id="buildProgressLabel"></p>
             </div>
-            <pre class="build-log" id="buildLog"></pre>
+            <p class="build-log" id="buildLog" role="alert" hidden></p>
         </div>
 
         <div class="config-section">
@@ -1771,8 +1766,17 @@
         }
         buildStatusEl.textContent = text;
         renderBuildProgress(status);
-        buildLogEl.textContent = (status.log_tail || []).join('\n');
-        buildLogEl.scrollTop = buildLogEl.scrollHeight;
+
+        // The full log is pmtiles' raw stdout/stderr - useful when
+        // something goes wrong, but a wall of terminal-style text is not
+        // something to show while a download is merely running or has
+        // finished fine (the status text + progress bar above cover that).
+        const logTail = status.log_tail || [];
+        buildLogEl.hidden = status.status !== 'error' || logTail.length === 0;
+        if (!buildLogEl.hidden) {
+            buildLogEl.textContent = logTail.join('\n');
+            buildLogEl.scrollTop = buildLogEl.scrollHeight;
+        }
         downloadMapButton.disabled = status.status === 'running';
     }
 
