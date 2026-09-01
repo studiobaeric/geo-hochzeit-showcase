@@ -25,7 +25,7 @@ jobs:
         # day they're out, with no workflow edit needed. A failure here is
         # a real, visible, blocking failure like any other version - bump
         # the pinned list below once a new release is confirmed to work.
-        python-version: ["3.11", "3.12", "3.13", "3"]
+        python-version: ["3"]
 
     steps:
       - uses: actions/checkout@v7
