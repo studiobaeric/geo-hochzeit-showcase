@@ -48,6 +48,82 @@ PHOTOS_FILE = os.environ.get(
 
 _MAX_DESCRIPTION_LENGTH = 200
 
+# The round photos this app ships with out of the box - the same entries a
+# fresh checkout's static/config/photos.json starts with, backed by the
+# sample files committed under static/photos/. clear_round_photos() restores
+# this list (and leaves these files alone) instead of wiping round photos to
+# an empty list, so a reset leaves the app ready to demo/reconfigure again
+# instead of with no round photos at all. Only self-uploaded photos (which
+# always get a generated filename, see photo_storage.save_upload_with_hq)
+# are actually deleted.
+#
+# Like uploaded round photos (see save_upload_with_hq), each default ships
+# both a downscaled/recompressed "filename" for everyday display and an
+# untouched "filename_hq" full-resolution copy for the moderator's beamer
+# view (#86).
+_DEFAULT_ROUND_PHOTOS = [
+    {
+        "id": 1,
+        "filename": "schloss_aschhausen.jpg",
+        "filename_hq": "schloss_aschhausen_full.jpg",
+        "location": {"lat": 49.3690, "lng": 9.5436},
+        "description": "Schloss Aschhausen",
+    },
+    {
+        "id": 2,
+        "filename": "hamburg.jpg",
+        "filename_hq": "hamburg_full.jpg",
+        "location": {"lat": 53.5437, "lng": 10.0153},
+        "description": "Harry Potter Theater Hamburg",
+    },
+    {
+        "id": 3,
+        "filename": "arena_oberhof.jpg",
+        "filename_hq": "arena_oberhof_full.jpg",
+        "location": {"lat": 50.7089, "lng": 10.6958},
+        "description": "Lotto Thüringen Arena Oberhof",
+    },
+    {
+        "id": 4,
+        "filename": "stresa.jpg",
+        "filename_hq": "stresa_full.jpg",
+        "location": {"lat": 45.8956, "lng": 8.5253},
+        "description": "Lago Maggiore - Stresa",
+    },
+    {
+        "id": 5,
+        "filename": "funchal.jpg",
+        "filename_hq": "funchal_full.jpg",
+        "location": {"lat": 32.6478, "lng": -16.9006},
+        "description": "Funchal, Madeira",
+    },
+]
+
+
+def _default_photo_filenames():
+    """All filenames (small + hq) belonging to the shipped default round
+    photos - see _DEFAULT_ROUND_PHOTOS."""
+    names = set()
+    for photo in _DEFAULT_ROUND_PHOTOS:
+        names.add(photo["filename"])
+        if photo.get("filename_hq"):
+            names.add(photo["filename_hq"])
+    return names
+
+
+def _remove_photo_file(filename):
+    """Best-effort delete of a round-photo file from PHOTOS_DIR - except a
+    shipped default photo, which is never deleted from disk so it stays
+    available for clear_round_photos() to restore even after its
+    photos.json entry was removed (e.g. deleted via the config UI)."""
+    if filename in _default_photo_filenames():
+        return
+    photo_path = os.path.join(photo_storage.PHOTOS_DIR, filename)
+    try:
+        os.remove(photo_path)
+    except OSError as e:
+        logger.warning("Could not remove photo file %s: %s", photo_path, e)
+
 
 def _load_locked():
     """Read PHOTOS_FILE. Caller must hold `_lock`.
@@ -110,6 +186,30 @@ def _validate_description(description):
     if not isinstance(description, str) or len(description) > _MAX_DESCRIPTION_LENGTH:
         return f"description must be a string of at most {_MAX_DESCRIPTION_LENGTH} characters"
     return None
+
+
+def clear_round_photos():
+    """Remove every self-uploaded round photo (files + PHOTOS_FILE entries)
+    and restore the shipped default round photos (_DEFAULT_ROUND_PHOTOS).
+    Their files are never deleted (see _remove_photo_file), so this can
+    always restore them even if a default entry was previously removed via
+    the config UI. Used by tools/reset_state.py to prep the system for a
+    new event's set of rounds. Returns how many (non-default) photos were
+    removed.
+    """
+    default_filenames = {photo["filename"] for photo in _DEFAULT_ROUND_PHOTOS}
+
+    with _lock:
+        photos = _load_locked()
+        _save_locked([dict(photo) for photo in _DEFAULT_ROUND_PHOTOS])
+
+    removed = [photo for photo in photos if photo.get("filename") not in default_filenames]
+    for photo in removed:
+        for filename in (photo.get("filename"), photo.get("filename_hq")):
+            if filename:
+                _remove_photo_file(filename)
+
+    return len(removed)
 
 
 @bp.route("/round-photos", methods=["GET"])
@@ -245,10 +345,6 @@ def delete_round_photo(photo_id):
         filenames.append(record["filename_hq"])
 
     for name in filenames:
-        photo_path = os.path.join(photo_storage.PHOTOS_DIR, name)
-        try:
-            os.remove(photo_path)
-        except OSError as e:
-            logger.warning("Could not remove photo file %s: %s", photo_path, e)
+        _remove_photo_file(name)
 
     return jsonify({"deleted": True, "id": photo_id})

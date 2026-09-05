@@ -6,6 +6,7 @@ import os
 
 from PIL import Image
 
+import game_state
 import photo_storage
 
 
@@ -132,3 +133,39 @@ def test_patch_reset_deletes_the_photo_files(client):
 
     assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, uploaded["player1_photo"]))
     assert not os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, uploaded["player1_photo_hq"]))
+
+
+def _put_default_photo_on_disk(filename):
+    os.makedirs(photo_storage.PHOTOS_DIR, exist_ok=True)
+    with open(os.path.join(photo_storage.PHOTOS_DIR, filename), "wb") as f:
+        f.write(b"fake-bytes")
+
+
+def test_clearing_a_default_photo_via_patch_does_not_delete_its_file(client):
+    default_filename = "picture_of_player1.jpg"
+    _put_default_photo_on_disk(default_filename)
+    client.patch("/api/player-config", json={"player1_photo": default_filename})
+
+    client.patch("/api/player-config", json={"player1_photo": ""})
+
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, default_filename))
+
+
+def test_uploading_over_a_default_photo_does_not_delete_its_file(client):
+    default_filename = "picture_of_player1.jpg"
+    _put_default_photo_on_disk(default_filename)
+    client.patch("/api/player-config", json={"player1_photo": default_filename})
+
+    _upload(client, "player1")
+
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, default_filename))
+
+
+def test_reset_to_defaults_does_not_delete_default_photo_files(client):
+    default_filename = "picture_of_player2.jpg"
+    _put_default_photo_on_disk(default_filename)
+    client.patch("/api/player-config", json={"player2_photo": default_filename})
+
+    game_state.reset_to_defaults()
+
+    assert os.path.isfile(os.path.join(photo_storage.PHOTOS_DIR, default_filename))

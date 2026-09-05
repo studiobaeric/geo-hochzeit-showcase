@@ -24,6 +24,7 @@ import time
 
 from flask import Blueprint, Response, jsonify, request, stream_with_context
 
+import photo_config
 import photo_storage
 
 bp = Blueprint("api", __name__, url_prefix="/api")
@@ -480,13 +481,26 @@ def _validate_player_config_updates(updates):
     return None
 
 
+# The fallback profile-photo filenames static/config/players.js's
+# PHOTO_1/PHOTO_2 point at before any photo has been uploaded through the
+# config menu (see the module docstring's note on player1_photo/
+# player2_photo's empty-string default). Mirrored here - same convention as
+# photo_config._DEFAULT_ROUND_PHOTOS - so _remove_photo_file() never
+# deletes them, no matter what a client sets player1_photo/player2_photo
+# to; they must stay on disk to be usable as a fallback.
+_DEFAULT_PLAYER_PHOTO_FILENAMES = {"picture_of_player1.jpg", "picture_of_player2.jpg"}
+
+
 def _remove_photo_file(filename):
     """Best-effort delete of a previously-uploaded photo from PHOTOS_DIR.
 
     Never raises - called after a player photo is replaced or reset, so a
     missing/already-gone file (or a locked one on Windows) must not break
-    the request that triggered it.
+    the request that triggered it. Never deletes one of the shipped
+    default profile photos (_DEFAULT_PLAYER_PHOTO_FILENAMES) either.
     """
+    if filename in _DEFAULT_PLAYER_PHOTO_FILENAMES:
+        return
     path = os.path.join(photo_storage.PHOTOS_DIR, filename)
     try:
         os.remove(path)
@@ -919,6 +933,73 @@ def reset():
     _broadcast("gamestate", record)
     _broadcast("timer", timer_record)
     return jsonify(record)
+
+
+def reset_to_defaults():
+    """Reset game progress, player names/photos and round-timing config back
+    to their out-of-the-box defaults, and persist the result.
+
+    Unlike the `/api/reset` endpoint above (which only clears the current
+    round's progress so the moderator can restart play), this also wipes
+    player_config/round_config - used by tools/reset_state.py to prep the
+    whole system for a new event rather than just a new round. Returns the
+    player_config that was in effect before the reset, so the caller can
+    clean up any uploaded photo files it referenced (this function only
+    removes the *_photo/_hq files it itself clears via patch_player_config's
+    file-cleanup convention).
+    """
+    with _lock:
+        previous_player_config = dict(_player_config)
+        _gamestate.update(dict(_DEFAULT_GAMESTATE))
+        _placed_points.clear()
+        _round_results.clear()
+        _timer_state.update(dict(_DEFAULT_TIMER_STATE))
+        _player_config.clear()
+        _player_config.update(_DEFAULT_PLAYER_CONFIG)
+        _round_config.clear()
+        _round_config.update(_DEFAULT_ROUND_CONFIG)
+        gamestate_record = dict(_gamestate)
+        timer_record = _timer_record_locked()
+        player_config_record = dict(_player_config)
+        round_config_record = dict(_round_config)
+        _persist_locked()
+
+    for key in _PLAYER_PHOTO_FIELDS:
+        hq_key = f"{key}_hq"
+        for filename in (previous_player_config.get(key), previous_player_config.get(hq_key)):
+            if filename:
+                _remove_photo_file(filename)
+
+    _broadcast("gamestate", gamestate_record)
+    _broadcast("timer", timer_record)
+    _broadcast("player_config", player_config_record)
+    _broadcast("round_config", round_config_record)
+    return previous_player_config
+
+
+@bp.route("/reset-to-defaults", methods=["POST"])
+def reset_to_defaults_endpoint():
+    """HTTP counterpart of reset_to_defaults() + photo_config.clear_round_
+    photos(), so tools/reset_state.py can reset an already-running server
+    over its own API instead of only editing files on disk.
+
+    A file-only reset leaves a running server's in-memory state stale
+    (game_state.py loads player_config/round_config/gamestate from disk
+    only once, at import time) - it would keep serving old data, including
+    photo filenames the reset just deleted from disk, until restarted. This
+    runs the exact same reset function calls, just inside this process, so
+    the change is live immediately: the in-memory state updates, gets
+    persisted, and the *_config broadcasts above reach every connected
+    client the same way any other config change does.
+    """
+    previous_player_config = reset_to_defaults()
+    round_photos_removed = photo_config.clear_round_photos()
+    return jsonify(
+        {
+            "previous_player_config": previous_player_config,
+            "round_photos_removed": round_photos_removed,
+        }
+    )
 
 
 @bp.route("/events")

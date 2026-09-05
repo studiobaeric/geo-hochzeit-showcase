@@ -10,6 +10,20 @@ entries here turn into a tagged release with downloadable binaries.
 ## [Unreleased]
 
 ### Added
+- `tools/reset_state.py` CLI to reset the system to its default state:
+  restores player names/round settings to their defaults, deletes all
+  uploaded profile/round photos and the current game progress, and
+  restores the shipped default round photos (rather than leaving none),
+  so the app is ready to be configured again from scratch for a new
+  event (#72). The default round *and* player profile photos' files are
+  never deleted from disk (even if removed/replaced from `/config`), so
+  they stay recoverable; and, like uploaded round photos, the default
+  round photos now ship both a downscaled copy and a full-resolution one
+  for the moderator's beamer view (#86). Works against a running server
+  too: if one answers at `RESET_SERVER_URL` (defaulting to
+  `http://127.0.0.1:8080`), the reset happens through its own new
+  `POST /api/reset-to-defaults` so the change is live immediately,
+  instead of only writing to disk and needing a restart to take effect.
 - Config menu (`/config`) now has a "Verlängerung pro Klick (Sekunden)" field
   for countdown mode, so the amount of time the moderator's timer "+Xs"
   button adds per click is editable instead of a fixed 30 seconds (#42).

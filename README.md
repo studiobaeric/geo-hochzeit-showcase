@@ -107,6 +107,32 @@ neue Rundenfotos dazukommen:
 Alle Änderungen werden serverseitig gespeichert und gelten dadurch sofort
 für alle Geräte, die die Seite (neu) laden.
 
+### Auf Standardzustand zurücksetzen
+
+Um das System für eine neue Hochzeit vorzubereiten (Spielernamen, Profil-
+und Rundenfotos sowie der laufende Spielstand sollen komplett verschwinden):
+
+```
+python tools/reset_state.py          # fragt vorher nach Bestätigung
+python tools/reset_state.py --yes    # ohne Rückfrage zurücksetzen
+```
+
+Das setzt Spielernamen und Rundeneinstellungen auf ihre Standardwerte
+zurück, löscht alle hochgeladenen Profil- und Rundenfotos und den
+aktuellen Spielstand. Die mitgelieferten Standard-Rundenfotos in
+`static/config/photos.json` (samt ihrer Dateien unter `static/photos/`)
+werden dabei wiederhergestellt statt gelöscht - auch wenn sie zuvor im
+Konfigurationsmenü aus der Rundenliste entfernt wurden: dabei wird nur
+der Eintrag entfernt, die Bilddateien selbst bleiben erhalten, damit
+genau dieser Reset sie wiederherstellen kann.
+
+Funktioniert bei laufendem und gestopptem Server: Ist der Server erreichbar
+(`http://127.0.0.1:8080` per Default, überschreibbar über die Umgebungsvariable
+`RESET_SERVER_URL`), läuft der Reset über dessen eigene API - die Änderung ist
+dadurch sofort wirksam, ganz ohne Neustart. Nur wenn kein Server antwortet,
+schreibt das Skript stattdessen direkt in die Konfigurationsdateien (die der
+Server beim nächsten Start ganz normal einliest).
+
 ## App starten
 
 Spielstand und Live-Sync laufen direkt in Flask (siehe `game_state.py`) -
