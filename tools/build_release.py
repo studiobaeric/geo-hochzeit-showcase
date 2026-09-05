@@ -25,12 +25,12 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-APP_NAME = "kartenquiz"
+APP_NAME = "where2win"
 
 OS_NAMES = {"Linux": "linux", "Darwin": "macos", "Windows": "windows"}
 
 PACKAGE_README = """\
-Kartenquiz {version} ({os_name})
+Where2Win {version} ({os_name})
 =================================
 
 Start:

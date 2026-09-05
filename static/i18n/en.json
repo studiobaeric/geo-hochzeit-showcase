@@ -85,7 +85,7 @@
   },
   "results": {
     "meta": {
-      "title": "Kartenquiz - Results"
+      "title": "Where2Win - Results"
     },
     "heading": "Game over!",
     "subtitle": "Here are your results:",
@@ -126,7 +126,7 @@
   },
   "config": {
     "meta": {
-      "title": "Configuration – Kartenquiz"
+      "title": "Configuration – Where2Win"
     },
     "heading": "Configuration",
     "subtitle": "Adjust the game settings.",
