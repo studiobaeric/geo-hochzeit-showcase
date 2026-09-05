@@ -10,6 +10,12 @@ entries here turn into a tagged release with downloadable binaries.
 ## [Unreleased]
 
 ### Added
+- Config menu (`/config`) now has a "Gefahrenzone" section at the very
+  bottom with a "Spiel komplett zurücksetzen" button, running the same
+  factory reset as `tools/reset_state.py` (via `POST /api/reset-to-defaults`)
+  directly from the browser. A confirmation dialog requires typing
+  "Where2Win" exactly before the reset button is even clickable, so it
+  can't be triggered by an accidental click (#137).
 - `tools/reset_state.py` CLI to reset the system to its default state:
   restores player names/round settings to their defaults, deletes all
   uploaded profile/round photos and the current game progress, and

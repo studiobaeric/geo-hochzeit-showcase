@@ -133,6 +133,10 @@ dadurch sofort wirksam, ganz ohne Neustart. Nur wenn kein Server antwortet,
 schreibt das Skript stattdessen direkt in die Konfigurationsdateien (die der
 Server beim nächsten Start ganz normal einliest).
 
+Alternativ funktioniert derselbe Reset auch direkt im Browser: im
+Konfigurationsmenü (`/config`) ganz unten in der "Gefahrenzone" auf "Spiel
+komplett zurücksetzen" klicken und zur Bestätigung "Where2Win" eingeben.
+
 ## App starten
 
 Spielstand und Live-Sync laufen direkt in Flask (siehe `game_state.py`) -

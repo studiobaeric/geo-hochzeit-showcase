@@ -244,6 +244,15 @@
       "loading_address": "Lade Adresse …",
       "address_error": "Adresse konnte nicht geladen werden."
     },
+    "danger": {
+      "section_title": "Gefahrenzone",
+      "hint": "Setzt Spielernamen, Spielerfotos, Rundenfotos, Rundeneinstellungen und den aktuellen Spielstand unwiderruflich auf die Werkseinstellungen zurück. Kartendaten, Design und Spracheinstellung bleiben erhalten.",
+      "reset_button": "Spiel komplett zurücksetzen",
+      "confirm_message": "Dies löscht alle Spieler- und Rundenfotos, setzt Spielernamen und Rundeneinstellungen zurück und kann nicht rückgängig gemacht werden. Zum Bestätigen \"Where2Win\" eingeben:",
+      "confirm_button": "Endgültig zurücksetzen",
+      "success": "Spiel wurde auf die Werkseinstellungen zurückgesetzt.",
+      "error": "Zurücksetzen fehlgeschlagen."
+    },
     "buttons": {
       "back": "Zurück zur Startseite"
     },

@@ -1362,3 +1362,84 @@ def test_config_page_has_no_horizontal_overflow_on_narrow_screens(live_server):
         assert_no_horizontal_overflow()
 
         browser.close()
+
+
+def test_config_page_reset_button_requires_typed_confirmation_phrase(live_server):
+    """Coverage test for #137: the config page's "Gefahrenzone" -> "Spiel
+    komplett zurücksetzen" button must not run the destructive factory
+    reset (game_state.reset_to_defaults() + photo_config.clear_round_photos(),
+    via POST /api/reset-to-defaults - the same reset tools/reset_state.py
+    runs, see #72) on a single click. confirm-dialog.js's dialog must show
+    with its confirm button disabled until the user has typed the exact
+    phrase "Where2Win" into the added text input - only then may the reset
+    actually run.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        # Give the game some non-default state first, so the reset visibly
+        # changes something rather than the defaults already matching.
+        patch_response = context.request.patch(
+            f"{live_server}/api/player-config", data={"player1_name": "Someone Special"}
+        )
+        assert patch_response.ok
+
+        page = context.new_page()
+        page.goto(f"{live_server}/config")
+        page.wait_for_selector("#resetGameButton")
+        assert page.input_value("#player1Name") == "Someone Special"
+
+        page.click("#resetGameButton")
+        page.wait_for_selector(".confirm-dialog-overlay.is-active")
+        assert page.is_disabled(".confirm-dialog-confirm")
+
+        # A wrong (even case-mismatched) phrase must keep it disabled.
+        page.fill(".confirm-dialog-phrase-input", "where2win")
+        assert page.is_disabled(".confirm-dialog-confirm")
+
+        # Only the exact phrase enables the confirm button.
+        page.fill(".confirm-dialog-phrase-input", "Where2Win")
+        assert not page.is_disabled(".confirm-dialog-confirm")
+
+        page.click(".confirm-dialog-confirm")
+
+        # A successful reset reloads the page - wait for that to settle,
+        # then check both the reloaded UI and the server's own state.
+        page.wait_for_function("document.querySelector('#player1Name')?.value === 'player1'")
+
+        player_config = context.request.get(f"{live_server}/api/player-config").json()
+        assert player_config["player1_name"] == "player1"
+
+        browser.close()
+
+
+def test_config_page_reset_cancel_leaves_game_state_untouched(live_server):
+    """Follow-up to the test above: dismissing #137's confirmation dialog
+    (even after typing the correct phrase) must not run the reset at all.
+    """
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context()
+
+        patch_response = context.request.patch(
+            f"{live_server}/api/player-config", data={"player1_name": "Someone Special"}
+        )
+        assert patch_response.ok
+
+        page = context.new_page()
+        page.goto(f"{live_server}/config")
+        page.wait_for_selector("#resetGameButton")
+
+        page.click("#resetGameButton")
+        page.wait_for_selector(".confirm-dialog-overlay.is-active")
+        page.fill(".confirm-dialog-phrase-input", "Where2Win")
+        page.click(".confirm-dialog-cancel")
+        page.wait_for_function(
+            "!document.querySelector('.confirm-dialog-overlay')?.classList.contains('is-active')"
+        )
+
+        player_config = context.request.get(f"{live_server}/api/player-config").json()
+        assert player_config["player1_name"] == "Someone Special"
+
+        browser.close()

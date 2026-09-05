@@ -13,6 +13,7 @@
     <title>{{ t('config.meta.title') }}</title>
     <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/confirm-dialog.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.css') }}"/>
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/maplibre-gl/maplibre-gl.css') }}"/>
     <style>
@@ -1118,6 +1119,20 @@
             color: var(--color-status-error-text);
         }
 
+        .config-section.danger-zone {
+            border: 2px solid var(--color-status-error-bg);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .config-section.danger-zone h2 {
+            color: var(--color-status-error-text);
+        }
+
+        .config-section.danger-zone .config-buttons {
+            margin-top: 0;
+        }
+
         .status-message.error {
             color: var(--color-status-error-text);
         }
@@ -1312,6 +1327,17 @@
             </div>
         </div>
 
+        <div class="config-section danger-zone">
+            <h2>⚠️ {{ t('config.danger.section_title') }}</h2>
+            <p class="field-hint">
+                {{ t('config.danger.hint') }}
+            </p>
+            <div class="config-buttons">
+                <button type="button" class="config-button danger" id="resetGameButton">🗑️ {{ t('config.danger.reset_button') }}</button>
+            </div>
+            <p class="status-message" id="resetGameStatus" role="status" aria-live="polite"></p>
+        </div>
+
         <div class="config-buttons">
             <button type="button" class="config-button back" id="backButton">← {{ t('config.buttons.back') }}</button>
         </div>
@@ -1357,6 +1383,8 @@
     import { loadHostInfo } from "{{ url_for('static', filename='js/host-connection.js') }}";
     import { t } from "{{ url_for('static', filename='js/i18n.js') }}";
     import { createMapOverview } from "{{ url_for('static', filename='js/map-overview.js') }}";
+    import { confirmDialog } from "{{ url_for('static', filename='js/confirm-dialog.js') }}";
+    import { resetGameToDefaults } from "{{ url_for('static', filename='js/reset-game.js') }}";
 
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
@@ -2235,6 +2263,31 @@
             unsavedConfirmOverlay.classList.add('is-active');
         });
     }
+
+    const resetGameButton = document.getElementById('resetGameButton');
+    const resetGameStatus = document.getElementById('resetGameStatus');
+
+    resetGameButton.addEventListener('click', async () => {
+        const confirmed = await confirmDialog(t('config.danger.confirm_message'), {
+            confirmLabel: t('config.danger.confirm_button'),
+            requirePhrase: 'Where2Win'
+        });
+        if (!confirmed) return;
+
+        resetGameStatus.textContent = '';
+        resetGameStatus.className = 'status-message';
+        resetGameButton.disabled = true;
+        try {
+            await resetGameToDefaults();
+            resetGameStatus.textContent = t('config.danger.success');
+            resetGameStatus.className = 'status-message success';
+            window.location.reload();
+        } catch (error) {
+            resetGameStatus.textContent = error.message || t('config.danger.error');
+            resetGameStatus.className = 'status-message error';
+            resetGameButton.disabled = false;
+        }
+    });
 
     document.getElementById('backButton').addEventListener('click', async () => {
         if (isDirty && !(await confirmDiscardUnsavedChanges())) {

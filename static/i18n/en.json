@@ -244,6 +244,15 @@
       "loading_address": "Loading address …",
       "address_error": "Could not load address."
     },
+    "danger": {
+      "section_title": "Danger zone",
+      "hint": "Irreversibly resets player names, player photos, round photos, round timing settings, and the current game progress back to their shipped defaults. Map data, appearance, and the language setting are kept.",
+      "reset_button": "Reset the whole game",
+      "confirm_message": "This deletes all player and round photos, resets player names and round settings, and cannot be undone. Type \"Where2Win\" to confirm:",
+      "confirm_button": "Reset permanently",
+      "success": "The game has been reset to its default state.",
+      "error": "Reset failed."
+    },
     "buttons": {
       "back": "Back to start page"
     },

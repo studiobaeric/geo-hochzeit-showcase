@@ -15,6 +15,7 @@ function buildDom() {
     overlay.innerHTML = `
         <div class="confirm-dialog" role="alertdialog" aria-modal="true">
             <p class="confirm-dialog-message"></p>
+            <input type="text" class="confirm-dialog-phrase-input" autocomplete="off" autocapitalize="off" spellcheck="false" hidden>
             <div class="confirm-dialog-actions">
                 <button type="button" class="confirm-dialog-cancel"></button>
                 <button type="button" class="confirm-dialog-confirm"></button>
@@ -25,12 +26,18 @@ function buildDom() {
     dom = {
         overlay,
         message: overlay.querySelector('.confirm-dialog-message'),
+        phraseInput: overlay.querySelector('.confirm-dialog-phrase-input'),
         cancelButton: overlay.querySelector('.confirm-dialog-cancel'),
         confirmButton: overlay.querySelector('.confirm-dialog-confirm')
     };
 
     dom.cancelButton.addEventListener('click', () => finish(false));
-    dom.confirmButton.addEventListener('click', () => finish(true));
+    dom.confirmButton.addEventListener('click', () => {
+        if (!dom.confirmButton.disabled) finish(true);
+    });
+    dom.phraseInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !dom.confirmButton.disabled) finish(true);
+    });
     overlay.addEventListener('click', (event) => {
         if (event.target === overlay) finish(false);
     });
@@ -43,18 +50,42 @@ function buildDom() {
 
 function finish(result) {
     dom.overlay.classList.remove('is-active');
+    dom.phraseInput.oninput = null;
     const resolve = resolveFn;
     resolveFn = null;
     resolve?.(result);
 }
 
 // Resolves true if the user confirms, false if they cancel or dismiss it.
-export function confirmDialog(message, { confirmLabel = t('common.confirm'), cancelLabel = t('common.cancel') } = {}) {
+//
+// Pass `requirePhrase` for the most destructive actions, where a single
+// click/Enter must not be enough (e.g. the config page's full game reset,
+// #137) - this reveals a text input and keeps the confirm button disabled
+// until the user has typed that exact phrase into it.
+export function confirmDialog(
+    message,
+    { confirmLabel = t('common.confirm'), cancelLabel = t('common.cancel'), requirePhrase } = {}
+) {
     const d = buildDom();
     d.message.textContent = message;
     d.confirmButton.textContent = confirmLabel;
     d.cancelButton.textContent = cancelLabel;
+
+    d.phraseInput.hidden = !requirePhrase;
+    d.phraseInput.value = '';
+    if (requirePhrase) {
+        d.phraseInput.placeholder = requirePhrase;
+        d.confirmButton.disabled = true;
+        d.phraseInput.oninput = () => {
+            d.confirmButton.disabled = d.phraseInput.value !== requirePhrase;
+        };
+    } else {
+        d.confirmButton.disabled = false;
+        d.phraseInput.oninput = null;
+    }
+
     d.overlay.classList.add('is-active');
+    if (requirePhrase) d.phraseInput.focus();
 
     return new Promise((resolve) => {
         resolveFn = resolve;
