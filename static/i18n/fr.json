@@ -154,6 +154,23 @@
       "duration_label": "Temps limite par manche (secondes)",
       "extend_label": "Prolongation par clic (secondes)"
     },
+    "scoring": {
+      "section_title": "Points",
+      "hint": "Détermine comment le score d'une manche est calculé à partir de la distance entre le lieu deviné et la cible. À l'intérieur du rayon de score maximal, le score maximal s'applique toujours - au-delà, c'est l'algorithme choisi qui décide.",
+      "algorithm_exponential": "Exponentiel – les points diminuent progressivement avec la distance, une réponse éloignée rapporte encore quelque chose",
+      "algorithm_linear": "Linéaire – les points diminuent régulièrement jusqu'à une distance fixe",
+      "algorithm_step": "Seuil – score maximal dans le rayon, score minimal au-delà",
+      "max_points_label": "Score maximal",
+      "min_points_label": "Score minimal",
+      "perfect_radius_label": "Rayon de score maximal (mètres)",
+      "perfect_radius_hint": "Jusqu'à cette distance, le score maximal s'applique toujours.",
+      "distance_scale_label": "Distance de décroissance (mètres)",
+      "distance_scale_hint": "Algorithme exponentiel uniquement : une valeur plus élevée signifie que les points diminuent plus lentement avec la distance.",
+      "max_distance_label": "Distance jusqu'au score minimal (mètres)",
+      "max_distance_hint": "Algorithme linéaire uniquement : au-delà de cette distance, seul le score minimal s'applique.",
+      "min_greater_than_max_error": "Le score minimal ne doit pas être supérieur au score maximal.",
+      "max_distance_not_greater_error": "La distance jusqu'au score minimal doit être supérieure au rayon de score maximal."
+    },
     "map": {
       "section_title": "Données cartographiques",
       "hint": "Créez des zones de carte du plus large au plus précis - par ex. le monde entier avec peu de détails pour la vue d'ensemble, puis des lieux individuels en haute précision. Pour tous les emplacements de photos (voir Photos des manches), un niveau de détail élevé est automatiquement garanti lors du téléchargement, même si une zone ne les couvre pas déjà.",
