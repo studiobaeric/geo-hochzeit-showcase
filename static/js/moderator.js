@@ -9,6 +9,7 @@ import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDist
 import { loadRoundConfig } from './round-config.js';
 import { loadThemeConfig } from './theme.js';
 import { loadMapLabelsConfig } from './map-labels-config.js';
+import { loadScoringConfig, getScoringConfig, calculateRoundPoints } from './scoring-config.js';
 import { confirmDialog } from './confirm-dialog.js';
 import { t, tf } from './i18n.js';
 
@@ -629,17 +630,11 @@ async function calculatePoints() {
         currentPhoto.location.lng
     ];
 
-    const maxPoints = 1000;
-    const minPoints = 100;
-
-    const perfectRadiusMeters = 500; // bis hier volle Punkte
-    const distanceScaleMeters = 100000;
+    const scoringConfig = getScoringConfig();
     let roundPoints = {};
-
 
     ["player1", "player2"].forEach((role) => {
         const playerLatLng = getRecordLatLng(latestPlayerRecords[role]);
-        let points = 0;
         let distanceMeters = null;
 
         if (playerLatLng) {
@@ -647,27 +642,9 @@ async function calculatePoints() {
                 playerLatLng,
                 targetLatLng
             );
-
-            if (distanceMeters <= perfectRadiusMeters) {
-                points = maxPoints;
-            } else {
-                const effectiveDistance =
-                    distanceMeters - perfectRadiusMeters;
-
-                points = Math.round(
-                    minPoints +
-                    (maxPoints - minPoints) *
-                    Math.exp(
-                        -effectiveDistance / distanceScaleMeters
-                    )
-                );
-
-                // niemals unter minPoints
-                points = Math.max(minPoints, points);
-                points = Math.min(maxPoints, points);
-
-            }
         }
+
+        const points = calculateRoundPoints(distanceMeters, scoringConfig);
 
         roundPoints[role] = {
             points: points,
@@ -924,6 +901,7 @@ if (moderatorApp) {
     await restoreScoreState();
 
     roundConfig = await loadRoundConfig();
+    await loadScoringConfig();
     try {
         timerState = await getTimerState();
     } catch (error) {

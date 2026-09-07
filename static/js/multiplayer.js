@@ -3,6 +3,7 @@ import {loadNextRound, updateView, onRoundConfigUpdate as onPlayerRoundConfigUpd
 import {getDisplayNames} from './player-names.js';
 import {onThemeConfigEvent} from './theme.js';
 import {onMapLabelsConfigEvent} from './map-labels-config.js';
+import {onScoringConfigEvent} from './scoring-config.js';
 import {onLocaleConfigEvent} from './i18n.js';
 
 const API_BASE = '/api';
@@ -131,6 +132,13 @@ function initEventStream() {
     // at createBaseMapLayer() time), not one already on screen.
     eventSource.addEventListener('map_labels_config', (event) => {
         onMapLabelsConfigEvent(JSON.parse(event.data));
+    });
+
+    // Only the moderator ever reads the scoring config (game.js/players
+    // never do), but applying it on every role is harmless and keeps this
+    // handler as simple as theme_config/map_labels_config above.
+    eventSource.addEventListener('scoring_config', (event) => {
+        onScoringConfigEvent(JSON.parse(event.data));
     });
 
     // Also applies to every role alike - see theme_config above. A locale

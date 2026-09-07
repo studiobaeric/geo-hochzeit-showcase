@@ -97,6 +97,14 @@
             border-color: var(--color-accent);
         }
 
+        .field input.is-invalid {
+            border-color: var(--color-danger);
+        }
+
+        .field input.is-invalid:focus {
+            border-color: var(--color-danger);
+        }
+
         .field-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1061,6 +1069,48 @@
             font-size: 0.9em;
         }
 
+        /* Sits just above the floating save button (rather than wherever
+           the end of the form happens to scroll to) so it's visible right
+           next to the action that produced it, and stacks one line per
+           simultaneous error instead of overwriting them. */
+        .floating-status-message {
+            position: fixed;
+            left: 50%;
+            bottom: 84px;
+            z-index: 500;
+            width: min(360px, calc(100vw - 40px));
+            margin: 0;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .floating-status-message.is-visible {
+            opacity: 1;
+        }
+
+        .floating-status-message > div {
+            padding: 8px 14px;
+            border-radius: 8px;
+            /* A solid surface, not the translucent --color-status-*-bg
+               tokens (meant for a banner sitting on the page's own
+               background) - this floats over arbitrary scrolled-past form
+               content, so it needs to stay legible over anything behind
+               it, same reasoning as --color-chrome-bg. */
+            background: var(--color-bg-elevated);
+            border: 1px solid var(--color-status-error-text);
+            box-shadow: 0 4px 16px var(--shadow-color);
+        }
+
+        .floating-status-message.success > div {
+            border-color: var(--color-status-success-text);
+        }
+
         .status-message.success {
             color: var(--color-status-success-text);
         }
@@ -1222,6 +1272,52 @@
         </div>
 
         <div class="config-section">
+            <h2>{{ t('config.scoring.section_title') }}</h2>
+            <p class="field-hint">
+                {{ t('config.scoring.hint') }}
+            </p>
+            <div class="mode-options">
+                <label class="mode-option">
+                    <input type="radio" name="scoringAlgorithm" value="exponential" id="scoringAlgorithmExponential">
+                    <span>{{ t('config.scoring.algorithm_exponential') }}</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="scoringAlgorithm" value="linear" id="scoringAlgorithmLinear">
+                    <span>{{ t('config.scoring.algorithm_linear') }}</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="scoringAlgorithm" value="step" id="scoringAlgorithmStep">
+                    <span>{{ t('config.scoring.algorithm_step') }}</span>
+                </label>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="scoringMaxPoints">{{ t('config.scoring.max_points_label') }}</label>
+                    <input type="number" id="scoringMaxPoints" name="scoringMaxPoints" min="0" max="1000000" step="1" required>
+                </div>
+                <div class="field">
+                    <label for="scoringMinPoints">{{ t('config.scoring.min_points_label') }}</label>
+                    <input type="number" id="scoringMinPoints" name="scoringMinPoints" min="0" max="1000000" step="1" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="scoringPerfectRadius">{{ t('config.scoring.perfect_radius_label') }}</label>
+                <input type="number" id="scoringPerfectRadius" name="scoringPerfectRadius" min="1" max="20000000" step="1" required>
+                <p class="field-hint">{{ t('config.scoring.perfect_radius_hint') }}</p>
+            </div>
+            <div class="field" id="scoringDistanceScaleField">
+                <label for="scoringDistanceScale">{{ t('config.scoring.distance_scale_label') }}</label>
+                <input type="number" id="scoringDistanceScale" name="scoringDistanceScale" min="1" max="20000000" step="1" required>
+                <p class="field-hint">{{ t('config.scoring.distance_scale_hint') }}</p>
+            </div>
+            <div class="field" id="scoringMaxDistanceField">
+                <label for="scoringMaxDistance">{{ t('config.scoring.max_distance_label') }}</label>
+                <input type="number" id="scoringMaxDistance" name="scoringMaxDistance" min="1" max="20000000" step="1" required>
+                <p class="field-hint">{{ t('config.scoring.max_distance_hint') }}</p>
+            </div>
+        </div>
+
+        <div class="config-section">
             <h2>{{ t('config.map.section_title') }}</h2>
             <p class="field-hint">
                 {{ t('config.map.hint') }}
@@ -1344,7 +1440,7 @@
 
         <button type="submit" class="config-button save floating-save-button" id="mainSaveButton">💾 {{ t('common.save') }}</button>
 
-        <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
+        <div class="status-message floating-status-message" id="statusMessage" role="status" aria-live="polite"></div>
     </form>
 
     <div class="unsaved-confirm-overlay" id="unsavedConfirmOverlay">
@@ -1367,6 +1463,7 @@
 <script type="module">
     import { getDisplayNames, loadDisplayNames, saveDisplayNames } from "{{ url_for('static', filename='js/player-names.js') }}";
     import { getRoundConfig, loadRoundConfig, saveRoundConfig } from "{{ url_for('static', filename='js/round-config.js') }}";
+    import { getScoringConfig, loadScoringConfig, saveScoringConfig } from "{{ url_for('static', filename='js/scoring-config.js') }}";
     import {
         getMapConfig, loadMapConfig, saveMapConfig, startMapBuild, getMapBuildStatus
     } from "{{ url_for('static', filename='js/map-config.js') }}";
@@ -1389,6 +1486,41 @@
     const player1Input = document.getElementById('player1Name');
     const player2Input = document.getElementById('player2Name');
     const statusMessage = document.getElementById('statusMessage');
+
+    // Renders 0+ lines in the floating status message next to the save
+    // button, replacing whatever was shown before (so a stale error from a
+    // previous attempt never sits alongside a new one) and auto-fading a
+    // few seconds after an error - a success redirects away immediately, so
+    // it never actually needs a fade timer.
+    const STATUS_MESSAGE_VISIBLE_MS = 5000;
+    const STATUS_MESSAGE_FADE_MS = 250;
+    let statusMessageHideTimer = null;
+    let statusMessageClearTimer = null;
+
+    function showStatusMessages(messages, type) {
+        clearTimeout(statusMessageHideTimer);
+        clearTimeout(statusMessageClearTimer);
+        statusMessage.innerHTML = '';
+        statusMessage.classList.remove('is-visible');
+
+        if (!messages.length) return;
+
+        messages.forEach((message) => {
+            const line = document.createElement('div');
+            line.textContent = message;
+            statusMessage.appendChild(line);
+        });
+        statusMessage.className = `status-message floating-status-message is-visible ${type}`;
+
+        if (type === 'error') {
+            statusMessageHideTimer = setTimeout(() => {
+                statusMessage.classList.remove('is-visible');
+                statusMessageClearTimer = setTimeout(() => {
+                    statusMessage.innerHTML = '';
+                }, STATUS_MESSAGE_FADE_MS);
+            }, STATUS_MESSAGE_VISIBLE_MS);
+        }
+    }
 
     // Tracks whether any of the fields covered by the main "Speichern"
     // button (player names, round timing, map regions/build date) have
@@ -1498,6 +1630,78 @@
     roundDurationInput.value = currentRoundConfig.duration_seconds;
     roundExtendInput.value = currentRoundConfig.extend_seconds;
     updateRoundDurationVisibility();
+
+    const scoringAlgorithmInputs = document.querySelectorAll('input[name="scoringAlgorithm"]');
+    const scoringMaxPointsInput = document.getElementById('scoringMaxPoints');
+    const scoringMinPointsInput = document.getElementById('scoringMinPoints');
+    const scoringPerfectRadiusInput = document.getElementById('scoringPerfectRadius');
+    const scoringDistanceScaleField = document.getElementById('scoringDistanceScaleField');
+    const scoringDistanceScaleInput = document.getElementById('scoringDistanceScale');
+    const scoringMaxDistanceField = document.getElementById('scoringMaxDistanceField');
+    const scoringMaxDistanceInput = document.getElementById('scoringMaxDistance');
+
+    function getSelectedScoringAlgorithm() {
+        return document.querySelector('input[name="scoringAlgorithm"]:checked')?.value || 'exponential';
+    }
+
+    function updateScoringFieldsVisibility() {
+        const algorithm = getSelectedScoringAlgorithm();
+        scoringDistanceScaleField.classList.toggle('is-hidden', algorithm !== 'exponential');
+        scoringMaxDistanceField.classList.toggle('is-hidden', algorithm !== 'linear');
+    }
+
+    // Mirrors the backend's cross-field checks (game_state.py's
+    // _validate_scoring_config_updates) so a bad combination is flagged
+    // right on the offending inputs instead of only surfacing as a
+    // generic "Speichern fehlgeschlagen" after a failed save. Both checks
+    // are independent (different field pairs), so both can be violated at
+    // once - collect every violation instead of stopping at the first.
+    function scoringValidationErrors() {
+        const maxPoints = parseInt(scoringMaxPointsInput.value, 10);
+        const minPoints = parseInt(scoringMinPointsInput.value, 10);
+        const perfectRadius = parseInt(scoringPerfectRadiusInput.value, 10);
+        const maxDistance = parseInt(scoringMaxDistanceInput.value, 10);
+        const errors = [];
+
+        if (!Number.isNaN(minPoints) && !Number.isNaN(maxPoints) && minPoints > maxPoints) {
+            errors.push({ fields: [scoringMinPointsInput, scoringMaxPointsInput], message: t('config.scoring.min_greater_than_max_error') });
+        }
+        if (!Number.isNaN(maxDistance) && !Number.isNaN(perfectRadius) && maxDistance <= perfectRadius) {
+            errors.push({ fields: [scoringMaxDistanceInput, scoringPerfectRadiusInput], message: t('config.scoring.max_distance_not_greater_error') });
+        }
+        return errors;
+    }
+
+    function updateScoringValidationState() {
+        const invalidFields = new Set(scoringValidationErrors().flatMap((error) => error.fields));
+        [scoringMaxPointsInput, scoringMinPointsInput, scoringPerfectRadiusInput, scoringMaxDistanceInput].forEach((input) => {
+            input.classList.toggle('is-invalid', invalidFields.has(input));
+        });
+    }
+
+    scoringAlgorithmInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            updateScoringFieldsVisibility();
+            markDirty();
+        });
+    });
+    [scoringMaxPointsInput, scoringMinPointsInput, scoringPerfectRadiusInput, scoringDistanceScaleInput, scoringMaxDistanceInput]
+        .forEach((input) => input.addEventListener('input', markDirty));
+    [scoringMaxPointsInput, scoringMinPointsInput, scoringPerfectRadiusInput, scoringMaxDistanceInput]
+        .forEach((input) => input.addEventListener('input', updateScoringValidationState));
+
+    await loadScoringConfig();
+    const currentScoringConfig = getScoringConfig();
+    scoringAlgorithmInputs.forEach((input) => {
+        input.checked = input.value === currentScoringConfig.algorithm;
+    });
+    scoringMaxPointsInput.value = currentScoringConfig.max_points;
+    scoringMinPointsInput.value = currentScoringConfig.min_points;
+    scoringPerfectRadiusInput.value = currentScoringConfig.perfect_radius_meters;
+    scoringDistanceScaleInput.value = currentScoringConfig.distance_scale_meters;
+    scoringMaxDistanceInput.value = currentScoringConfig.max_distance_meters;
+    updateScoringFieldsVisibility();
+    updateScoringValidationState();
 
     const mapBuildDateInput = document.getElementById('mapBuildDate');
     mapBuildDateInput.addEventListener('input', markDirty);
@@ -2299,8 +2503,7 @@
     document.getElementById('configForm').addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        statusMessage.textContent = '';
-        statusMessage.className = 'status-message';
+        showStatusMessages([], 'error');
 
         try {
             await saveDisplayNames({
@@ -2311,6 +2514,20 @@
                 mode: roundModeCountdownInput.checked ? 'countdown' : 'manual',
                 duration_seconds: parseInt(roundDurationInput.value, 10),
                 extend_seconds: parseInt(roundExtendInput.value, 10)
+            });
+            const scoringErrors = scoringValidationErrors();
+            if (scoringErrors.length) {
+                updateScoringValidationState();
+                showStatusMessages(scoringErrors.map((error) => error.message), 'error');
+                return;
+            }
+            await saveScoringConfig({
+                algorithm: getSelectedScoringAlgorithm(),
+                max_points: parseInt(scoringMaxPointsInput.value, 10),
+                min_points: parseInt(scoringMinPointsInput.value, 10),
+                perfect_radius_meters: parseInt(scoringPerfectRadiusInput.value, 10),
+                distance_scale_meters: parseInt(scoringDistanceScaleInput.value, 10),
+                max_distance_meters: parseInt(scoringMaxDistanceInput.value, 10)
             });
             await saveMapConfig({
                 regions: collectRegionsPayload(),
@@ -2331,8 +2548,7 @@
             clearDirty();
             window.location.href = '/';
         } catch (error) {
-            statusMessage.textContent = error.message || t('common.save_failed');
-            statusMessage.className = 'status-message error';
+            showStatusMessages([error.message || t('common.save_failed')], 'error');
         }
     });
 </script>

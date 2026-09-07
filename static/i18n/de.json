@@ -154,6 +154,23 @@
       "duration_label": "Zeitlimit pro Runde (Sekunden)",
       "extend_label": "Verlängerung pro Klick (Sekunden)"
     },
+    "scoring": {
+      "section_title": "Punktevergabe",
+      "hint": "Legt fest, wie aus der Entfernung zwischen Tipp und Zielort die Punktzahl einer Runde berechnet wird. Innerhalb des Volle-Punkte-Radius gibt es immer die Maximalpunktzahl - erst danach entscheidet der gewählte Algorithmus.",
+      "algorithm_exponential": "Exponentiell – Punkte sinken weich mit der Entfernung, ein weiter Tipp bringt noch etwas",
+      "algorithm_linear": "Linear – Punkte sinken gleichmäßig bis zu einer festen Entfernung",
+      "algorithm_step": "Schwellenwert – volle Punkte innerhalb des Radius, sonst Mindestpunktzahl",
+      "max_points_label": "Maximalpunktzahl",
+      "min_points_label": "Mindestpunktzahl",
+      "perfect_radius_label": "Volle-Punkte-Radius (Meter)",
+      "perfect_radius_hint": "Bis zu dieser Entfernung gibt es immer die Maximalpunktzahl.",
+      "distance_scale_label": "Abklingdistanz (Meter)",
+      "distance_scale_hint": "Nur beim exponentiellen Algorithmus: größerer Wert = Punkte sinken langsamer mit der Entfernung.",
+      "max_distance_label": "Entfernung bis Mindestpunktzahl (Meter)",
+      "max_distance_hint": "Nur beim linearen Algorithmus: ab dieser Entfernung gibt es nur noch die Mindestpunktzahl.",
+      "min_greater_than_max_error": "Die Mindestpunktzahl darf nicht höher sein als die Maximalpunktzahl.",
+      "max_distance_not_greater_error": "Die Entfernung bis Mindestpunktzahl muss größer sein als der Volle-Punkte-Radius."
+    },
     "map": {
       "section_title": "Kartendaten",
       "hint": "Kartenausschnitte von grob nach fein anlegen - z.B. weltweit mit wenig Detail für die Übersicht, dann einzelne Orte in hohem Detail. Für alle Fotostandorte (siehe Rundenfotos) wird beim Herunterladen automatisch hohes Detail sichergestellt, auch wenn ein Ausschnitt sie eigentlich nicht abdeckt.",

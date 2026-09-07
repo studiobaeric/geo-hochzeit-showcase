@@ -10,6 +10,11 @@ entries here turn into a tagged release with downloadable binaries.
 ## [Unreleased]
 
 ### Added
+- Config menu (`/config`) now has a "Punktevergabe" section for choosing how
+  a round's distance-to-target becomes points: the original exponential
+  decay, a linear falloff to a fixed distance, or a step/threshold cutoff
+  (full points inside a radius, minimum points beyond it), each with
+  adjustable max/min points and distances (#127).
 - Config menu (`/config`) now has a "Gefahrenzone" section at the very
   bottom with a "Spiel komplett zurücksetzen" button, running the same
   factory reset as `tools/reset_state.py` (via `POST /api/reset-to-defaults`)

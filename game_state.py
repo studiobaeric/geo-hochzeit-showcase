@@ -115,6 +115,27 @@ _DEFAULT_MAP_LABELS_CONFIG = {
     "hide_city_labels": False,
 }
 
+# How a round's distance-to-target is turned into points, editable at
+# runtime via the config menu (/config -> PATCH /api/scoring-config), per
+# #127. The server only stores/validates these settings - the actual
+# algorithms live in static/js/scoring-config.js's calculateRoundPoints(),
+# since that's where a placed guess's distance is already computed
+# (moderator.js).
+_DEFAULT_SCORING_CONFIG = {
+    "algorithm": "exponential",
+    "max_points": 1000,
+    "min_points": 100,
+    "perfect_radius_meters": 500,
+    "distance_scale_meters": 100000,
+    "max_distance_meters": 20000,
+}
+
+_SCORING_ALGORITHMS = {"exponential", "linear", "step"}
+_MIN_SCORING_POINTS = 0
+_MAX_SCORING_POINTS = 1_000_000
+_MIN_SCORING_DISTANCE = 1
+_MAX_SCORING_DISTANCE = 20_000_000  # generous upper bound; well past Earth's ~20,000km half-circumference
+
 # Live state of the current round's countdown. Unlike _round_config (a
 # durable setting), this is transient per-round state: it resets to
 # "not running" on every round advance, game reset, and server restart -
@@ -156,6 +177,7 @@ _round_config = dict(_DEFAULT_ROUND_CONFIG)
 _timer_state = dict(_DEFAULT_TIMER_STATE)
 _theme_config = dict(_DEFAULT_THEME_CONFIG)
 _map_labels_config = dict(_DEFAULT_MAP_LABELS_CONFIG)
+_scoring_config = dict(_DEFAULT_SCORING_CONFIG)
 _locale_config = dict(_DEFAULT_LOCALE_CONFIG)
 
 # keyed by (round_number, placed_by)
@@ -232,6 +254,7 @@ def _persist_locked():
         "timer_state": _timer_state,
         "theme_config": _theme_config,
         "map_labels_config": _map_labels_config,
+        "scoring_config": _scoring_config,
         "locale_config": _locale_config,
     }
 
@@ -260,7 +283,7 @@ def load_state_from_disk():
     contents is treated the same as "nothing to load" and leaves the
     current in-memory defaults untouched.
     """
-    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state, _theme_config, _map_labels_config, _locale_config
+    global _gamestate, _placed_points, _round_results, _player_config, _round_config, _timer_state, _theme_config, _map_labels_config, _scoring_config, _locale_config
 
     if not STATE_FILE or not os.path.isfile(STATE_FILE):
         return
@@ -352,6 +375,19 @@ def load_state_from_disk():
         else:
             logger.warning(
                 "Ignoring corrupted persisted map_labels_config in %s: %s",
+                STATE_FILE,
+                error or "missing fields",
+            )
+
+    loaded_scoring_config = payload.get("scoring_config")
+    if isinstance(loaded_scoring_config, dict):
+        known_scoring_config = {k: v for k, v in loaded_scoring_config.items() if k in _DEFAULT_SCORING_CONFIG}
+        error = _validate_scoring_config_updates(known_scoring_config)
+        if error is None and _DEFAULT_SCORING_CONFIG.keys() == known_scoring_config.keys():
+            _scoring_config = dict(known_scoring_config)
+        else:
+            logger.warning(
+                "Ignoring corrupted persisted scoring_config in %s: %s",
                 STATE_FILE,
                 error or "missing fields",
             )
@@ -732,6 +768,65 @@ def patch_map_labels_config():
     return jsonify(record)
 
 
+def _validate_scoring_config_updates(updates):
+    if "algorithm" in updates and updates["algorithm"] not in _SCORING_ALGORITHMS:
+        return f"algorithm must be one of: {', '.join(sorted(_SCORING_ALGORITHMS))}"
+
+    for field in ("max_points", "min_points"):
+        if field in updates:
+            value = updates[field]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < _MIN_SCORING_POINTS
+                or value > _MAX_SCORING_POINTS
+            ):
+                return f"{field} must be an integer between {_MIN_SCORING_POINTS} and {_MAX_SCORING_POINTS}"
+
+    for field in ("perfect_radius_meters", "distance_scale_meters", "max_distance_meters"):
+        if field in updates:
+            value = updates[field]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < _MIN_SCORING_DISTANCE
+                or value > _MAX_SCORING_DISTANCE
+            ):
+                return f"{field} must be an integer between {_MIN_SCORING_DISTANCE} and {_MAX_SCORING_DISTANCE}"
+
+    merged = {**_scoring_config, **updates}
+    if merged["min_points"] > merged["max_points"]:
+        return "min_points must not be greater than max_points"
+    if merged["max_distance_meters"] <= merged["perfect_radius_meters"]:
+        return "max_distance_meters must be greater than perfect_radius_meters"
+
+    return None
+
+
+@bp.route("/scoring-config", methods=["GET"])
+def get_scoring_config():
+    with _lock:
+        return jsonify(_scoring_config)
+
+
+@bp.route("/scoring-config", methods=["PATCH"])
+def patch_scoring_config():
+    updates = request.get_json(force=True) or {}
+
+    error = _validate_scoring_config_updates(updates)
+    if error:
+        return jsonify({"error": error}), 400
+
+    with _lock:
+        for key, value in updates.items():
+            if key in _DEFAULT_SCORING_CONFIG:
+                _scoring_config[key] = value
+        record = dict(_scoring_config)
+        _persist_locked()
+    _broadcast("scoring_config", record)
+    return jsonify(record)
+
+
 @bp.route("/points", methods=["POST"])
 def post_point():
     data = request.get_json(force=True) or {}
@@ -1017,6 +1112,7 @@ def events():
                 timer_snapshot = _timer_record_locked()
                 theme_snapshot = dict(_theme_config)
                 map_labels_snapshot = dict(_map_labels_config)
+                scoring_snapshot = dict(_scoring_config)
                 locale_snapshot = dict(_locale_config)
             yield f"event: gamestate\ndata: {json.dumps(snapshot)}\n\n"
             yield f"event: player_config\ndata: {json.dumps(config_snapshot)}\n\n"
@@ -1024,6 +1120,7 @@ def events():
             yield f"event: timer\ndata: {json.dumps(timer_snapshot)}\n\n"
             yield f"event: theme_config\ndata: {json.dumps(theme_snapshot)}\n\n"
             yield f"event: map_labels_config\ndata: {json.dumps(map_labels_snapshot)}\n\n"
+            yield f"event: scoring_config\ndata: {json.dumps(scoring_snapshot)}\n\n"
             yield f"event: locale_config\ndata: {json.dumps(locale_snapshot)}\n\n"
             while True:
                 try:

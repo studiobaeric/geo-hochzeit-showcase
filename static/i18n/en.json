@@ -154,6 +154,23 @@
       "duration_label": "Time limit per round (seconds)",
       "extend_label": "Extension per click (seconds)"
     },
+    "scoring": {
+      "section_title": "Scoring",
+      "hint": "Sets how a round's points are calculated from the distance between the guess and the target. Inside the full-points radius, the maximum score always applies - only beyond it does the chosen algorithm decide.",
+      "algorithm_exponential": "Exponential – points fall off smoothly with distance, a far guess still scores something",
+      "algorithm_linear": "Linear – points fall off evenly up to a fixed distance",
+      "algorithm_step": "Threshold – full points within the radius, minimum score otherwise",
+      "max_points_label": "Maximum score",
+      "min_points_label": "Minimum score",
+      "perfect_radius_label": "Full-points radius (meters)",
+      "perfect_radius_hint": "Up to this distance, the maximum score always applies.",
+      "distance_scale_label": "Falloff distance (meters)",
+      "distance_scale_hint": "Exponential algorithm only: a larger value means points fall off more slowly with distance.",
+      "max_distance_label": "Distance to minimum score (meters)",
+      "max_distance_hint": "Linear algorithm only: beyond this distance, only the minimum score applies.",
+      "min_greater_than_max_error": "The minimum score must not be higher than the maximum score.",
+      "max_distance_not_greater_error": "The distance to minimum score must be greater than the full-points radius."
+    },
     "map": {
       "section_title": "Map data",
       "hint": "Set up map regions from coarse to fine - e.g. a low-detail world overview, then individual places in high detail. For every photo location (see round photos), high detail is automatically ensured on download, even if a region wouldn't otherwise cover it.",

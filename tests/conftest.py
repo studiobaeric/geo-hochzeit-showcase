@@ -63,6 +63,8 @@ def _reset_module_state():
     game_state._theme_config.update(game_state._DEFAULT_THEME_CONFIG)
     game_state._map_labels_config.clear()
     game_state._map_labels_config.update(game_state._DEFAULT_MAP_LABELS_CONFIG)
+    game_state._scoring_config.clear()
+    game_state._scoring_config.update(game_state._DEFAULT_SCORING_CONFIG)
     game_state._locale_config.clear()
     game_state._locale_config.update(game_state._DEFAULT_LOCALE_CONFIG)
     game_state._subscribers.clear()
