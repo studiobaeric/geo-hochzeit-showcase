@@ -1,0 +1,266 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "of": "sur",
+    "uploading": "Téléversement en cours …",
+    "upload_failed": "Échec du téléversement.",
+    "delete_failed": "Échec de la suppression.",
+    "save_failed": "Échec de l'enregistrement.",
+    "reveal_section": "👁 Afficher la section",
+    "hide_section": "🙈 Masquer à nouveau",
+    "round_label": "Manche",
+    "points_suffix": "Points",
+    "player1_placeholder": "Joueur 1",
+    "player2_placeholder": "Joueur 2"
+  },
+  "api": {
+    "load_failed": "Échec du chargement ({status})",
+    "upload_failed": "Échec du téléversement ({status})",
+    "save_failed": "Échec de l'enregistrement ({status})",
+    "sort_failed": "Échec du tri ({status})",
+    "delete_failed": "Échec de la suppression ({status})",
+    "start_failed": "Échec du démarrage ({status})",
+    "status_failed": "Échec de la vérification du statut ({status})"
+  },
+  "start": {
+    "config_button_aria": "Ouvrir la configuration",
+    "language_button_aria": "Choisir la langue",
+    "subtitle": "Devinez les lieux à partir des photos de mariage !",
+    "how_to_play_title": "Comment jouer :",
+    "how_to_play": {
+      "step1": "Regarde la photo de mariage",
+      "step2": "Place ta supposition sur la carte",
+      "step3": "Gagne des points selon la proximité avec la position exacte",
+      "step4": "Plus tu es proche, plus tu gagnes de points !"
+    },
+    "role_aria": "Choisir un rôle",
+    "player1_button": "Joueur 1",
+    "player2_button": "Joueur 2",
+    "moderator_button": "Modérateur"
+  },
+  "game": {
+    "back_to_photo_button": "Retour à la photo",
+    "guess_button": "Valider la réponse",
+    "guess_locked_button": "Réponse validée !",
+    "guess_marker_popup": "Ta réponse",
+    "waiting_for_moderator": "En attente du modérateur",
+    "waiting_subtext": "Merci de regarder le vidéoprojecteur !",
+    "photo_alt": "Photo de mariage",
+    "reset_zoom_button": "Réinitialiser le zoom",
+    "to_map_button": "Vers la carte"
+  },
+  "moderator": {
+    "meta": {
+      "title": "Vue modérateur"
+    },
+    "player_left_aria": "Joueur de gauche",
+    "player_right_aria": "Joueur de droite",
+    "player_photo_alt_prefix": "Photo_",
+    "current_photo_alt": "Photo actuelle du joueur",
+    "current_photo_fallback": "Photo actuelle",
+    "waiting_for_start": "En attente du démarrage…",
+    "map_left_aria": "Carte joueur de gauche",
+    "map_right_aria": "Carte joueur de droite",
+    "controls_aria": "Contrôles du modérateur",
+    "round_prefix": "Manche :",
+    "lock_button_initial": "Autoriser la saisie des joueurs",
+    "allow_input_button": "Autoriser la saisie",
+    "deny_input_button": "Bloquer la saisie",
+    "timer_start_button": "Démarrer",
+    "pause_button": "Pause",
+    "resume_button": "Reprendre",
+    "resolve_round_button": "Révéler la manche",
+    "reset_game_button": "Réinitialiser la partie",
+    "resolution_aria": "Révélation",
+    "continue_button": "Continuer",
+    "round_result_title": "Résultat de la manche",
+    "player_guess_label": "Réponse de {name}",
+    "default_photo_position": "Position de la photo",
+    "locked_in_stamp": "Réponse validée",
+    "reset_confirm_text": "Vraiment réinitialiser la partie ? La progression actuelle sera perdue.",
+    "reset_confirm_label": "Réinitialiser"
+  },
+  "results": {
+    "meta": {
+      "title": "Kartenquiz - Résultats"
+    },
+    "heading": "Partie terminée !",
+    "subtitle": "Voici tes résultats :",
+    "winner_badge_aria": "Vainqueur",
+    "avg_distance_label": "Distance moy.",
+    "closest_guess_label": "Réponse la plus proche",
+    "furthest_guess_label": "Réponse la plus éloignée",
+    "no_results": "Aucun résultat disponible",
+    "go_home_button": "Retour à l'accueil"
+  },
+  "end_of_game": {
+    "heading": "Résultat final",
+    "credits_title": "Merci d'avoir développé ce jeu !",
+    "ai_label": "IA",
+    "map_aria": "Carte du résultat final",
+    "new_game_button": "Nouvelle partie",
+    "round_results_aria": "Résultats des manches",
+    "default_target_label": "Cible",
+    "no_round_results": "Aucun résultat de manche trouvé pour le moment."
+  },
+  "position_picker": {
+    "osm_attribution_suffix": " - Contributeurs",
+    "lat_label": "Latitude (lat)",
+    "lng_label": "Longitude (lng)",
+    "min_lon_label": "Longitude min. (min_lon)",
+    "min_lat_label": "Latitude min. (min_lat)",
+    "max_lon_label": "Longitude max. (max_lon)",
+    "max_lat_label": "Latitude max. (max_lat)",
+    "use_view_button": "Utiliser la vue actuelle de la carte",
+    "confirm_button": "Valider",
+    "point_title_with_name": "Choisir la position – {name}",
+    "point_title_default": "Choisir une position sur la carte",
+    "point_hint": "Touchez la carte, déplacez le marqueur ou saisissez les coordonnées ci-dessous.",
+    "offline_map_notice": "La carte hors ligne n'a pas encore été téléchargée – la carte en ligne est affichée.",
+    "bbox_title_with_name": "Choisir la zone de carte – {name}",
+    "bbox_title_default": "Choisir une zone de carte",
+    "bbox_hint": "Faites glisser les coins, déplacez/zoomez la carte et validez, ou saisissez la zone ci-dessous."
+  },
+  "config": {
+    "meta": {
+      "title": "Configuration – Kartenquiz"
+    },
+    "heading": "Configuration",
+    "subtitle": "Ajustez les paramètres du jeu.",
+    "player": {
+      "section_title": "Joueurs",
+      "photo_alt_1": "Photo du joueur 1",
+      "photo_alt_2": "Photo du joueur 2",
+      "change_photo": "Changer la photo",
+      "name_label_1": "Nom du joueur 1",
+      "name_label_2": "Nom du joueur 2",
+      "name_placeholder": "Nom"
+    },
+    "appearance": {
+      "section_title": "Apparence",
+      "dark_mode_label": "Mode sombre",
+      "dark_mode_aria": "Activer/désactiver le mode sombre",
+      "hide_labels_label": "Carte sans noms de lieux",
+      "hide_labels_aria": "Activer/désactiver la carte sans noms de lieux",
+      "hide_labels_hint": "Masque les noms de villes, régions et pays sur la carte de jeu, afin qu'ils ne révèlent pas l'emplacement pendant les réponses."
+    },
+    "round": {
+      "section_title": "Durée des manches",
+      "mode_manual": "Manuel – le modérateur révèle la manche en cliquant",
+      "mode_countdown": "Compte à rebours – la manche se termine automatiquement",
+      "duration_label": "Temps limite par manche (secondes)",
+      "extend_label": "Prolongation par clic (secondes)"
+    },
+    "map": {
+      "section_title": "Données cartographiques",
+      "hint": "Créez des zones de carte du plus large au plus précis - par ex. le monde entier avec peu de détails pour la vue d'ensemble, puis des lieux individuels en haute précision. Pour tous les emplacements de photos (voir Photos des manches), un niveau de détail élevé est automatiquement garanti lors du téléchargement, même si une zone ne les couvre pas déjà.",
+      "overview_title": "Carte d'ensemble",
+      "overview_hint": "Montre en un coup d'œil quelles zones ont déjà été téléchargées et lesquelles ne sont encore que planifiées, mais pas encore téléchargées. La couleur indique le niveau de détail. Cette carte d'ensemble elle-même ne nécessite aucune donnée cartographique téléchargée et reste toujours disponible, même sans connexion Internet.",
+      "overview_legend_coarse": "grossier (zoom 0)",
+      "overview_legend_detailed": "très détaillé (zoom 14)",
+      "overview_legend_downloaded": "téléchargé",
+      "overview_legend_planned": "planifié, pas encore téléchargé",
+      "overview_tooltip_downloaded": "{name} – téléchargé jusqu'au zoom {zoom}",
+      "overview_tooltip_planned": "{name} – planifié jusqu'au zoom {zoom} (pas encore téléchargé)",
+      "add_region_button": "ajouter une autre zone de carte",
+      "build_date_label": "Date de build Protomaps (facultatif)",
+      "build_date_placeholder": "vide = version la plus récente automatiquement",
+      "build_date_hint": "Laissez vide pour utiliser automatiquement la version la plus récente disponible lors du téléchargement (recommandé). Protomaps ne conserve les builds quotidiens que pendant environ 5 jours, une date fixée ici finira donc par devenir invalide. N'indiquez une date au format AAAAMMJJ (par ex. 20260810) que pour figer une version précise - aperçu des données disponibles sur",
+      "download_button": "Télécharger la carte maintenant",
+      "region_label": "Zone de carte",
+      "region_remove_title": "Supprimer la zone de carte",
+      "field_name": "Nom",
+      "field_detail": "Niveau de détail",
+      "bbox_label": "Zone de carte",
+      "bbox_min_lon": "Lon. min.",
+      "bbox_min_lat": "Lat. min.",
+      "bbox_max_lon": "Lon. max.",
+      "bbox_max_lat": "Lat. max.",
+      "bbox_pick_button": "Choisir sur la carte",
+      "coverage_hint": "Zone la plus détaillée : sera automatiquement étendue lors du téléchargement pour couvrir tous les emplacements de photos.",
+      "new_region_name": "Zone",
+      "download_start_error": "Le téléchargement n'a pas pu démarrer.",
+      "zoom": {
+        "0": "Continents",
+        "1": "Continents",
+        "2": "Continents / grands pays",
+        "3": "Pays",
+        "4": "Pays",
+        "5": "Régions / Länder (vue mondiale, quelques Mo)",
+        "6": "Régions / Länder",
+        "7": "Arrondissements",
+        "8": "Vue d'ensemble des villes",
+        "9": "Vue d'ensemble des villes",
+        "10": "Niveau ville, standard (~1,4 Go pour toute l'Europe)",
+        "11": "Réseau routier principal (~2,9 Go pour toute l'Europe)",
+        "12": "La plupart des routes (~6,5 Go pour toute l'Europe)",
+        "13": "Chaque petite route (~13 Go pour toute l'Europe)",
+        "14": "Niveau de détail maximal"
+      },
+      "build_status": {
+        "idle": "Aucune carte téléchargée pour le moment.",
+        "running": "Téléchargement de la carte en cours …",
+        "success": "Carte téléchargée avec succès.",
+        "error": "Erreur lors du téléchargement de la carte."
+      },
+      "progress": {
+        "resolving_pmtiles_cli": "Préparation de l'outil cartographique…",
+        "resolving_build_date": "Recherche de la version cartographique la plus récente…",
+        "merging": "Fusion des zones de carte…",
+        "done": "Terminé.",
+        "extracting_label": "Chargement de la zone de carte"
+      }
+    },
+    "photos": {
+      "section_title": "Photos des manches",
+      "hint": "Autant de photos que souhaité avec le lieu à deviner - aucune limite. Lors du choix d'un fichier, la position GPS des métadonnées de l'image est automatiquement reprise dans le champ de position si elle existe ; elle reste ensuite librement modifiable. L'ordre des photos détermine l'ordre des manches dans le jeu - il peut être modifié à tout moment avec les flèches ↑/↓. La section est masquée par défaut et n'apparaît qu'après un clic sur l'avertissement, afin de ne rien révéler accidentellement sur un écran partagé.",
+      "spoiler_warning": "Cette section contient les photos des manches.",
+      "add_button": "Ajouter une nouvelle photo de manche",
+      "new_photo_alt": "Nouvelle photo de manche",
+      "description_label": "Description",
+      "description_placeholder": "Description...",
+      "pick_position_button": "Choisir la position sur la carte",
+      "add_photo_button": "Ajouter la photo",
+      "move_up_aria": "Déplacer vers le haut",
+      "move_down_aria": "Déplacer vers le bas",
+      "photo_alt_default": "Photo de manche",
+      "delete_title": "Supprimer la photo de manche",
+      "pick_position_row_button": "Définir la position",
+      "delete_confirm": "Vraiment supprimer cette photo de manche ?",
+      "gps_hint_picked": "Position choisie sur la carte – peut être ajustée si besoin.",
+      "gps_hint_searching": "Recherche de la position dans les données de l'image …",
+      "gps_hint_found": "Position reprise des données de l'image – peut être ajustée sur la carte si besoin.",
+      "gps_hint_not_found": "Aucune position trouvée dans les données de l'image – veuillez la choisir sur la carte.",
+      "missing_position_error": "Veuillez choisir une position sur la carte.",
+      "cancel_add_button": "Annuler sans ajouter la photo"
+    },
+    "host": {
+      "section_title": "Connexion hôte",
+      "hint": "Adresse IP et code QR permettant aux invités (par ex. sur une tablette) d'ouvrir directement le jeu sur le même réseau Wi-Fi. La section est masquée par défaut afin que le code QR ne soit pas scanné par erreur par quelqu'un qui ne doit pas jouer.",
+      "spoiler_warning": "Cette section affiche un code QR pour rejoindre la partie.",
+      "loading_address": "Chargement de l'adresse …",
+      "address_error": "Impossible de charger l'adresse."
+    },
+    "danger": {
+      "section_title": "Zone de danger",
+      "hint": "Réinitialise de manière irréversible les noms des joueurs, les photos des joueurs, les photos des manches, les réglages de durée des manches et la progression actuelle de la partie à leurs valeurs par défaut. Les données cartographiques, l'apparence et la langue sont conservées.",
+      "reset_button": "Réinitialiser complètement la partie",
+      "confirm_message": "Cela supprime toutes les photos des joueurs et des manches, réinitialise les noms des joueurs et les réglages des manches, et ne peut pas être annulé. Saisissez \"Where2Win\" pour confirmer :",
+      "confirm_button": "Réinitialiser définitivement",
+      "success": "La partie a été réinitialisée à son état par défaut.",
+      "error": "Échec de la réinitialisation."
+    },
+    "buttons": {
+      "back": "Retour à la page d'accueil"
+    },
+    "unsaved": {
+      "title": "Modifications non enregistrées",
+      "text": "Il y a des modifications non enregistrées. Si vous quittez maintenant, elles seront perdues.",
+      "stay": "Continuer l'édition",
+      "leave": "Abandonner et quitter"
+    }
+  }
+}

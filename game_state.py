@@ -96,14 +96,14 @@ _THEME_MODES = {"light", "dark"}
 # choice made on one device (e.g. the moderator's laptop) applies to every
 # connected screen. "de" is the reference locale that every template/JS
 # string is authored in first - see static/i18n/de.json - with other
-# locales (currently just "en") added as complete key-for-key translations
+# locales (currently "en" and "fr") added as complete key-for-key translations
 # of it; a key missing from a non-German file falls back to German rather
 # than breaking the UI (see i18n.py).
 _DEFAULT_LOCALE_CONFIG = {
     "locale": "de",
 }
 
-_SUPPORTED_LOCALES = {"de", "en"}
+_SUPPORTED_LOCALES = {"de", "en", "fr"}
 
 # Whether the offline basemap hides place-name labels (settlement/region/
 # country names), editable at runtime via the config menu (/config -> PATCH
