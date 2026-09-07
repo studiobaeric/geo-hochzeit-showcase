@@ -1,0 +1,283 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "of": "de",
+    "uploading": "Subiendo …",
+    "upload_failed": "Error al subir.",
+    "delete_failed": "Error al eliminar.",
+    "save_failed": "Error al guardar.",
+    "reveal_section": "👁 Mostrar sección",
+    "hide_section": "🙈 Ocultar de nuevo",
+    "round_label": "Ronda",
+    "points_suffix": "puntos",
+    "player1_placeholder": "Jugador 1",
+    "player2_placeholder": "Jugador 2"
+  },
+  "api": {
+    "load_failed": "Error al cargar ({status})",
+    "upload_failed": "Error al subir ({status})",
+    "save_failed": "Error al guardar ({status})",
+    "sort_failed": "Error al ordenar ({status})",
+    "delete_failed": "Error al eliminar ({status})",
+    "start_failed": "Error al iniciar ({status})",
+    "status_failed": "Error al consultar el estado ({status})"
+  },
+  "start": {
+    "config_button_aria": "Abrir configuración",
+    "language_button_aria": "Elegir idioma",
+    "subtitle": "¡Adivina los lugares de las fotos de la boda!",
+    "how_to_play_title": "Cómo jugar:",
+    "how_to_play": {
+      "step1": "Mira la foto de la boda",
+      "step2": "Marca tu suposición en el mapa",
+      "step3": "Recibe puntos según la cercanía a la ubicación correcta",
+      "step4": "¡Cuanto más cerca, más puntos!"
+    },
+    "role_aria": "Elegir rol",
+    "player1_button": "Jugador 1",
+    "player2_button": "Jugador 2",
+    "moderator_button": "Moderador"
+  },
+  "game": {
+    "back_to_photo_button": "Volver a la foto",
+    "guess_button": "Enviar respuesta",
+    "guess_locked_button": "¡Respuesta enviada!",
+    "guess_marker_popup": "Tu respuesta",
+    "waiting_for_moderator": "Esperando al moderador",
+    "waiting_subtext": "¡Por favor, mira al proyector!",
+    "photo_alt": "Foto de la boda",
+    "reset_zoom_button": "Restablecer zoom",
+    "to_map_button": "Al mapa"
+  },
+  "moderator": {
+    "meta": {
+      "title": "Vista del moderador"
+    },
+    "player_left_aria": "Jugador izquierda",
+    "player_right_aria": "Jugador derecha",
+    "player_photo_alt_prefix": "Foto de ",
+    "current_photo_alt": "Foto actual del jugador",
+    "current_photo_fallback": "Foto actual",
+    "waiting_for_start": "Esperando el inicio…",
+    "map_left_aria": "Mapa jugador izquierda",
+    "map_right_aria": "Mapa jugador derecha",
+    "controls_aria": "Controles del moderador",
+    "round_prefix": "Ronda:",
+    "lock_button_initial": "Permitir entrada de jugadores",
+    "allow_input_button": "Permitir entrada",
+    "deny_input_button": "Bloquear entrada",
+    "timer_start_button": "Iniciar",
+    "pause_button": "Pausa",
+    "resume_button": "Reanudar",
+    "resolve_round_button": "Resolver ronda",
+    "reset_game_button": "Reiniciar juego",
+    "resolution_aria": "Resolución",
+    "continue_button": "Continuar",
+    "round_result_title": "Resultado de la ronda",
+    "player_guess_label": "Respuesta de {name}",
+    "default_photo_position": "Posición de la foto",
+    "locked_in_stamp": "Respuesta enviada",
+    "reset_confirm_text": "¿Reiniciar realmente el juego? El progreso actual se perderá.",
+    "reset_confirm_label": "Reiniciar"
+  },
+  "results": {
+    "meta": {
+      "title": "Where2Win - Resultados"
+    },
+    "heading": "¡Juego terminado!",
+    "subtitle": "Aquí están tus resultados:",
+    "winner_badge_aria": "Ganador",
+    "avg_distance_label": "Distancia media",
+    "closest_guess_label": "Respuesta más cercana",
+    "furthest_guess_label": "Respuesta más lejana",
+    "no_results": "No hay resultados disponibles",
+    "go_home_button": "Ir a la página de inicio"
+  },
+  "end_of_game": {
+    "heading": "Resultado final",
+    "credits_title": "¡Gracias por desarrollar esto!",
+    "ai_label": "IA",
+    "map_aria": "Mapa del resultado final",
+    "new_game_button": "Nuevo juego",
+    "round_results_aria": "Resultados de las rondas",
+    "default_target_label": "Objetivo",
+    "no_round_results": "Aún no se han encontrado resultados de rondas."
+  },
+  "position_picker": {
+    "osm_attribution_suffix": " colaboradores",
+    "lat_label": "Latitud (lat)",
+    "lng_label": "Longitud (lng)",
+    "min_lon_label": "Longitud mín. (min_lon)",
+    "min_lat_label": "Latitud mín. (min_lat)",
+    "max_lon_label": "Longitud máx. (max_lon)",
+    "max_lat_label": "Latitud máx. (max_lat)",
+    "use_view_button": "Usar la vista actual del mapa",
+    "confirm_button": "Aplicar",
+    "point_title_with_name": "Elegir posición – {name}",
+    "point_title_default": "Elegir posición en el mapa",
+    "point_hint": "Toca el mapa, arrastra el marcador o introduce las coordenadas abajo.",
+    "offline_map_notice": "El mapa sin conexión aún no se ha descargado – se muestra el mapa en línea.",
+    "bbox_title_with_name": "Elegir área del mapa – {name}",
+    "bbox_title_default": "Elegir área del mapa",
+    "bbox_hint": "Arrastra las esquinas, mueve/haz zoom en el mapa y aplica, o introduce el área del mapa abajo."
+  },
+  "config": {
+    "meta": {
+      "title": "Configuración – Where2Win"
+    },
+    "heading": "Configuración",
+    "subtitle": "Ajusta la configuración del juego.",
+    "player": {
+      "section_title": "Jugadores",
+      "photo_alt_1": "Foto del jugador 1",
+      "photo_alt_2": "Foto del jugador 2",
+      "change_photo": "Cambiar foto",
+      "name_label_1": "Nombre del jugador 1",
+      "name_label_2": "Nombre del jugador 2",
+      "name_placeholder": "Nombre"
+    },
+    "appearance": {
+      "section_title": "Apariencia",
+      "dark_mode_label": "Modo oscuro",
+      "dark_mode_aria": "Alternar modo oscuro",
+      "hide_labels_label": "Mapa sin nombres de lugares",
+      "hide_labels_aria": "Alternar mapa sin nombres de lugares",
+      "hide_labels_hint": "Oculta los nombres de ciudades, regiones y países en el mapa del juego para que no revelen la ubicación al adivinar."
+    },
+    "round": {
+      "section_title": "Tiempo de ronda",
+      "mode_manual": "Manual – el moderador resuelve la ronda con un clic",
+      "mode_countdown": "Cuenta atrás – la ronda termina automáticamente",
+      "duration_label": "Límite de tiempo por ronda (segundos)",
+      "extend_label": "Prolongación por clic (segundos)"
+    },
+    "scoring": {
+      "section_title": "Puntuación",
+      "hint": "Determina cómo se calculan los puntos de una ronda a partir de la distancia entre la respuesta y el objetivo. Dentro del radio de puntuación máxima siempre se otorga la puntuación máxima - solo más allá decide el algoritmo elegido.",
+      "algorithm_exponential": "Exponencial – los puntos bajan suavemente con la distancia, una respuesta lejana aún puntúa algo",
+      "algorithm_linear": "Lineal – los puntos bajan de forma uniforme hasta una distancia fija",
+      "algorithm_step": "Umbral – puntuación máxima dentro del radio, mínima en caso contrario",
+      "max_points_label": "Puntuación máxima",
+      "min_points_label": "Puntuación mínima",
+      "perfect_radius_label": "Radio de puntuación máxima (metros)",
+      "perfect_radius_hint": "Hasta esta distancia siempre se otorga la puntuación máxima.",
+      "distance_scale_label": "Distancia de caída (metros)",
+      "distance_scale_hint": "Solo para el algoritmo exponencial: un valor mayor hace que los puntos bajen más lentamente con la distancia.",
+      "max_distance_label": "Distancia hasta la puntuación mínima (metros)",
+      "max_distance_hint": "Solo para el algoritmo lineal: más allá de esta distancia, solo se aplica la puntuación mínima.",
+      "min_greater_than_max_error": "La puntuación mínima no puede ser mayor que la puntuación máxima.",
+      "max_distance_not_greater_error": "La distancia hasta la puntuación mínima debe ser mayor que el radio de puntuación máxima."
+    },
+    "map": {
+      "section_title": "Datos del mapa",
+      "hint": "Crea áreas del mapa de lo general a lo detallado - p. ej. todo el mundo con poco detalle para la vista general, luego lugares concretos con mucho detalle. Para todas las ubicaciones de fotos (ver fotos de ronda) se garantiza automáticamente mucho detalle al descargar, aunque un área en realidad no las cubra.",
+      "overview_title": "Mapa general",
+      "overview_hint": "Muestra de un vistazo qué áreas ya se han descargado y cuáles solo están planificadas como área del mapa pero aún no descargadas. El color indica el nivel de detalle. Este mapa general no necesita datos de mapa descargados y siempre está disponible, incluso sin conexión a internet.",
+      "overview_legend_coarse": "general (zoom 0)",
+      "overview_legend_detailed": "muy detallado (zoom 14)",
+      "overview_legend_downloaded": "descargado",
+      "overview_legend_planned": "planificado, aún no descargado",
+      "overview_tooltip_downloaded": "{name} – descargado hasta zoom {zoom}",
+      "overview_tooltip_planned": "{name} – planificado hasta zoom {zoom} (aún no descargado)",
+      "add_region_button": "añadir otra área del mapa",
+      "build_date_label": "Fecha de compilación de Protomaps (opcional)",
+      "build_date_placeholder": "vacío = automáticamente el más reciente",
+      "build_date_hint": "Déjalo vacío para usar automáticamente la versión más reciente disponible al descargar (recomendado). Protomaps solo conserva las compilaciones diarias durante unos 5 días, por lo que una fecha fija aquí acabará siendo inválida. Introduce una fecha en formato AAAAMMDD (p. ej. 20260810) solo para fijar una versión concreta - resumen de los datos disponibles en",
+      "download_button": "Descargar mapa ahora",
+      "region_label": "Área del mapa",
+      "region_remove_title": "Eliminar área del mapa",
+      "field_name": "Nombre",
+      "field_detail": "Nivel de detalle",
+      "bbox_label": "Área del mapa",
+      "bbox_min_lon": "Lon mín.",
+      "bbox_min_lat": "Lat mín.",
+      "bbox_max_lon": "Lon máx.",
+      "bbox_max_lat": "Lat máx.",
+      "bbox_pick_button": "Elegir en el mapa",
+      "coverage_hint": "Área con más detalle: se amplía automáticamente al descargar para cubrir todas las ubicaciones de las fotos.",
+      "new_region_name": "Área",
+      "download_start_error": "No se pudo iniciar la descarga.",
+      "zoom": {
+        "0": "Continentes",
+        "1": "Continentes",
+        "2": "Continentes / países grandes",
+        "3": "Países",
+        "4": "Países",
+        "5": "Estados / regiones (vista mundial, pocos MB)",
+        "6": "Estados / regiones",
+        "7": "Distritos",
+        "8": "Ciudades en general",
+        "9": "Ciudades en general",
+        "10": "Nivel de ciudad, estándar (~1,4 GB para toda Europa)",
+        "11": "Red de carreteras principales (~2,9 GB para toda Europa)",
+        "12": "La mayoría de las calles (~6,5 GB para toda Europa)",
+        "13": "Cada calle secundaria (~13 GB para toda Europa)",
+        "14": "Máximo nivel de detalle"
+      },
+      "build_status": {
+        "idle": "Aún no se ha descargado ningún mapa.",
+        "running": "Descargando mapa …",
+        "success": "Mapa descargado correctamente.",
+        "error": "Error al descargar el mapa."
+      },
+      "progress": {
+        "resolving_pmtiles_cli": "Preparando herramienta de mapas…",
+        "resolving_build_date": "Buscando la versión de mapa más reciente…",
+        "merging": "Combinando áreas del mapa…",
+        "done": "Listo.",
+        "extracting_label": "Cargando área del mapa"
+      }
+    },
+    "photos": {
+      "section_title": "Fotos de la ronda",
+      "hint": "Cualquier número de fotos con el lugar a adivinar - sin límite. Al seleccionar un archivo, si está disponible, la posición GPS de los datos de la imagen se copia automáticamente al campo de posición; después se puede cambiar libremente. El orden de las fotos determina el orden de las rondas en el juego - se puede cambiar en cualquier momento con las flechas ↑/↓. La sección está oculta de forma predeterminada y solo se muestra tras hacer clic en la advertencia de spoiler, para que no se revele nada por accidente en una pantalla compartida.",
+      "spoiler_warning": "Esta sección contiene las fotos de la ronda.",
+      "add_button": "Añadir nueva foto de ronda",
+      "new_photo_alt": "Nueva foto de ronda",
+      "description_label": "Descripción",
+      "description_placeholder": "Descripción...",
+      "pick_position_button": "Elegir posición en el mapa",
+      "add_photo_button": "Añadir foto",
+      "move_up_aria": "Mover hacia arriba",
+      "move_down_aria": "Mover hacia abajo",
+      "photo_alt_default": "Foto de ronda",
+      "delete_title": "Eliminar foto de ronda",
+      "pick_position_row_button": "Fijar posición",
+      "delete_confirm": "¿Eliminar realmente esta foto de ronda?",
+      "gps_hint_picked": "Posición elegida en el mapa – se puede ajustar si es necesario.",
+      "gps_hint_searching": "Buscando posición en los datos de la imagen …",
+      "gps_hint_found": "Posición tomada de los datos de la imagen – se puede ajustar en el mapa si es necesario.",
+      "gps_hint_not_found": "No se encontró ninguna posición en los datos de la imagen – selecciónala en el mapa.",
+      "missing_position_error": "Por favor, elige una posición en el mapa.",
+      "cancel_add_button": "Cancelar sin añadir la foto"
+    },
+    "host": {
+      "section_title": "Conexión del anfitrión",
+      "hint": "Dirección IP y código QR con los que los invitados (p. ej. en una tableta) pueden abrir el juego directamente en la misma red WLAN. La sección está oculta de forma predeterminada para que el código QR no lo escanee accidentalmente alguien que no debería jugar.",
+      "spoiler_warning": "Esta sección muestra un código QR para unirse.",
+      "loading_address": "Cargando dirección …",
+      "address_error": "No se pudo cargar la dirección."
+    },
+    "danger": {
+      "section_title": "Zona de peligro",
+      "hint": "Restablece de forma irreversible los nombres de los jugadores, las fotos de los jugadores, las fotos de ronda, la configuración del tiempo de ronda y el progreso actual del juego a sus valores predeterminados de fábrica. Los datos del mapa, la apariencia y el idioma se conservan.",
+      "reset_button": "Reiniciar todo el juego",
+      "confirm_message": "Esto elimina todas las fotos de los jugadores y de ronda, restablece los nombres de los jugadores y la configuración de ronda, y no se puede deshacer. Escribe \"Where2Win\" para confirmar:",
+      "confirm_button": "Reiniciar definitivamente",
+      "success": "El juego se ha restablecido a su estado predeterminado.",
+      "error": "Error al reiniciar."
+    },
+    "buttons": {
+      "back": "Volver a la página de inicio"
+    },
+    "unsaved": {
+      "title": "Cambios sin guardar",
+      "text": "Hay cambios sin guardar. Si sales ahora, se perderán.",
+      "stay": "Seguir editando",
+      "leave": "Descartar y salir"
+    }
+  }
+}

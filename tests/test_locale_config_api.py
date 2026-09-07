@@ -39,7 +39,7 @@ def test_patch_with_empty_body_does_not_error(client):
 @pytest.mark.parametrize(
     "bad_payload",
     [
-        {"locale": "es"},
+        {"locale": "xx"},
         {"locale": 123},
         {"locale": None},
         {"locale": ""},
