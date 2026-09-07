@@ -31,7 +31,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 DEFAULT_LOCALE = "de"
-SUPPORTED_LOCALES = ("de", "en", "es", "fr", "pt")
+SUPPORTED_LOCALES = ("de", "en", "es", "fr", "it", "pt")
 
 # Shown as option labels in the start page's language menu - each language
 # names itself, so no translation is needed.
@@ -40,6 +40,7 @@ LOCALE_NAMES = {
     "en": "English",
     "es": "Español",
     "fr": "Français",
+    "it": "Italiano",
     "pt": "Português",
 }
 
@@ -54,6 +55,7 @@ LOCALE_FLAGS = {
     "en": "gb.svg",
     "es": "es.svg",
     "fr": "fr.svg",
+    "it": "it.svg",
     "pt": "pt.svg",
 }
 
