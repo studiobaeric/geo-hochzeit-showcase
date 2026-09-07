@@ -41,7 +41,16 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Run tests
-        run: pytest -v
+        run: pytest -v --cov --cov-report=term-missing
+
+      - name: Write coverage summary
+        if: always()
+        run: |
+          {
+            echo "### Coverage"
+            echo
+            coverage report --format=markdown
+          } >> "$GITHUB_STEP_SUMMARY"
 
   e2e-smoke:
     name: End-to-end smoke test

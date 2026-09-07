@@ -1,0 +1,15 @@
+[run]
+branch = True
+source =
+    .
+omit =
+    tests/*
+    .venv/*
+    # Release-build script only runs via `tools/build_release.py` in the
+    # separate release workflow (see .github/workflows/release.yml), never
+    # under pytest - it would show a permanent, meaningless 0%.
+    tools/build_release.py
+
+[report]
+skip_empty = True
+precision = 1
