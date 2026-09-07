@@ -9,7 +9,7 @@ import { ensurePmtilesProtocol, createBaseMapLayer, createMarkerIcon, formatDist
 import { loadRoundConfig } from './round-config.js';
 import { loadThemeConfig } from './theme.js';
 import { loadMapLabelsConfig } from './map-labels-config.js';
-import { loadScoringConfig, getScoringConfig, calculateRoundPoints } from './scoring-config.js';
+import { loadScoringConfig, getScoringConfig, calculateRoundPoints, getRadiusBands } from './scoring-config.js';
 import { confirmDialog } from './confirm-dialog.js';
 import { t, tf } from './i18n.js';
 
@@ -57,6 +57,8 @@ const playerMapElements = {
 let currentPhoto = null;
 let resolutionMap = null;
 let locationMarker = null;
+let perfectRadiusCircle = null;
+let radiusBandLayers = [];
 let baseMapLayer = null;
 let resolutionPlayerMarkers = {};
 let latestPlayerRecords = {};
@@ -522,6 +524,23 @@ async function initModeratorMaps() {
     }, 200);
 }
 
+// Concentric orange-to-blue rings visualizing how the exponential/linear
+// algorithms' points decay beyond perfectRadiusCircle (#144 follow-up) -
+// see scoring-config.js's getRadiusBands() for the falloff math/coloring.
+// weight:0 (no border) and interactive:false keep them a pure color wash
+// that doesn't intercept clicks or add visual clutter of their own; drawn
+// outermost-first so smaller (hotter) rings layer on top of larger ones.
+function drawRadiusBands(latLng) {
+    return getRadiusBands(getScoringConfig()).map((band) => L.circle(latLng, {
+        radius: band.radius,
+        color: band.color,
+        weight: 0,
+        fillColor: band.color,
+        fillOpacity: 0.12,
+        interactive: false
+    }).addTo(resolutionMap));
+}
+
 async function initResolutionMap() {
     if (resolutionMap || !currentPhoto?.location) return;
 
@@ -552,6 +571,23 @@ async function initResolutionMap() {
     // far enough for the popup to fit, not re-center it - see #113) would
     // otherwise undo that centering instead of leaving it alone.
     locationMarker.bindPopup(currentPhoto.description || t('moderator.default_photo_position'), {autoPan: false}).openPopup();
+
+    radiusBandLayers = drawRadiusBands([lat, lng]);
+
+    // Full-points radius from the scoring config (#144) - an orange,
+    // semi-transparent circle so bugs in the scoring algorithms (a guess
+    // that scored max points despite clearly landing outside the circle,
+    // or vice versa) are visible at a glance. interactive:false keeps it
+    // from intercepting clicks meant for the marker/map underneath. Added
+    // after radiusBandLayers so it renders on top of them.
+    perfectRadiusCircle = L.circle([lat, lng], {
+        radius: getScoringConfig().perfect_radius_meters,
+        color: '#f97316',
+        weight: 2,
+        fillColor: '#f97316',
+        fillOpacity: 0.15,
+        interactive: false
+    }).addTo(resolutionMap);
 }
 
 async function showResolutionView() {
@@ -572,6 +608,16 @@ async function showResolutionView() {
         locationMarker.setLatLng([lat, lng]);
         locationMarker.setPopupContent(currentPhoto.description || t('moderator.default_photo_position'));
         locationMarker.openPopup();
+        perfectRadiusCircle.setLatLng([lat, lng]);
+        perfectRadiusCircle.setRadius(getScoringConfig().perfect_radius_meters);
+        // Bands are recreated fresh each round rather than resized in place
+        // - the scoring config (and so the band count/radii/colors) could
+        // have changed since the last round, e.g. via /config in another
+        // tab - then brought back on top of the freshly (re-)added bands,
+        // which would otherwise render on top of it.
+        radiusBandLayers.forEach((layer) => layer.remove());
+        radiusBandLayers = drawRadiusBands([lat, lng]);
+        perfectRadiusCircle.bringToFront();
         syncResolutionPlayerMarkers();
 
         setTimeout(() => {

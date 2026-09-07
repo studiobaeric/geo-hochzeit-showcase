@@ -10,6 +10,14 @@ entries here turn into a tagged release with downloadable binaries.
 ## [Unreleased]
 
 ### Added
+- The scoring config's "full points" radius (`perfect_radius_meters`, #127)
+  is now drawn as an orange, semi-transparent circle around the target-
+  location marker on the moderator's round-result map and the end-of-game
+  map, making it easy to spot a scoring algorithm giving/withholding full
+  points incorrectly. For the exponential/linear algorithms, concentric
+  rings beyond that circle fade from orange to blue to visualize how points
+  decay with distance (no such falloff to show for the step algorithm's
+  hard cutoff) (#144).
 - Config menu (`/config`) now has a "Punktevergabe" section for choosing how
   a round's distance-to-target becomes points: the original exponential
   decay, a linear falloff to a fixed distance, or a step/threshold cutoff

@@ -4,6 +4,7 @@ import { resetGameState } from './multiplayer.js';
 import { loadResultCollection, getSortedResults } from './round-results.js';
 import { loadThemeConfig, subscribeThemeUpdates } from './theme.js';
 import { loadMapLabelsConfig, subscribeMapLabelsUpdates } from './map-labels-config.js';
+import { loadScoringConfig, getScoringConfig, getRadiusBands } from './scoring-config.js';
 import { t, subscribeLocaleUpdates } from './i18n.js';
 
 loadThemeConfig();
@@ -11,6 +12,18 @@ subscribeThemeUpdates();
 loadMapLabelsConfig();
 subscribeMapLabelsUpdates();
 subscribeLocaleUpdates();
+
+// No live subscription for this one, unlike theme/map-labels (cosmetic
+// chrome for a screen that sits on display between games) - the scoring
+// config only needs to be correct for the round data this page renders
+// once, right after the game ends. A 3rd persistent /api/events connection
+// here (on top of theme's and map-labels' own) risks the connection-
+// scarcity issue theme.js's subscribeThemeUpdates warns about: with
+// player1/player2 already holding their own connections open via
+// multiplayer.js, browsers cap concurrent HTTP/1.1 connections per origin
+// at 6, and this page alone would already account for 3 of them. Awaited
+// (unlike loadThemeConfig()/loadMapLabelsConfig() above) inside
+// initEndOfGamePage() itself - see there for why.
 
 const endGameMapElement = document.getElementById('endGameMap');
 const roundListElement = document.getElementById('roundList');
@@ -130,6 +143,34 @@ function renderRoundMap(roundResult) {
         }).addTo(endGameMap));
 
         bindPermanentMarkerLabel(goalMarker, roundResult.photo?.description || t('end_of_game.default_target_label'));
+
+        // Concentric orange-to-blue rings visualizing how the exponential/
+        // linear algorithms' points decay beyond the full-points radius
+        // (#144 follow-up) - see scoring-config.js's getRadiusBands() for
+        // the falloff math/coloring. Added before the full-points circle
+        // below so that circle renders on top of them.
+        getRadiusBands(getScoringConfig()).forEach((band) => {
+            addLayer(L.circle(photoLatLng, {
+                radius: band.radius,
+                color: band.color,
+                weight: 0,
+                fillColor: band.color,
+                fillOpacity: 0.12,
+                interactive: false
+            }).addTo(endGameMap));
+        });
+
+        // Full-points radius from the scoring config (#144) - same
+        // orange/transparent treatment as moderator.js's resolution map, so
+        // the two round-result views read consistently.
+        addLayer(L.circle(photoLatLng, {
+            radius: getScoringConfig().perfect_radius_meters,
+            color: '#f97316',
+            weight: 2,
+            fillColor: '#f97316',
+            fillOpacity: 0.15,
+            interactive: false
+        }).addTo(endGameMap));
     }
 
     Object.entries(roundResult.players || {}).forEach(([playerName, playerResult]) => {
@@ -234,6 +275,11 @@ async function initEndOfGamePage() {
     await loadDisplayNames();
     applyDisplayNames();
 
+    // Awaited (unlike loadResultCollection() right after it) so
+    // renderRoundMap()'s first call - from renderRoundList() below - always
+    // reads the real perfect_radius_meters, not scoring-config.js's 500m
+    // default from a fetch that hadn't resolved yet.
+    await loadScoringConfig();
     const resultCollection = await loadResultCollection();
 
     await initMap();
