@@ -1,0 +1,283 @@
+{
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "confirm": "Bevestigen",
+    "close": "Sluiten",
+    "of": "van",
+    "uploading": "Uploaden …",
+    "upload_failed": "Uploaden mislukt.",
+    "delete_failed": "Verwijderen mislukt.",
+    "save_failed": "Opslaan mislukt.",
+    "reveal_section": "👁 Sectie tonen",
+    "hide_section": "🙈 Weer verbergen",
+    "round_label": "Ronde",
+    "points_suffix": "punten",
+    "player1_placeholder": "Speler 1",
+    "player2_placeholder": "Speler 2"
+  },
+  "api": {
+    "load_failed": "Laden mislukt ({status})",
+    "upload_failed": "Uploaden mislukt ({status})",
+    "save_failed": "Opslaan mislukt ({status})",
+    "sort_failed": "Sorteren mislukt ({status})",
+    "delete_failed": "Verwijderen mislukt ({status})",
+    "start_failed": "Starten mislukt ({status})",
+    "status_failed": "Statusaanvraag mislukt ({status})"
+  },
+  "start": {
+    "config_button_aria": "Configuratie openen",
+    "language_button_aria": "Taal kiezen",
+    "subtitle": "Raad de locaties van de trouwfoto's!",
+    "how_to_play_title": "Hoe te spelen:",
+    "how_to_play": {
+      "step1": "Bekijk de trouwfoto",
+      "step2": "Markeer je gok op de kaart",
+      "step3": "Verdien punten op basis van hoe dicht je bij de werkelijke locatie zit",
+      "step4": "Hoe dichterbij, hoe meer punten je krijgt!"
+    },
+    "role_aria": "Rol kiezen",
+    "player1_button": "Speler 1",
+    "player2_button": "Speler 2",
+    "moderator_button": "Moderator"
+  },
+  "game": {
+    "back_to_photo_button": "Terug naar foto",
+    "guess_button": "Gok indienen",
+    "guess_locked_button": "Gok ingediend!",
+    "guess_marker_popup": "Jouw gok",
+    "waiting_for_moderator": "Wachten op moderator",
+    "waiting_subtext": "Kijk naar de beamer!",
+    "photo_alt": "Trouwfoto",
+    "reset_zoom_button": "Zoom resetten",
+    "to_map_button": "Naar de kaart"
+  },
+  "moderator": {
+    "meta": {
+      "title": "Moderatorweergave"
+    },
+    "player_left_aria": "Speler links",
+    "player_right_aria": "Speler rechts",
+    "player_photo_alt_prefix": "Foto_",
+    "current_photo_alt": "Huidige spelerfoto",
+    "current_photo_fallback": "Huidige foto",
+    "waiting_for_start": "Wachten op start…",
+    "map_left_aria": "Kaart speler links",
+    "map_right_aria": "Kaart speler rechts",
+    "controls_aria": "Moderatorbediening",
+    "round_prefix": "Ronde:",
+    "lock_button_initial": "Spelersinvoer toestaan",
+    "allow_input_button": "Invoer toestaan",
+    "deny_input_button": "Invoer weigeren",
+    "timer_start_button": "Start",
+    "pause_button": "Pauze",
+    "resume_button": "Hervatten",
+    "resolve_round_button": "Ronde afsluiten",
+    "reset_game_button": "Spel resetten",
+    "resolution_aria": "Oplossing",
+    "continue_button": "Verder",
+    "round_result_title": "Ronderesultaat",
+    "player_guess_label": "Gok van {name}",
+    "default_photo_position": "Fotolocatie",
+    "locked_in_stamp": "Gok ingediend",
+    "reset_confirm_text": "Spel echt resetten? De huidige voortgang gaat dan verloren.",
+    "reset_confirm_label": "Resetten"
+  },
+  "results": {
+    "meta": {
+      "title": "Where2Win - Resultaten"
+    },
+    "heading": "Spel afgelopen!",
+    "subtitle": "Hier zijn je resultaten:",
+    "winner_badge_aria": "Winnaar",
+    "avg_distance_label": "Gem. afstand",
+    "closest_guess_label": "Dichtstbijzijnde gok",
+    "furthest_guess_label": "Verste gok",
+    "no_results": "Geen resultaten beschikbaar",
+    "go_home_button": "Terug naar start"
+  },
+  "end_of_game": {
+    "heading": "Eindresultaat",
+    "credits_title": "Bedankt voor het ontwikkelen!",
+    "ai_label": "AI",
+    "map_aria": "Kaart eindresultaat",
+    "new_game_button": "Nieuw spel",
+    "round_results_aria": "Ronderesultaten",
+    "default_target_label": "Doel",
+    "no_round_results": "Nog geen ronderesultaten gevonden."
+  },
+  "position_picker": {
+    "osm_attribution_suffix": "-medewerkers",
+    "lat_label": "Breedtegraad (lat)",
+    "lng_label": "Lengtegraad (lng)",
+    "min_lon_label": "Min. lengtegraad (min_lon)",
+    "min_lat_label": "Min. breedtegraad (min_lat)",
+    "max_lon_label": "Max. lengtegraad (max_lon)",
+    "max_lat_label": "Max. breedtegraad (max_lat)",
+    "use_view_button": "Huidige kaartweergave gebruiken",
+    "confirm_button": "Toepassen",
+    "point_title_with_name": "Positie kiezen – {name}",
+    "point_title_default": "Positie op de kaart kiezen",
+    "point_hint": "Tik op de kaart, sleep de markering of vul de coördinaten hieronder in.",
+    "offline_map_notice": "De offline kaart is nog niet gedownload – online kaart wordt getoond.",
+    "bbox_title_with_name": "Kaartgebied kiezen – {name}",
+    "bbox_title_default": "Kaartgebied kiezen",
+    "bbox_hint": "Sleep de hoekpunten, verschuif/zoom de kaart en pas toe, of vul het kaartgebied hieronder in."
+  },
+  "config": {
+    "meta": {
+      "title": "Configuratie – Where2Win"
+    },
+    "heading": "Configuratie",
+    "subtitle": "Pas de spelinstellingen aan.",
+    "player": {
+      "section_title": "Spelers",
+      "photo_alt_1": "Foto speler 1",
+      "photo_alt_2": "Foto speler 2",
+      "change_photo": "Foto wijzigen",
+      "name_label_1": "Naam speler 1",
+      "name_label_2": "Naam speler 2",
+      "name_placeholder": "Naam"
+    },
+    "appearance": {
+      "section_title": "Weergave",
+      "dark_mode_label": "Donkere modus",
+      "dark_mode_aria": "Donkere modus omschakelen",
+      "hide_labels_label": "Kaart zonder plaatsnamen",
+      "hide_labels_aria": "Kaart zonder plaatsnamen omschakelen",
+      "hide_labels_hint": "Verbergt stads-, regio- en landnamen op de spelkaart, zodat ze tijdens het raden niet verraden waar je bent."
+    },
+    "round": {
+      "section_title": "Rondetijd",
+      "mode_manual": "Handmatig – de moderator sluit de ronde af met een klik",
+      "mode_countdown": "Aftellen – de ronde eindigt automatisch",
+      "duration_label": "Tijdslimiet per ronde (seconden)",
+      "extend_label": "Verlenging per klik (seconden)"
+    },
+    "scoring": {
+      "section_title": "Puntentelling",
+      "hint": "Bepaalt hoe de punten van een ronde worden berekend op basis van de afstand tussen gok en doel. Binnen de straal voor volle punten geldt altijd het maximale aantal punten - pas daarbuiten bepaalt het gekozen algoritme.",
+      "algorithm_exponential": "Exponentieel – punten nemen geleidelijk af met de afstand, een verre gok levert nog iets op",
+      "algorithm_linear": "Lineair – punten nemen gelijkmatig af tot een vaste afstand",
+      "algorithm_step": "Drempelwaarde – volle punten binnen de straal, anders minimumscore",
+      "max_points_label": "Maximumscore",
+      "min_points_label": "Minimumscore",
+      "perfect_radius_label": "Straal voor volle punten (meter)",
+      "perfect_radius_hint": "Tot deze afstand geldt altijd het maximale aantal punten.",
+      "distance_scale_label": "Afvlakkingsafstand (meter)",
+      "distance_scale_hint": "Alleen bij het exponentiële algoritme: een hogere waarde betekent dat de punten langzamer afnemen met de afstand.",
+      "max_distance_label": "Afstand tot minimumscore (meter)",
+      "max_distance_hint": "Alleen bij het lineaire algoritme: vanaf deze afstand geldt alleen nog de minimumscore.",
+      "min_greater_than_max_error": "De minimumscore mag niet hoger zijn dan de maximumscore.",
+      "max_distance_not_greater_error": "De afstand tot de minimumscore moet groter zijn dan de straal voor volle punten."
+    },
+    "map": {
+      "section_title": "Kaartgegevens",
+      "hint": "Stel kaartgebieden in van grof naar fijn - bijv. een wereldoverzicht met weinig detail, daarna afzonderlijke plaatsen in hoog detail. Voor elke fotolocatie (zie rondefoto's) wordt bij het downloaden automatisch hoog detail gegarandeerd, zelfs als een gebied deze anders niet zou dekken.",
+      "overview_title": "Overzichtskaart",
+      "overview_hint": "Toont in één oogopslag welke gebieden al zijn gedownload en welke alleen als kaartgebied gepland maar nog niet gedownload zijn. De kleur toont het detailniveau. Deze overzichtskaart zelf heeft geen gedownloade kaartgegevens nodig en is altijd beschikbaar, zelfs volledig offline.",
+      "overview_legend_coarse": "grof (zoom 0)",
+      "overview_legend_detailed": "zeer gedetailleerd (zoom 14)",
+      "overview_legend_downloaded": "gedownload",
+      "overview_legend_planned": "gepland, nog niet gedownload",
+      "overview_tooltip_downloaded": "{name} – gedownload tot zoom {zoom}",
+      "overview_tooltip_planned": "{name} – gepland tot zoom {zoom} (nog niet gedownload)",
+      "add_region_button": "nog een kaartgebied toevoegen",
+      "build_date_label": "Protomaps-builddatum (optioneel)",
+      "build_date_placeholder": "leeg = automatisch nieuwste",
+      "build_date_hint": "Leeg laten om bij het downloaden automatisch de nieuwste beschikbare build te gebruiken (aanbevolen). Protomaps bewaart dagelijkse builds slechts ongeveer 5 dagen, dus een hier vast ingevulde datum wordt op een gegeven moment ongeldig. Vul alleen een datum in het formaat JJJJMMDD in (bijv. 20260810) om een specifieke build vast te leggen - overzicht van beschikbare datums op",
+      "download_button": "Kaart nu downloaden",
+      "region_label": "Kaartgebied",
+      "region_remove_title": "Kaartgebied verwijderen",
+      "field_name": "Naam",
+      "field_detail": "Detailniveau",
+      "bbox_label": "Kaartgebied",
+      "bbox_min_lon": "Min. lon",
+      "bbox_min_lat": "Min. lat",
+      "bbox_max_lon": "Max. lon",
+      "bbox_max_lat": "Max. lat",
+      "bbox_pick_button": "Op kaart kiezen",
+      "coverage_hint": "Meest gedetailleerde gebied: wordt bij het downloaden automatisch uitgebreid zodat alle fotolocaties gedekt zijn.",
+      "new_region_name": "Gebied",
+      "download_start_error": "Download kon niet worden gestart.",
+      "zoom": {
+        "0": "Continenten",
+        "1": "Continenten",
+        "2": "Continenten / grote landen",
+        "3": "Landen",
+        "4": "Landen",
+        "5": "Deelstaten / regio's (wereldoverzicht, enkele MB's)",
+        "6": "Deelstaten / regio's",
+        "7": "Districten",
+        "8": "Steden, overzicht",
+        "9": "Steden, overzicht",
+        "10": "Stadsniveau, standaard (~1,4 GB voor heel Europa)",
+        "11": "Hoofdwegennet (~2,9 GB voor heel Europa)",
+        "12": "De meeste wegen (~6,5 GB voor heel Europa)",
+        "13": "Elke zijstraat (~13 GB voor heel Europa)",
+        "14": "Maximaal detail"
+      },
+      "build_status": {
+        "idle": "Nog geen kaart gedownload.",
+        "running": "Kaart wordt gedownload …",
+        "success": "Kaart succesvol gedownload.",
+        "error": "Fout bij het downloaden van de kaart."
+      },
+      "progress": {
+        "resolving_pmtiles_cli": "Kaarttool wordt voorbereid…",
+        "resolving_build_date": "Nieuwste beschikbare kaartversie opzoeken…",
+        "merging": "Kaartgebieden worden samengevoegd…",
+        "done": "Klaar.",
+        "extracting_label": "Kaartgebied wordt gedownload"
+      }
+    },
+    "photos": {
+      "section_title": "Rondefoto's",
+      "hint": "Een willekeurig aantal foto's van de te raden locatie - geen bovengrens. Bij het kiezen van een bestand wordt, indien aanwezig, de GPS-positie uit de beeldgegevens automatisch in het positieveld overgenomen; deze kan daarna nog vrij worden aangepast. De volgorde van de foto's bepaalt de rondevolgorde in het spel - gebruik de ↑/↓-pijlen om deze op elk moment te wijzigen. Deze sectie is standaard verborgen en verschijnt pas na het klikken op de spoilerwaarschuwing, zodat er niets per ongeluk wordt verraden op een gedeeld scherm.",
+      "spoiler_warning": "Deze sectie bevat de rondefoto's.",
+      "add_button": "Nieuwe rondefoto toevoegen",
+      "new_photo_alt": "Nieuwe rondefoto",
+      "description_label": "Beschrijving",
+      "description_placeholder": "Beschrijving...",
+      "pick_position_button": "Positie op kaart kiezen",
+      "add_photo_button": "Foto toevoegen",
+      "move_up_aria": "Omhoog verplaatsen",
+      "move_down_aria": "Omlaag verplaatsen",
+      "photo_alt_default": "Rondefoto",
+      "delete_title": "Rondefoto verwijderen",
+      "pick_position_row_button": "Positie instellen",
+      "delete_confirm": "Deze rondefoto echt verwijderen?",
+      "gps_hint_picked": "Positie op de kaart gekozen – kan indien nodig nog worden aangepast.",
+      "gps_hint_searching": "Positie zoeken in de beeldgegevens …",
+      "gps_hint_found": "Positie overgenomen uit de beeldgegevens – kan indien nodig via de kaart worden aangepast.",
+      "gps_hint_not_found": "Geen positie gevonden in de beeldgegevens – kies er een via de kaart.",
+      "missing_position_error": "Kies een positie via de kaart.",
+      "cancel_add_button": "Annuleren zonder de foto toe te voegen"
+    },
+    "host": {
+      "section_title": "Hostverbinding",
+      "hint": "IP-adres en QR-code waarmee gasten (bijv. op een tablet) het spel direct kunnen openen op hetzelfde wifinetwerk. Deze sectie is standaard verborgen zodat de QR-code niet per ongeluk wordt gescand door iemand die niet mag meespelen.",
+      "spoiler_warning": "Deze sectie toont een QR-code om mee te doen.",
+      "loading_address": "Adres wordt geladen …",
+      "address_error": "Adres kon niet worden geladen."
+    },
+    "danger": {
+      "section_title": "Gevarenzone",
+      "hint": "Zet spelersnamen, spelersfoto's, rondefoto's, rondetijdinstellingen en de huidige spelvoortgang onherroepelijk terug naar de standaardwaarden. Kaartgegevens, weergave en taalinstelling blijven behouden.",
+      "reset_button": "Spel volledig resetten",
+      "confirm_message": "Dit verwijdert alle spelers- en rondefoto's, zet spelersnamen en rondeinstellingen terug en kan niet ongedaan worden gemaakt. Typ \"Where2Win\" om te bevestigen:",
+      "confirm_button": "Definitief resetten",
+      "success": "Het spel is teruggezet naar de standaardwaarden.",
+      "error": "Resetten mislukt."
+    },
+    "buttons": {
+      "back": "Terug naar startpagina"
+    },
+    "unsaved": {
+      "title": "Niet-opgeslagen wijzigingen",
+      "text": "Er zijn niet-opgeslagen wijzigingen. Als je nu weggaat, gaan ze verloren.",
+      "stay": "Verder bewerken",
+      "leave": "Verwerpen en verlaten"
+    }
+  }
+}

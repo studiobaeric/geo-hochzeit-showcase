@@ -103,7 +103,7 @@ _DEFAULT_LOCALE_CONFIG = {
     "locale": "de",
 }
 
-_SUPPORTED_LOCALES = {"de", "en", "es", "fr", "it", "pt"}
+_SUPPORTED_LOCALES = {"de", "en", "es", "fr", "it", "pt", "nl"}
 
 # Whether the offline basemap hides place-name labels (settlement/region/
 # country names), editable at runtime via the config menu (/config -> PATCH

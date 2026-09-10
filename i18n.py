@@ -31,7 +31,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 DEFAULT_LOCALE = "de"
-SUPPORTED_LOCALES = ("de", "en", "es", "fr", "it", "pt")
+SUPPORTED_LOCALES = ("de", "en", "es", "fr", "it", "pt", "nl")
 
 # Shown as option labels in the start page's language menu - each language
 # names itself, so no translation is needed.
@@ -42,6 +42,7 @@ LOCALE_NAMES = {
     "fr": "Français",
     "it": "Italiano",
     "pt": "Português",
+    "nl": "Nederlands",
 }
 
 # Flag icon (static/img/flags/<file>) shown next to each language's name in
@@ -57,6 +58,7 @@ LOCALE_FLAGS = {
     "fr": "fr.svg",
     "it": "it.svg",
     "pt": "pt.svg",
+    "nl": "nl.svg",
 }
 
 # Released binaries (see tools/build_release.py) ship this module frozen
