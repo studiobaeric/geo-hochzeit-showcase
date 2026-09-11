@@ -228,6 +228,71 @@ def test_build_effective_bbox_covers_out_of_range_photo(client, monkeypatch, tmp
     assert status["config_used"]["regions"][1]["effective_bbox"] == detail_region["effective_bbox"]
 
 
+def test_build_effective_bbox_unions_across_multiple_regions(client, monkeypatch, tmp_path):
+    """Regression check for #23: with 3+ configured regions given out of
+    maxzoom order, only the most detailed (highest-maxzoom) region's
+    effective_bbox may absorb photo locations, and the result must be a
+    true union across photos scattered on opposite sides of that region's
+    bbox (not just whichever single photo happens to be widest on one
+    axis)."""
+    photos_file = tmp_path / "photos.json"
+    photos_file.write_text(
+        json.dumps(
+            [
+                # Outside the detail region to the south-west.
+                {"id": 1, "location": {"lat": 40.0, "lng": -10.0}},
+                # Outside the detail region to the north-east.
+                {"id": 2, "location": {"lat": 65.0, "lng": 40.0}},
+            ]
+        )
+    )
+    monkeypatch.setattr(map_build, "PHOTOS_FILE", str(photos_file))
+    client.patch(
+        "/api/map/config",
+        json={
+            "regions": [
+                # Deliberately not sorted by maxzoom, to verify the union
+                # still lands on the highest-maxzoom region regardless of
+                # input order.
+                {"name": "Detail", "bbox": "5,47,15,55", "maxzoom": 13},
+                {"name": "Mid", "bbox": "-10,30,30,60", "maxzoom": 8},
+                {"name": "Welt", "bbox": "-180,-90,180,90", "maxzoom": 5},
+            ]
+        },
+    )
+
+    captured = {}
+
+    def capturing_runner(config, log_callback):
+        captured.update(config)
+        return 0
+
+    monkeypatch.setattr(map_build, "_build_runner", capturing_runner)
+
+    client.post("/api/map/build")
+    _wait_until_not_running(client)
+
+    by_name = {r["name"]: r for r in captured["regions"]}
+    detail_min_lon, detail_min_lat, detail_max_lon, detail_max_lat = (
+        float(v) for v in by_name["Detail"]["effective_bbox"].split(",")
+    )
+
+    # Union must widen in both directions independently: south-west from
+    # photo 1, north-east from photo 2.
+    assert detail_min_lon <= -10.0
+    assert detail_min_lat <= 40.0
+    assert detail_max_lon >= 40.0
+    assert detail_max_lat >= 65.0
+
+    # Still covers the region's own original bbox.
+    assert detail_min_lon <= 5.0 and detail_max_lon >= 15.0
+    assert detail_min_lat <= 47.0 and detail_max_lat >= 55.0
+
+    # Every other region must be untouched by the photo bbox.
+    assert by_name["Mid"]["effective_bbox"] == by_name["Mid"]["bbox"]
+    assert by_name["Welt"]["effective_bbox"] == by_name["Welt"]["bbox"]
+
+
 # --- default runner (in-process build_basemap.build() call) + regions file -
 
 
